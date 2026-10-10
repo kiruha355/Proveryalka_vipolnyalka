@@ -1,0 +1,82 @@
+erDiagram
+  SESSION ||--o{ AGENT_MESSAGE : "история диалога"
+  SESSION ||--o{ SOURCE : "материалы"
+  SESSION ||--o{ REQUIREMENT : "требования"
+  SOURCE ||--o{ REQUIREMENT : "нарезано из"
+  SESSION ||--o{ MODEL : "модели"
+  MODEL ||--|{ MODEL_VERSION : "версии"
+  MODEL_VERSION |o--o{ MODEL_VERSION : "родитель"
+  MODEL_VERSION ||--o{ CHECK_RUN : "проверки"
+  MODEL_VERSION ||--o{ ARTIFACT : "код и тесты"
+  MODEL_VERSION ||--o{ TEST_RUN : "прогоны тестов"
+
+  SESSION {
+    text id PK
+    text title
+    text mode "analyzer, debugger, overview, codegen"
+    datetime created_at
+  }
+  AGENT_MESSAGE {
+    int id PK
+    text session_id FK
+    json message_data "формат Agents SDK"
+    datetime created_at
+  }
+  SOURCE {
+    text id PK
+    text session_id FK
+    text kind "text, file, image, repo, api"
+    text uri
+    text stored_path
+    text sha256
+    text commit_sha "для репозитория"
+  }
+  REQUIREMENT {
+    text id PK
+    text session_id FK
+    text source_id FK
+    text code "R1, R2"
+    text text
+  }
+  MODEL {
+    text id PK
+    text session_id FK
+    text name
+  }
+  MODEL_VERSION {
+    text id PK
+    text model_id FK
+    int number
+    text parent_id FK
+    text author "agent или user"
+    json spec "BehavioralModel"
+    text spec_hash
+    text state "draft или approved"
+    datetime created_at
+  }
+  CHECK_RUN {
+    text id PK
+    text version_id FK
+    text property_id
+    text status "один из 6 статусов"
+    text engine_version
+    json statistics
+    json counterexample
+    json related_requirements
+    text artifacts_dir
+    int duration_ms
+  }
+  ARTIFACT {
+    text id PK
+    text version_id FK
+    text kind "code или test"
+    text path
+    text sha256
+  }
+  TEST_RUN {
+    text id PK
+    text version_id FK
+    text status "passed, failed, error, timeout"
+    json report
+    datetime created_at
+  }
