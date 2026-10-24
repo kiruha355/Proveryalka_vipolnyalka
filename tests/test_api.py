@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 from pydantic import BaseModel, StrictInt
 
 from proveryalka.app import create_app
-from proveryalka.services import ServiceError
+from proveryalka.services import ServiceError, UnavailableBackend
 
 
 class RecordingBackend:
@@ -17,7 +17,7 @@ class RecordingBackend:
 
 
 def test_health_and_missing_components_are_honest():
-    client = TestClient(create_app())
+    client = TestClient(create_app(backend=UnavailableBackend()))
     assert client.get("/health").json() == {"status": "ok"}
     assert client.get("/api/sessions").status_code == 503
     response = client.post("/api/models/m/versions", json={"spec": {}}, headers={"Idempotency-Key": "v1"})

@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from typing import Any, Optional, Type
 
 from fastapi import FastAPI, Header, Query
@@ -11,7 +12,8 @@ from .contracts import (
     CheckCreate, Contract, ErrorResponse, Event, MessageCreate, Run, Session,
     SessionCreate, SessionDetail, Source, TextSourceCreate,
 )
-from .services import Backend, ServiceError, UnavailableBackend
+from .services import Backend, ServiceError
+from .storage import SQLiteBackend, SQLiteStore
 
 
 def create_app(
@@ -21,9 +23,18 @@ def create_app(
     verification_result: Optional[Type[BaseModel]] = None,
 ) -> FastAPI:
     """Inject the actual shared Pydantic classes from #1, without a second DSL."""
-    app = FastAPI(title="Проверялка API", version="0.1.0")
-    app.state.settings = settings or Settings.from_env()
-    adapter = backend or UnavailableBackend()
+    settings = settings or Settings.from_env()
+    store = SQLiteStore(settings.database_path) if backend is None else None
+    adapter = backend if backend is not None else SQLiteBackend(store)
+
+    @asynccontextmanager
+    async def lifespan(app):
+        if store is not None:
+            store.initialize()
+        yield
+
+    app = FastAPI(title="Проверялка API", version="0.1.0", lifespan=lifespan)
+    app.state.settings = settings
     app.state.backend = adapter
     # Until #1 lands these are opaque transport payloads, never a validator.
     Spec = behavioral_model or dict[str, Any]

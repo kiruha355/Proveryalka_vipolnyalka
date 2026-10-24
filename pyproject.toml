@@ -14,6 +14,9 @@ test = ["pytest==8.3.5", "httpx==0.28.1"]
 [tool.setuptools.packages.find]
 include = ["proveryalka*"]
 
+[tool.setuptools.package-data]
+proveryalka = ["migrations/*.sql"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
