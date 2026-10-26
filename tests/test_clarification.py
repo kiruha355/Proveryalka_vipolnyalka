@@ -101,6 +101,17 @@ def test_original_requirement_cannot_disappear_without_correction(source):
         build_state([source, answer], draft([]), first, None, 5)
 
 
+def test_correction_cannot_reuse_old_identity_without_previous_id(source):
+    first = build_state([source], draft([{"text": source.text, "quote": source.text}]), None, None, 5)
+    answer = Source(id="answer1", session_id=source.session_id, text="Исправляю: запись нельзя отменить.")
+    replacement = draft([{"text": "Запись нельзя отменить.", "quote": source.text}], corrections=[{
+        "requirement_id": first.analysis.requirements[0].id,
+        "reason": "Пользователь заменил правило", "quote": answer.text,
+    }])
+    with pytest.raises(ValueError, match="previous_id"):
+        build_state([source, answer], replacement, first, None, 5)
+
+
 def test_llm_links_requirement_by_id_with_another_supporting_quote():
     source = Source(id="source1", session_id="session1", text="Запись можно отменить. Доступна отмена записи.")
     first = build_state([source], draft([{

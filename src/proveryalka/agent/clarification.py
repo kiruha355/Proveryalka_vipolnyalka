@@ -120,6 +120,8 @@ def build_requirements(facts, previous, sources, corrections):
             raise ValueError("Изменение требования должно быть явно отмечено")
         identity_source = answer.id if correction else fact.source_id
         identifier = old.id if old and not correction else requirement_id(identity_source, fact.quote)
+        if identifier in previous and fact.previous_id is None:
+            raise ValueError("Для прежнего требования нужно указать previous_id")
         refs = list(old.source_refs) if old else []
         refs.append(reference(sources_by_id[fact.source_id], fact.quote))
         if correction:
