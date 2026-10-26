@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, StrictInt
 
-from proveryalka.app import create_app
+from proveryalka.api.app import create_app
 from proveryalka.services import ServiceError, UnavailableBackend
 
 

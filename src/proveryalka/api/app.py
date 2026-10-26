@@ -7,13 +7,13 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, create_model
 from starlette.exceptions import HTTPException
 
-from .config import Settings
-from .contracts import (
+from ..config import Settings
+from ..contracts import (
     CheckCreate, Contract, ErrorResponse, Event, MessageCreate, Run, Session,
     SessionCreate, SessionDetail, Source, TextSourceCreate,
 )
-from .services import Backend, ServiceError
-from .storage import SQLiteBackend, SQLiteStore
+from ..services import Backend, ServiceError
+from ..storage.sqlite import SQLiteBackend, SQLiteStore
 
 
 def create_app(
@@ -50,6 +50,7 @@ def create_app(
         results=(list[Result], ...),
     )
     errors = {code: {"model": ErrorResponse} for code in (404, 409, 422, 503)}
+    errors[422]["description"] = "Unprocessable Entity"
 
     @app.exception_handler(ServiceError)
     async def service_error(request, error):

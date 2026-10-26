@@ -5,11 +5,11 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from fastapi.testclient import TestClient
 
-from proveryalka.app import create_app
+from proveryalka.api.app import create_app
 from proveryalka.config import Settings
 from proveryalka.services import ServiceError
-from proveryalka.session import StoredSession
-from proveryalka.storage import SQLiteStore
+from proveryalka.storage.session import StoredSession
+from proveryalka.storage.sqlite import SQLiteStore
 
 
 @pytest.fixture

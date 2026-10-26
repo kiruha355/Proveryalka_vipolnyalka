@@ -2,20 +2,20 @@
 
 ## Запуск
 
-Python 3.9+ (для разработки проверено на 3.9). Из корня:
+Python 3.10+ (совместная сборка сервера и агента проверена на 3.13). Из корня:
 
 ```sh
 python3 -m venv .venv
 .venv/bin/python -m pip install -e '.[test]'
 .venv/bin/python -m pytest
-.venv/bin/python -m uvicorn proveryalka.app:app --host 127.0.0.1 --port 8000
+.venv/bin/python -m uvicorn proveryalka.api.app:app --host 127.0.0.1 --port 8000
 ```
 
 `GET /health` проверяет HTTP-процесс, а не готовность LLM/TLC. `/docs` и
 `/openapi.json` публикуют контракт. Снимок `docs/openapi.json` создаётся командой:
 
 ```sh
-.venv/bin/python -c 'import json; from proveryalka.app import create_app; print(json.dumps(create_app().openapi(), ensure_ascii=False, indent=2))' > docs/openapi.json
+.venv/bin/python -c 'import json; from proveryalka.api.app import create_app; print(json.dumps(create_app().openapi(), ensure_ascii=False, indent=2))' > docs/openapi.json
 ```
 
 `Settings.from_env()` читает пути из `.env.example`; файл `.env` автоматически
