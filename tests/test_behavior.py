@@ -9,7 +9,7 @@ from agents import AgentOutputSchema
 from pydantic import ValidationError
 from fastapi.testclient import TestClient
 
-from proveryalka.agent import dialogue
+from proveryalka.agent import dialogue, errors
 from proveryalka.agent.analysis import ExtractionDraft, build_analysis
 from proveryalka.agent.clarification import DialogueDraft, build_state
 from proveryalka.behavior import BehavioralModel, evaluate, initial_state, step
@@ -76,6 +76,9 @@ def test_explicit_correction_updates_ast_and_preserves_other_requirements(case, 
     assert state['approved'] is False
     with pytest.raises(ValueError, match='недоступен'):
         step(model, state, 'Execute')
+    state = step(model, state, 'Approve')
+    state = step(model, state, 'Execute')
+    assert evaluate(model.properties[0].predicate, state) is True
 
 
 def test_counter_guards_and_bounds():
@@ -174,7 +177,7 @@ def test_one_llm_call_returns_analysis_and_strict_model(case, monkeypatch, tmp_p
 
     monkeypatch.setattr(dialogue, 'create_client', Client)
     monkeypatch.setattr(dialogue, 'create_agent', lambda client: SimpleNamespace(clone=lambda **kwargs: object()))
-    monkeypatch.setattr(dialogue.Runner, 'run', run)
+    monkeypatch.setattr(errors.Runner, 'run', run)
     store = SQLiteStore(tmp_path / 'dialogue.sqlite3')
     store.initialize()
     session_id = store.create_session({'title': 'Один вызов'}, 'session')['id']
@@ -186,7 +189,7 @@ def test_one_llm_call_returns_analysis_and_strict_model(case, monkeypatch, tmp_p
         assert state.status == 'ready' and state.analysis.behavior is not None
         assert len(calls) == 1 and calls[0]['max_turns'] == 1
         assert await dialogue.load_dialogue(StoredSession(SQLiteStore(store.path), session_id)) == state
-        assert len(await session.get_items()) == 2
+        assert len(await session.get_items()) == 3
 
     asyncio.run(scenario())
 

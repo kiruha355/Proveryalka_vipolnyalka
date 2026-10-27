@@ -72,6 +72,18 @@
       },
       "minItems": 1,
       "title": "Properties"
+    },
+    "question": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Question"
     }
   },
   "required": [

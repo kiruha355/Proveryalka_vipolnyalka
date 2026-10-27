@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from proveryalka.agent import dialogue
+from proveryalka.agent import dialogue, errors
 from proveryalka.agent.clarification import DialogueDraft, build_state
 from proveryalka.contracts import Source
 from proveryalka.storage.session import StoredSession
@@ -200,7 +200,7 @@ def test_sqlite_resume_answer_and_round_limit_without_duplicate_history(tmp_path
 
     monkeypatch.setattr(dialogue, "create_client", Client)
     monkeypatch.setattr(dialogue, "create_agent", lambda client: SimpleNamespace(clone=lambda **kwargs: object()))
-    monkeypatch.setattr(dialogue.Runner, "run", run)
+    monkeypatch.setattr(errors.Runner, "run", run)
 
     async def scenario():
         session = StoredSession(store, session_id)
@@ -212,10 +212,10 @@ def test_sqlite_resume_answer_and_round_limit_without_duplicate_history(tmp_path
         second = await dialogue.reply_dialogue(resumed, "Пока не знаю.", first.pending_questions[0].id)
         assert second.status == "limit_reached"
         assert second.questions[0].status == "open"
-        assert len(await resumed.get_items()) == 4
+        assert len(await resumed.get_items()) == 6
         with pytest.raises(ValueError, match="лимит"):
             await dialogue.reply_dialogue(resumed, "Да.")
-        assert len(await resumed.get_items()) == 4
+        assert len(await resumed.get_items()) == 6
         assert len(calls) == 2
         other_id = store.create_session({"title": "Другой"}, "other")["id"]
         assert await dialogue.load_dialogue(StoredSession(store, other_id)) is None
@@ -223,7 +223,7 @@ def test_sqlite_resume_answer_and_round_limit_without_duplicate_history(tmp_path
     asyncio.run(scenario())
 
 
-def test_provider_failure_does_not_write_partial_turn(tmp_path, monkeypatch):
+def test_provider_failure_preserves_pending_turn(tmp_path, monkeypatch):
     store = SQLiteStore(tmp_path / "failure.sqlite3")
     store.initialize()
     session_id = store.create_session({"title": "Сбой"}, "session")["id"]
@@ -237,6 +237,10 @@ def test_provider_failure_does_not_write_partial_turn(tmp_path, monkeypatch):
     async def scenario():
         with pytest.raises(RuntimeError, match="provider failed"):
             await dialogue.start_dialogue(Source(id="source1", session_id=session_id, text="Запись можно отменить."), session)
-        assert await session.get_items() == []
+        assert await dialogue.load_dialogue(session) is None
+        assert (await dialogue.load_pending(session)).source.text == "Запись можно отменить."
+        assert len(await session.get_items()) == 2
+        await dialogue.cancel_pending(session)
+        assert await dialogue.load_pending(session) is None
 
     asyncio.run(scenario())

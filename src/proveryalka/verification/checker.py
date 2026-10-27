@@ -16,6 +16,10 @@ class CheckerError(Exception):
     pass
 
 
+class InvalidCheckResult(ValueError):
+    pass
+
+
 def spec_hash(model: BehavioralModel) -> str:
     data = json.dumps(model.model_dump(mode="json"), sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(data.encode("utf-8")).hexdigest()
@@ -120,6 +124,9 @@ async def check_behavior(
         except CheckerError as error:
             report = incomplete_report(request, "ENGINE_ERROR", str(error), True)
     if request.model_dump_json() != request_snapshot:
-        raise ValueError("Адаптер изменил переданный запрос")
-    report = VerificationReport.model_validate_json(report.model_dump_json())
-    return validate_report(request, report)
+        raise InvalidCheckResult("Адаптер изменил переданный запрос")
+    try:
+        report = VerificationReport.model_validate_json(report.model_dump_json())
+        return validate_report(request, report)
+    except ValueError as error:
+        raise InvalidCheckResult(str(error)) from error

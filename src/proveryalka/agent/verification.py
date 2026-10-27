@@ -4,18 +4,19 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from uuid import uuid4
 
-from agents import ModelSettings, RunConfig, RunContextWrapper, Runner, Session, function_tool
-from pydantic import Field, StrictInt, model_validator
+from agents import ModelBehaviorError, ModelSettings, RunConfig, RunContextWrapper, Session, function_tool
+from pydantic import Field, StrictInt, ValidationError, model_validator
 
 from ..behavior import BehavioralModel
 from ..behavior.expressions import Identifier
 from ..contracts import Contract
 from ..verification import BehaviorChecker, CheckLimits, VerificationReport, VerificationRequest, check_behavior
 from ..verification.contracts import VerificationEvent
-from ..verification.checker import make_request, spec_hash, validate_report
+from ..verification.checker import InvalidCheckResult, make_request, spec_hash, validate_report
 from .agent import create_agent
 from .dialogue import load_dialogue
 from .llm_config import create_client
+from .errors import AgentError, check_context, run_agent
 
 
 class TraceComment(Contract):
@@ -33,12 +34,14 @@ class PropertyExplanation(Contract):
 class VerificationNarrative(Contract):
     summary: str = Field(min_length=1)
     properties: list[PropertyExplanation] = Field(min_length=1)
+    question: str | None = None
 
 
 class VerificationOutcome(Contract):
     request: VerificationRequest
     report: VerificationReport
     explanation: VerificationNarrative | None
+    check_id: str | None = None
 
     @model_validator(mode="after")
     def consistent(self):
@@ -54,6 +57,7 @@ class VerificationContext:
     checker: BehaviorChecker | None
     report: VerificationReport | None = None
     started: bool = False
+    input_chars: int = 0
     check_id: str = ""
     on_event: Callable[[VerificationEvent], Awaitable[None]] | None = None
 
@@ -76,6 +80,9 @@ async def perform_check(context: VerificationContext) -> str:
             context.request.model, context.checker, context.request.property_ids, context.request.limits,
             version_id=context.request.version_id,
         )
+    except InvalidCheckResult as error:
+        await emit("tool_failed", error=str(error))
+        raise AgentError("INVALID_CHECKER_RESULT", f"Результат проверки не соответствует модели: {error}") from error
     except (Exception, asyncio.CancelledError) as error:
         await emit("tool_failed", error=type(error).__name__ + ": " + str(error))
         raise
@@ -89,7 +96,7 @@ async def perform_check(context: VerificationContext) -> str:
     failure_error_function=None,
 )
 async def check_behavior_tool(ctx: RunContextWrapper[VerificationContext]) -> str:
-    return await perform_check(ctx.context)
+    return check_context(await perform_check(ctx.context), used_chars=ctx.context.input_chars)
 
 
 def validate_explanation(report, narrative):
@@ -102,6 +109,33 @@ def validate_explanation(report, narrative):
         actual = [step.number for step in item.steps]
         if actual != expected:
             raise ValueError("Объяснение содержит неверные или пропущенные шаги трассы")
+
+
+def model_context(request: VerificationRequest):
+    model = request.model
+    return {
+        "model_name": model.name,
+        "spec_hash": spec_hash(model), "version_id": request.version_id,
+        "limits": request.limits.model_dump(), "property_ids": request.property_ids,
+        "variables": [{"id": item.id, "name": item.name} for item in model.variables],
+        "transitions": [item.model_dump() for item in model.transitions],
+        "properties": [item.model_dump() for item in model.properties if item.id in request.property_ids],
+        "requirements": [{"id": item.id, "text": item.text} for item in model.requirements],
+    }
+
+
+async def explain_report(request: VerificationRequest, report: VerificationReport, error: str | None = None, rejected=None) -> VerificationNarrative:
+    payload = {"verification_result": {**model_context(request), "report": report.model_dump(mode="json")}}
+    if error is not None:
+        payload["validation_feedback"] = {"error": error, "rejected_explanation": rejected}
+    async with create_client() as client:
+        agent = create_agent(client).clone(output_type=VerificationNarrative)
+        result = await run_agent(
+            agent, input=json.dumps(payload, ensure_ascii=False), max_turns=1,
+            run_config=RunConfig(tracing_disabled=True, model_settings=ModelSettings(store=False)),
+        )
+    validate_explanation(report, result.final_output)
+    return result.final_output
 
 
 async def verify_and_explain(
@@ -124,33 +158,41 @@ async def verify_and_explain(
         if checker is None:
             await perform_check(context)
         else:
-            payload = {"verification_request": {
-                "model_name": snapshot.name,
-                "spec_hash": spec_hash(snapshot), "version_id": request.version_id,
-                "limits": request.limits.model_dump(),
-                "property_ids": request.property_ids,
-                "variables": [{"id": v.id, "name": v.name} for v in snapshot.variables],
-                "transitions": [t.model_dump() for t in snapshot.transitions],
-                "properties": [p.model_dump() for p in snapshot.properties if p.id in request.property_ids],
-                "requirements": [{"id": r.id, "text": r.text} for r in snapshot.requirements],
-            }}
+            payload = {"verification_request": model_context(request)}
+            input_text = check_context(json.dumps(payload, ensure_ascii=False))
+            context.input_chars = len(input_text)
+            problem = None
+            rejected = None
             async with create_client() as client:
                 agent = create_agent(client).clone(
                     tools=[check_behavior_tool], output_type=VerificationNarrative,
                     model_settings=ModelSettings(store=False, tool_choice="required", parallel_tool_calls=False),
                 )
-                result = await Runner.run(
-                    agent, input=json.dumps(payload, ensure_ascii=False), context=context,
-                    max_turns=2, run_config=RunConfig(tracing_disabled=True),
-                )
-            if context.report is None:
-                raise ValueError("Агент не вызвал проверяющий инструмент")
-            validate_explanation(context.report, result.final_output)
-            explanation = result.final_output
-        return VerificationOutcome(request=request, report=context.report, explanation=explanation)
+                try:
+                    result = await run_agent(
+                        agent, input=input_text, context=context,
+                        max_turns=2, run_config=RunConfig(tracing_disabled=True),
+                    )
+                except (ModelBehaviorError, ValidationError) as error:
+                    if context.report is None:
+                        raise
+                    problem = str(error)
+                else:
+                    if context.report is None:
+                        raise ValueError("Агент не вызвал проверяющий инструмент")
+                    try:
+                        validate_explanation(context.report, result.final_output)
+                    except ValueError as error:
+                        problem = str(error)
+                        rejected = result.final_output.model_dump(mode="json")
+                    else:
+                        explanation = result.final_output
+            if problem is not None:
+                explanation = await explain_report(request, context.report, problem, rejected)
+        return VerificationOutcome(request=request, report=context.report, explanation=explanation, check_id=context.check_id)
     finally:
         if session is not None and context.report is not None:
-            saved = VerificationOutcome(request=request, report=context.report, explanation=explanation)
+            saved = VerificationOutcome(request=request, report=context.report, explanation=explanation, check_id=context.check_id)
             await session.add_items([
                 {"role": "user", "content": json.dumps({"verification_request": request.model_dump(mode="json")}, ensure_ascii=False)},
                 {"role": "assistant", "content": json.dumps({"analyst_verification": saved.model_dump(mode="json")}, ensure_ascii=False)},
@@ -170,6 +212,20 @@ async def load_verification(session: Session) -> VerificationOutcome | None:
         if item.get("role") == "assistant" and isinstance(content, str) and content.startswith('{"analyst_verification":'):
             return VerificationOutcome.model_validate(json.loads(content)["analyst_verification"])
     return None
+
+
+async def resume_explanation(session: Session) -> VerificationOutcome:
+    saved = await load_verification(session)
+    if saved is None or not saved.report.executed:
+        raise ValueError("Нет сохранённого результата проверки для объяснения")
+    if any(source.session_id != session.session_id for source in saved.request.model.sources):
+        raise ValueError("Результат относится к другой сессии")
+    if saved.explanation is not None:
+        raise ValueError("Объяснение уже получено")
+    explanation = await explain_report(saved.request, saved.report)
+    outcome = VerificationOutcome(request=saved.request, report=saved.report, explanation=explanation, check_id=saved.check_id)
+    await session.add_items([{"role": "assistant", "content": json.dumps({"analyst_verification": outcome.model_dump(mode="json")}, ensure_ascii=False)}])
+    return outcome
 
 
 STATUS_TEXT = {
@@ -233,6 +289,8 @@ def render_verification(outcome: VerificationOutcome) -> str:
                 lines.append(explanations[result.property_id].steps[item.number].explanation)
     if outcome.explanation is not None:
         lines.append(outcome.explanation.summary)
+        if outcome.explanation.question:
+            lines.append(outcome.explanation.question)
     return "\n".join(lines)
 
 
