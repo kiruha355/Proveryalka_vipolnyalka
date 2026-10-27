@@ -21,8 +21,8 @@ def test_health_and_missing_components_are_honest():
     assert client.get("/health").json() == {"status": "ok"}
     assert client.get("/api/sessions").status_code == 503
     response = client.post("/api/models/m/versions", json={"spec": {}}, headers={"Idempotency-Key": "v1"})
-    assert response.status_code == 503
-    assert response.json()["error"]["code"] == "CONTRACT_UNAVAILABLE"
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "INVALID_REQUEST"
 
 
 def test_transport_validation_and_idempotency_key_forwarding():

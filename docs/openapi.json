@@ -3,7 +3,7 @@
   "info": {
     "title": "Проверялка API",
     "version": "0.1.0",
-    "description": "API foundation. Unconnected operations return 503. BehavioralModel/VerificationResult are injected from issue #1; opaque payloads are not semantic validation."
+    "description": "API foundation. Unconnected operations return 503. BehavioralModel 1.0 and VerificationResult 1.0 use shared contracts. The checking engine is not connected by default."
   },
   "paths": {
     "/health": {
@@ -84,14 +84,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -169,14 +169,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -238,14 +238,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -328,14 +328,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -418,14 +418,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -487,14 +487,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -556,14 +556,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -638,14 +638,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -711,14 +711,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -799,14 +799,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -877,14 +877,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -955,14 +955,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -1054,14 +1054,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -1123,14 +1123,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -1194,14 +1194,14 @@
             "description": "Conflict"
           },
           "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           },
           "503": {
             "content": {
@@ -1219,6 +1219,353 @@
   },
   "components": {
     "schemas": {
+      "Assignment-Input": {
+        "properties": {
+          "variable": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+            "title": "Variable"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Input"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Input"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "variable",
+          "value"
+        ],
+        "title": "Assignment"
+      },
+      "Assignment-Output": {
+        "properties": {
+          "variable": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+            "title": "Variable"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Output"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Output"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "variable",
+          "value"
+        ],
+        "title": "Assignment"
+      },
+      "BehavioralModel-Input": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Sources"
+          },
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractedRequirement"
+            },
+            "type": "array",
+            "title": "Requirements"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/Variable"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Variables"
+          },
+          "transitions": {
+            "items": {
+              "$ref": "#/components/schemas/Transition-Input"
+            },
+            "type": "array",
+            "title": "Transitions"
+          },
+          "properties": {
+            "items": {
+              "$ref": "#/components/schemas/Property-Input"
+            },
+            "type": "array",
+            "title": "Properties"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "name",
+          "sources",
+          "requirements",
+          "variables",
+          "transitions",
+          "properties"
+        ],
+        "title": "BehavioralModel"
+      },
+      "BehavioralModel-Output": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Sources"
+          },
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractedRequirement"
+            },
+            "type": "array",
+            "title": "Requirements"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/Variable"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Variables"
+          },
+          "transitions": {
+            "items": {
+              "$ref": "#/components/schemas/Transition-Output"
+            },
+            "type": "array",
+            "title": "Transitions"
+          },
+          "properties": {
+            "items": {
+              "$ref": "#/components/schemas/Property-Output"
+            },
+            "type": "array",
+            "title": "Properties"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "name",
+          "sources",
+          "requirements",
+          "variables",
+          "transitions",
+          "properties"
+        ],
+        "title": "BehavioralModel"
+      },
+      "BinaryExpression-Input": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "binary",
+            "title": "Kind"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "and",
+              "or",
+              "implies",
+              "eq",
+              "ne",
+              "lt",
+              "le",
+              "gt",
+              "ge",
+              "add",
+              "sub",
+              "mul"
+            ],
+            "title": "Op"
+          },
+          "left": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Input"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Input"
+              }
+            ],
+            "title": "Left"
+          },
+          "right": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Input"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Input"
+              }
+            ],
+            "title": "Right"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "op",
+          "left",
+          "right"
+        ],
+        "title": "BinaryExpression"
+      },
+      "BinaryExpression-Output": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "binary",
+            "title": "Kind"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "and",
+              "or",
+              "implies",
+              "eq",
+              "ne",
+              "lt",
+              "le",
+              "gt",
+              "ge",
+              "add",
+              "sub",
+              "mul"
+            ],
+            "title": "Op"
+          },
+          "left": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Output"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Output"
+              }
+            ],
+            "title": "Left"
+          },
+          "right": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Output"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Output"
+              }
+            ],
+            "title": "Right"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "op",
+          "left",
+          "right"
+        ],
+        "title": "BinaryExpression"
+      },
+      "BooleanDomain": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "boolean",
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "BooleanDomain"
+      },
       "CheckCreate": {
         "properties": {
           "property_ids": {
@@ -1242,6 +1589,38 @@
         "type": "object",
         "title": "CheckCreate"
       },
+      "CheckLimits": {
+        "properties": {
+          "timeout_seconds": {
+            "type": "number",
+            "maximum": 3600.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Timeout Seconds",
+            "default": 30.0
+          },
+          "max_states": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Max States",
+            "default": 100000
+          },
+          "max_depth": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Depth"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CheckLimits"
+      },
       "CheckRun": {
         "properties": {
           "run": {
@@ -1249,8 +1628,7 @@
           },
           "results": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/VerificationResult"
             },
             "type": "array",
             "title": "Results"
@@ -1263,6 +1641,106 @@
           "results"
         ],
         "title": "CheckRun"
+      },
+      "CheckStatistics": {
+        "properties": {
+          "states_generated": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "States Generated"
+          },
+          "distinct_states": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distinct States"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth"
+          },
+          "elapsed_seconds": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Seconds"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CheckStatistics"
+      },
+      "EngineInfo": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "version"
+        ],
+        "title": "EngineInfo"
+      },
+      "EnumDomain": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "enum",
+            "title": "Kind"
+          },
+          "values": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Values"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "values"
+        ],
+        "title": "EnumDomain"
       },
       "ErrorDetail": {
         "properties": {
@@ -1303,6 +1781,91 @@
           "error"
         ],
         "title": "ErrorResponse"
+      },
+      "ExtractedRequirement": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Text"
+          },
+          "source_refs": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRef"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Source Refs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "source_refs"
+        ],
+        "title": "ExtractedRequirement"
+      },
+      "IntegerDomain": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "integer",
+            "title": "Kind"
+          },
+          "minimum": {
+            "type": "integer",
+            "title": "Minimum"
+          },
+          "maximum": {
+            "type": "integer",
+            "title": "Maximum"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "minimum",
+          "maximum"
+        ],
+        "title": "IntegerDomain"
+      },
+      "LiteralExpression": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "literal",
+            "title": "Kind"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "value"
+        ],
+        "title": "LiteralExpression"
       },
       "Message": {
         "properties": {
@@ -1387,9 +1950,7 @@
             "title": "Parent Id"
           },
           "spec": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Spec"
+            "$ref": "#/components/schemas/BehavioralModel-Output"
           },
           "spec_hash": {
             "type": "string",
@@ -1412,6 +1973,174 @@
           "spec_hash"
         ],
         "title": "ModelVersion"
+      },
+      "Property-Input": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Requirement Ids"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "invariant",
+              "forbidden_state",
+              "reachable",
+              "deadlock_free"
+            ],
+            "title": "Kind"
+          },
+          "predicate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Input"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Input"
+              }
+            ],
+            "title": "Predicate"
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Explanation"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "requirement",
+              "proposal"
+            ],
+            "title": "Origin",
+            "default": "requirement"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "requirement_ids",
+          "kind",
+          "predicate",
+          "explanation"
+        ],
+        "title": "Property"
+      },
+      "Property-Output": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Requirement Ids"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "invariant",
+              "forbidden_state",
+              "reachable",
+              "deadlock_free"
+            ],
+            "title": "Kind"
+          },
+          "predicate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Output"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Output"
+              }
+            ],
+            "title": "Predicate"
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Explanation"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "requirement",
+              "proposal"
+            ],
+            "title": "Origin",
+            "default": "requirement"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "requirement_ids",
+          "kind",
+          "predicate",
+          "explanation"
+        ],
+        "title": "Property"
       },
       "Requirement": {
         "properties": {
@@ -1644,6 +2373,38 @@
         ],
         "title": "Source"
       },
+      "SourceRef": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "quote": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Quote"
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "End"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "quote",
+          "start",
+          "end"
+        ],
+        "title": "SourceRef"
+      },
       "TextSourceCreate": {
         "properties": {
           "text": {
@@ -1668,12 +2429,442 @@
         ],
         "title": "TextSourceCreate"
       },
+      "TraceStep": {
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Number"
+          },
+          "transition_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transition Id"
+          },
+          "state": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "State"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "number",
+          "transition_id",
+          "state"
+        ],
+        "title": "TraceStep"
+      },
+      "Transition-Input": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Requirement Ids"
+          },
+          "guard": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Input"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Input"
+              }
+            ],
+            "title": "Guard"
+          },
+          "effects": {
+            "items": {
+              "$ref": "#/components/schemas/Assignment-Input"
+            },
+            "type": "array",
+            "title": "Effects"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "requirement_ids",
+          "guard",
+          "effects"
+        ],
+        "title": "Transition"
+      },
+      "Transition-Output": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Requirement Ids"
+          },
+          "guard": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Output"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Output"
+              }
+            ],
+            "title": "Guard"
+          },
+          "effects": {
+            "items": {
+              "$ref": "#/components/schemas/Assignment-Output"
+            },
+            "type": "array",
+            "title": "Effects"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "requirement_ids",
+          "guard",
+          "effects"
+        ],
+        "title": "Transition"
+      },
+      "UnaryExpression-Input": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "unary",
+            "title": "Kind"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "not",
+              "neg"
+            ],
+            "title": "Op"
+          },
+          "operand": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Input"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Input"
+              }
+            ],
+            "title": "Operand"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "op",
+          "operand"
+        ],
+        "title": "UnaryExpression"
+      },
+      "UnaryExpression-Output": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "unary",
+            "title": "Kind"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "not",
+              "neg"
+            ],
+            "title": "Op"
+          },
+          "operand": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiteralExpression"
+              },
+              {
+                "$ref": "#/components/schemas/VariableExpression"
+              },
+              {
+                "$ref": "#/components/schemas/UnaryExpression-Output"
+              },
+              {
+                "$ref": "#/components/schemas/BinaryExpression-Output"
+              }
+            ],
+            "title": "Operand"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "op",
+          "operand"
+        ],
+        "title": "UnaryExpression"
+      },
+      "Variable": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Requirement Ids"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BooleanDomain"
+              },
+              {
+                "$ref": "#/components/schemas/IntegerDomain"
+              },
+              {
+                "$ref": "#/components/schemas/EnumDomain"
+              }
+            ],
+            "title": "Domain"
+          },
+          "initial_value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Initial Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "requirement_ids",
+          "domain",
+          "initial_value"
+        ],
+        "title": "Variable"
+      },
+      "VariableExpression": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "variable",
+            "title": "Kind"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "name"
+        ],
+        "title": "VariableExpression"
+      },
+      "VerificationResult": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "default": "1.0"
+          },
+          "spec_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Spec Hash"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "engine",
+              "test"
+            ],
+            "title": "Mode"
+          },
+          "executed": {
+            "type": "boolean",
+            "title": "Executed"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EngineInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limits": {
+            "$ref": "#/components/schemas/CheckLimits"
+          },
+          "property_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+            "title": "Property Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PROPERTY_HOLDS",
+              "PROPERTY_VIOLATED",
+              "MODEL_INVALID",
+              "TIMEOUT",
+              "STATE_LIMIT_REACHED",
+              "ENGINE_ERROR"
+            ],
+            "title": "Status"
+          },
+          "conclusive": {
+            "type": "boolean",
+            "title": "Conclusive"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message"
+          },
+          "trace": {
+            "items": {
+              "$ref": "#/components/schemas/TraceStep"
+            },
+            "type": "array",
+            "title": "Trace"
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/CheckStatistics"
+          },
+          "related_requirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Related Requirements"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "spec_hash",
+          "mode",
+          "executed",
+          "engine",
+          "limits",
+          "property_id",
+          "status",
+          "conclusive",
+          "message"
+        ],
+        "title": "VerificationResult"
+      },
       "VersionCreate": {
         "properties": {
           "spec": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Spec"
+            "$ref": "#/components/schemas/BehavioralModel-Input"
           }
         },
         "additionalProperties": false,

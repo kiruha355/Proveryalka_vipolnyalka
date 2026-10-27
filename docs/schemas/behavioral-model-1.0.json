@@ -1,0 +1,618 @@
+{
+  "$defs": {
+    "Assignment": {
+      "additionalProperties": false,
+      "properties": {
+        "variable": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Variable",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LiteralExpression"
+            },
+            {
+              "$ref": "#/$defs/VariableExpression"
+            },
+            {
+              "$ref": "#/$defs/UnaryExpression"
+            },
+            {
+              "$ref": "#/$defs/BinaryExpression"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "variable",
+        "value"
+      ],
+      "title": "Assignment",
+      "type": "object"
+    },
+    "BinaryExpression": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "binary",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "and",
+            "or",
+            "implies",
+            "eq",
+            "ne",
+            "lt",
+            "le",
+            "gt",
+            "ge",
+            "add",
+            "sub",
+            "mul"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "left": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LiteralExpression"
+            },
+            {
+              "$ref": "#/$defs/VariableExpression"
+            },
+            {
+              "$ref": "#/$defs/UnaryExpression"
+            },
+            {
+              "$ref": "#/$defs/BinaryExpression"
+            }
+          ],
+          "title": "Left"
+        },
+        "right": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LiteralExpression"
+            },
+            {
+              "$ref": "#/$defs/VariableExpression"
+            },
+            {
+              "$ref": "#/$defs/UnaryExpression"
+            },
+            {
+              "$ref": "#/$defs/BinaryExpression"
+            }
+          ],
+          "title": "Right"
+        }
+      },
+      "required": [
+        "kind",
+        "op",
+        "left",
+        "right"
+      ],
+      "title": "BinaryExpression",
+      "type": "object"
+    },
+    "BooleanDomain": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "boolean",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "BooleanDomain",
+      "type": "object"
+    },
+    "EnumDomain": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "enum",
+          "title": "Kind",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "values"
+      ],
+      "title": "EnumDomain",
+      "type": "object"
+    },
+    "ExtractedRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "minItems": 1,
+          "title": "Source Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "source_refs"
+      ],
+      "title": "ExtractedRequirement",
+      "type": "object"
+    },
+    "IntegerDomain": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "integer",
+          "title": "Kind",
+          "type": "string"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "integer"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "minimum",
+        "maximum"
+      ],
+      "title": "IntegerDomain",
+      "type": "object"
+    },
+    "LiteralExpression": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "literal",
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "kind",
+        "value"
+      ],
+      "title": "LiteralExpression",
+      "type": "object"
+    },
+    "Property": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "requirement_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Requirement Ids",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "invariant",
+            "forbidden_state",
+            "reachable",
+            "deadlock_free"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "predicate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LiteralExpression"
+            },
+            {
+              "$ref": "#/$defs/VariableExpression"
+            },
+            {
+              "$ref": "#/$defs/UnaryExpression"
+            },
+            {
+              "$ref": "#/$defs/BinaryExpression"
+            }
+          ],
+          "title": "Predicate"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "origin": {
+          "default": "requirement",
+          "enum": [
+            "requirement",
+            "proposal"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "approved_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "requirement_ids",
+        "kind",
+        "predicate",
+        "explanation"
+      ],
+      "title": "Property",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "text",
+          "default": "text",
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "session_id",
+        "text"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "quote": {
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "minimum": 1,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_id",
+        "quote",
+        "start",
+        "end"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "Transition": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "requirement_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Requirement Ids",
+          "type": "array"
+        },
+        "guard": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LiteralExpression"
+            },
+            {
+              "$ref": "#/$defs/VariableExpression"
+            },
+            {
+              "$ref": "#/$defs/UnaryExpression"
+            },
+            {
+              "$ref": "#/$defs/BinaryExpression"
+            }
+          ],
+          "title": "Guard"
+        },
+        "effects": {
+          "items": {
+            "$ref": "#/$defs/Assignment"
+          },
+          "title": "Effects",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "requirement_ids",
+        "guard",
+        "effects"
+      ],
+      "title": "Transition",
+      "type": "object"
+    },
+    "UnaryExpression": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "unary",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "not",
+            "neg"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "operand": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LiteralExpression"
+            },
+            {
+              "$ref": "#/$defs/VariableExpression"
+            },
+            {
+              "$ref": "#/$defs/UnaryExpression"
+            },
+            {
+              "$ref": "#/$defs/BinaryExpression"
+            }
+          ],
+          "title": "Operand"
+        }
+      },
+      "required": [
+        "kind",
+        "op",
+        "operand"
+      ],
+      "title": "UnaryExpression",
+      "type": "object"
+    },
+    "Variable": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "requirement_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Requirement Ids",
+          "type": "array"
+        },
+        "domain": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BooleanDomain"
+            },
+            {
+              "$ref": "#/$defs/IntegerDomain"
+            },
+            {
+              "$ref": "#/$defs/EnumDomain"
+            }
+          ],
+          "title": "Domain"
+        },
+        "initial_value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Initial Value"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "requirement_ids",
+        "domain",
+        "initial_value"
+      ],
+      "title": "Variable",
+      "type": "object"
+    },
+    "VariableExpression": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "variable",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name"
+      ],
+      "title": "VariableExpression",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "name": {
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array"
+    },
+    "requirements": {
+      "items": {
+        "$ref": "#/$defs/ExtractedRequirement"
+      },
+      "title": "Requirements",
+      "type": "array"
+    },
+    "variables": {
+      "items": {
+        "$ref": "#/$defs/Variable"
+      },
+      "minItems": 1,
+      "title": "Variables",
+      "type": "array"
+    },
+    "transitions": {
+      "items": {
+        "$ref": "#/$defs/Transition"
+      },
+      "title": "Transitions",
+      "type": "array"
+    },
+    "properties": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Property"
+      },
+      "title": "Properties"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "sources",
+    "requirements",
+    "variables",
+    "transitions",
+    "properties"
+  ],
+  "title": "BehavioralModel",
+  "type": "object"
+}
