@@ -125,6 +125,7 @@ def test_version_events_and_explanation_are_bound_to_the_same_report(monkeypatch
     outcome = asyncio.run(verification.verify_and_explain(model, FixtureChecker(), version_id='version-7', on_event=receive))
     assert [event.event for event in events] == ['tool_started', 'tool_finished']
     assert events[0].check_id == events[1].check_id
+    assert outcome.check_id == events[0].check_id
     assert all(event.version_id == 'version-7' for event in events)
     assert events[1].report == outcome.report
     assert outcome.report.version_id == outcome.request.version_id == 'version-7'

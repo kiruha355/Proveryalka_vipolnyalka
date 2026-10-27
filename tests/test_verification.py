@@ -192,6 +192,7 @@ class ScriptedModel(Model):
             report = VerificationReport.model_validate_json(tool_output['output'])
             narrative = verification.VerificationNarrative(
                 summary='Тестовый результат для проверки интеграции',
+                question='Как нужно уточнить правило?' if any(result.status == 'PROPERTY_VIOLATED' for result in report.results) else None,
                 properties=[verification.PropertyExplanation(
                     property_id=result.property_id, explanation='Объяснение фактического тестового результата',
                     steps=[verification.TraceComment(number=s.number, explanation='Фактический шаг тестовой трассы') for s in result.trace],
