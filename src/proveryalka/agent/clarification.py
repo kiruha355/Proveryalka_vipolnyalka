@@ -3,11 +3,12 @@ from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import Field
 
-from ..contracts import Contract, Source
+from ..contracts import Contract, Source, SourceRef
 from .analysis import (
-    Analysis, ExtractedRequirement, ExtractionDraft, reference,
+    Analysis, ExtractedRequirement, ExtractionDraft, assemble_analysis, reference,
     requirement_id, validate_quotes, validate_requirement_ids,
 )
+from .formalization import semantics
 
 
 class QuestionDraft(Contract):
@@ -52,14 +53,16 @@ class AppliedCorrection(Correction):
 
 
 class DialogueState(Contract):
+    schema_version: Literal["2.0"] = "2.0"
     sources: list[Source]
     analysis: Analysis
     questions: list[Question]
     answers: list[Answer]
     corrections: list[AppliedCorrection]
+    property_approvals: dict[str, SourceRef] = Field(default_factory=dict)
     round: int
     max_rounds: int
-    status: Literal["needs_clarification", "ready", "limit_reached"]
+    status: Literal["needs_clarification", "model_incomplete", "ready", "limit_reached"]
 
     @property
     def pending_questions(self) -> list[Question]:
@@ -136,6 +139,37 @@ def build_requirements(facts, previous, sources, corrections):
     return requirements
 
 
+def resolve_properties(draft, previous, questions, answer):
+    approvals = dict(previous.property_approvals) if previous else {}
+    dismissed = set()
+    previous_properties = {prop.id: prop for prop in previous.analysis.properties} if previous else {}
+    for prop in draft.analysis.properties:
+        old = previous_properties.get(prop.id)
+        if old is not None and (old.origin, old.assumption) != (prop.origin, prop.assumption):
+            raise ValueError("Нельзя менять происхождение предложенного свойства")
+        if old is not None and prop.id in approvals and semantics(old) != semantics(prop):
+            raise ValueError("Изменённое предложенное свойство нужно согласовать заново с новым ID")
+        if prop.origin == "requirement":
+            if prop.assumption is not None:
+                raise ValueError("Исходное свойство не должно содержать предположение")
+            continue
+        matching = [q for q in questions if q.kind == "assumption" and q.assumption == prop.assumption]
+        if not prop.assumption or len(matching) != 1 or matching[0].status == "rejected":
+            raise ValueError("Предложенное свойство требует отдельного согласования")
+        question = matching[0]
+        if question.status == "confirmed":
+            resolution = next((r for r in draft.resolutions if r.question_id == question.id), None)
+            if resolution is not None:
+                approvals[prop.id] = reference(answer, resolution.quote)
+            elif prop.id not in approvals:
+                raise ValueError("Не сохранено подтверждение предложенного свойства")
+    if previous is not None:
+        for prop in previous.analysis.properties:
+            if prop.origin == "proposal" and any(q.assumption == prop.assumption and q.status == "rejected" for q in questions):
+                dismissed.add(prop.id)
+    return approvals, dismissed
+
+
 def build_state(
     sources: list[Source],
     draft: DialogueDraft,
@@ -152,16 +186,21 @@ def build_state(
     for correction in corrections.values():
         reference(answer, correction.quote)
     requirements = build_requirements(draft.analysis.requirements, old_requirements, sources, corrections)
-    analysis = Analysis(**{**draft.analysis.model_dump(), "requirements": requirements}, source=sources[0])
     questions = update_questions(previous.questions if previous else [], draft, answer, question_id)
-    questions = new_questions(questions, draft.questions, analysis, sources[0].id)
+    questions = new_questions(questions, draft.questions, draft.analysis, sources[0].id)
     pending = [question for question in questions if question.status == "open"]
+    approvals, dismissed = resolve_properties(draft, previous, questions, answer)
+    analysis = assemble_analysis(
+        sources, draft.analysis, requirements, pending=pending,
+        previous=previous.analysis if previous else None,
+        approvals=approvals, dismissed=dismissed,
+    )
     if len(pending) > 3:
         raise ValueError("Одновременно можно задать не более трёх вопросов")
-    if not pending and (analysis.missing_information or analysis.contradictions or analysis.assumptions):
+    if not pending and (analysis.contradictions or analysis.assumptions):
         raise ValueError("Неразрешённые сведения требуют уточняющего вопроса")
     round_number = previous.round + 1 if previous else 0
-    status = "ready"
+    status = "ready" if analysis.behavior is not None else "model_incomplete"
     if pending:
         status = "limit_reached" if round_number >= max_rounds else "needs_clarification"
     return DialogueState(
@@ -173,6 +212,7 @@ def build_state(
             AppliedCorrection(**item.model_dump(), answer_source_id=answer.id)
             for item in corrections.values()
         ],
+        property_approvals={prop.id: approvals[prop.id] for prop in draft.analysis.properties if prop.id in approvals},
         round=round_number,
         max_rounds=max_rounds,
         status=status,

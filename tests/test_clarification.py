@@ -18,8 +18,8 @@ def draft(requirements, questions=(), resolutions=(), corrections=(), assumption
                 {"source_id": "source1", "previous_id": None, **item} for item in requirements
             ],
             "entities": [], "participants": [], "variables": [],
-            "initial_state": [], "events": [], "assumptions": assumptions,
-            "missing_information": [], "contradictions": [],
+            "initial_state": [], "events": [], "properties": [], "assumptions": assumptions,
+            "contradictions": [],
         },
         "questions": list(questions), "resolutions": list(resolutions), "corrections": list(corrections),
     })
@@ -43,7 +43,7 @@ def test_answer_closes_question_and_keeps_original_evidence(source):
         "question_id": first.questions[0].id, "decision": "answered", "quote": answer.text,
     }])
     second = build_state([source, answer], updated, first, first.questions[0].id, 5)
-    assert second.status == "ready"
+    assert second.status == "model_incomplete"
     assert not second.pending_questions
     assert second.analysis.requirements[0] == first.analysis.requirements[0]
     assert second.analysis.requirements[1].source_refs[0].source_id == answer.id
@@ -150,7 +150,6 @@ def test_requirement_text_cannot_change_without_explicit_correction(source, text
 
 
 @pytest.mark.parametrize("field,value", [
-    ("missing_information", ["После отмены время освобождается?"]),
     ("assumptions", [{"text": "При отмене время освобождается", "quote": "Запись можно отменить.", "reason": "Нужно подтвердить"}]),
     ("contradictions", [{"description": "Правила несовместимы", "quotes": ["Запись можно отменить.", "Запись можно отменить."]}]),
 ])
@@ -174,7 +173,7 @@ def test_identical_short_answers_to_different_questions_keep_separate_sources(so
     third = build_state([source, answer1, answer2], draft([rule1, rule2], resolutions=[{
         "question_id": first.questions[1].id, "decision": "answered", "quote": "Да.",
     }]), second, first.questions[1].id, 5)
-    assert third.status == "ready"
+    assert third.status == "model_incomplete"
     assert [item.source_refs[0].source_id for item in third.analysis.requirements] == [answer1.id, answer2.id]
     assert len({item.id for item in third.analysis.requirements}) == 2
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
 
 class Contract(BaseModel):
@@ -39,6 +39,19 @@ class Source(Contract):
     session_id: str
     kind: Literal["text"] = "text"
     text: str
+
+
+class SourceRef(Contract):
+    source_id: str
+    quote: str = Field(min_length=1)
+    start: StrictInt = Field(ge=0)
+    end: StrictInt = Field(ge=1)
+
+
+class ExtractedRequirement(Contract):
+    id: str = Field(min_length=1)
+    text: str = Field(min_length=1)
+    source_refs: list[SourceRef] = Field(min_length=1)
 
 
 class SessionDetail(Session):

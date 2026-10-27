@@ -22,8 +22,8 @@ def draft():
         "variables": [],
         "initial_state": [],
         "events": [],
+        "properties": [],
         "assumptions": [],
-        "missing_information": [],
         "contradictions": [],
     }
 
@@ -62,9 +62,9 @@ def test_requirement_identity_survives_reordering_and_paraphrasing(draft):
     ("requirements", requirement("Правило", "Придуманная цитата")),
     ("entities", {"text": "Объект", "quote": "Придуманная цитата"}),
     ("participants", {"text": "Участник", "quote": "Придуманная цитата"}),
-    ("variables", {"name": "status", "domain": None, "initial_value": None, "quote": "Придуманная цитата"}),
+    ("variables", {"id": "status", "name": "status", "domain": None, "initial_value": None, "requirement_ids": ["R1"], "quote": "Придуманная цитата"}),
     ("initial_state", {"text": "Начальное состояние", "quote": "Придуманная цитата"}),
-    ("events", {"name": "Cancel", "guard": None, "effects": [], "quote": "Придуманная цитата"}),
+    ("events", {"id": "Cancel", "name": "Cancel", "guard": None, "effects": None, "requirement_ids": ["R1"], "quote": "Придуманная цитата"}),
     ("assumptions", {"text": "Предположение", "reason": "Причина", "quote": "Придуманная цитата"}),
     ("contradictions", {"description": "Конфликт", "quotes": ["Заявку можно отменить.", "Придуманная цитата"]}),
 ])
@@ -94,6 +94,6 @@ def test_blank_source_does_not_call_provider(monkeypatch):
     def unexpected_client():
         pytest.fail("Провайдер не должен вызываться для пустого текста")
 
-    monkeypatch.setattr("proveryalka.agent.extraction.create_client", unexpected_client)
+    monkeypatch.setattr("proveryalka.agent.dialogue.create_client", unexpected_client)
     with pytest.raises(ValueError, match="пустым"):
         asyncio.run(extract_requirements(Source(id="src1", session_id="s1", text=" \n ")))

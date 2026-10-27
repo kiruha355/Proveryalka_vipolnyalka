@@ -7,15 +7,15 @@ from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
 
-from proveryalka.agent import extraction
+from proveryalka.agent import dialogue, extraction
 from proveryalka.agent.prompts import ANALYST_INSTRUCTIONS
 from proveryalka.contracts import Source
 
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ContextVar("evaluation_run")
-CREATE_CLIENT = extraction.create_client
-BUILD_ANALYSIS = extraction.build_analysis
+CREATE_CLIENT = dialogue.create_client
+BUILD_STATE = dialogue.build_state
 
 
 def create_client():
@@ -33,9 +33,10 @@ def create_client():
     return client
 
 
-def build_analysis(source, draft):
-    CURRENT.get()["draft"] = draft.model_dump(mode="json")
-    return BUILD_ANALYSIS(source, draft)
+def build_state(sources, draft, previous, question_id, max_rounds):
+    CURRENT.get()["draft"] = draft.analysis.model_dump(mode="json")
+    CURRENT.get()["dialogue_draft"] = draft.model_dump(mode="json")
+    return BUILD_STATE(sources, draft, previous, question_id, max_rounds)
 
 
 async def main(selected, dataset="tests/fixtures/live_requirements_cases.json", fresh=False, repeats=True):
@@ -98,8 +99,8 @@ async def main(selected, dataset="tests/fixtures/live_requirements_cases.json", 
                 "question_count": record.get("question_count"),
             }, ensure_ascii=False), flush=True)
 
-    extraction.create_client = create_client
-    extraction.build_analysis = build_analysis
+    dialogue.create_client = create_client
+    dialogue.build_state = build_state
     save()
     print(str(destination), flush=True)
     jobs = [(case, 1) for case in cases]
