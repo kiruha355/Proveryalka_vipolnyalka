@@ -98,7 +98,7 @@ def test_run_deadline_cancels_the_runner(monkeypatch):
 
 
 def test_large_tool_result_keeps_the_actual_report():
-    model = BehavioralModel.model_validate_json((ROOT / 'docs/examples/order.json').read_text(encoding='utf-8'))
+    model = BehavioralModel.model_validate_json((ROOT / 'tests/fixtures/models/order.json').read_text(encoding='utf-8'))
     checker = FixtureChecker()
     context = verification.VerificationContext(request=make_request(model), checker=checker, input_chars=errors.MAX_CONTEXT_CHARS)
 
@@ -115,7 +115,7 @@ def test_large_tool_result_keeps_the_actual_report():
 
 def test_large_tool_result_is_saved_when_sdk_stops_explanation(tmp_path, monkeypatch):
     session = session_for(tmp_path)
-    data = json.loads((ROOT / 'docs/examples/order.json').read_text(encoding='utf-8'))
+    data = json.loads((ROOT / 'tests/fixtures/models/order.json').read_text(encoding='utf-8'))
     for source in data['sources']:
         source['session_id'] = session.session_id
     model = BehavioralModel.model_validate(data)
@@ -136,7 +136,7 @@ def test_large_tool_result_is_saved_when_sdk_stops_explanation(tmp_path, monkeyp
 
 
 def test_invalid_checker_trace_is_reported_without_a_false_verdict(monkeypatch):
-    model = BehavioralModel.model_validate_json((ROOT / 'docs/examples/order.json').read_text(encoding='utf-8'))
+    model = BehavioralModel.model_validate_json((ROOT / 'tests/fixtures/models/order.json').read_text(encoding='utf-8'))
     configure_sdk(monkeypatch, ScriptedModel())
     events = []
 
@@ -154,7 +154,7 @@ def test_invalid_checker_trace_is_reported_without_a_false_verdict(monkeypatch):
 
 
 def test_invalid_explanation_is_corrected_without_rechecking(monkeypatch):
-    model = BehavioralModel.model_validate_json((ROOT / 'docs/examples/order.json').read_text(encoding='utf-8'))
+    model = BehavioralModel.model_validate_json((ROOT / 'tests/fixtures/models/order.json').read_text(encoding='utf-8'))
     checker = FixtureChecker()
 
     class DuplicateOnce(ScriptedModel):

@@ -49,7 +49,7 @@ def test_property_proposal_requires_approval_and_keeps_its_origin(decision):
     }])
     second = build_state([source, answer], next_draft, first, first.questions[0].id, 5)
     assert second.status == 'ready'
-    assert second.analysis.behavior.transitions == BehavioralModel.model_validate_json((ROOT / 'docs/examples/order.json').read_text(encoding='utf-8')).transitions
+    assert second.analysis.behavior.transitions == BehavioralModel.model_validate_json((ROOT / 'tests/fixtures/models/order.json').read_text(encoding='utf-8')).transitions
     if decision == 'confirmed':
         prop = second.analysis.behavior.properties[0]
         assert prop.origin == 'proposal' and prop.approved_by.source_id == answer.id
@@ -115,7 +115,7 @@ def test_sdk_validation_repair_is_bounded_and_never_returns_an_invalid_model(mon
 
 
 def test_version_events_and_explanation_are_bound_to_the_same_report(monkeypatch):
-    model = BehavioralModel.model_validate_json((ROOT / 'docs/examples/order.json').read_text(encoding='utf-8'))
+    model = BehavioralModel.model_validate_json((ROOT / 'tests/fixtures/models/order.json').read_text(encoding='utf-8'))
     configure_sdk(monkeypatch, ScriptedModel())
     events = []
 
@@ -139,7 +139,7 @@ def test_version_events_and_explanation_are_bound_to_the_same_report(monkeypatch
 
 
 def test_failed_adapter_emits_failure_without_an_explanation_or_retry(monkeypatch):
-    model = BehavioralModel.model_validate_json((ROOT / 'docs/examples/order.json').read_text(encoding='utf-8'))
+    model = BehavioralModel.model_validate_json((ROOT / 'tests/fixtures/models/order.json').read_text(encoding='utf-8'))
     configure_sdk(monkeypatch, ScriptedModel())
     events = []
 
@@ -157,7 +157,7 @@ def test_failed_adapter_emits_failure_without_an_explanation_or_retry(monkeypatc
 
 
 def test_command_adapter_uses_actual_process_input_and_preserves_test_provenance():
-    model = BehavioralModel.model_validate_json((ROOT / 'docs/examples/order.json').read_text(encoding='utf-8'))
+    model = BehavioralModel.model_validate_json((ROOT / 'tests/fixtures/models/order.json').read_text(encoding='utf-8'))
     request = VerificationRequest(model=model, property_ids=[p.id for p in model.properties], version_id='v-command')
     report = asyncio.run(FixtureChecker().check(request))
     script = 'import json,sys; request=json.load(sys.stdin); assert request["version_id"]=="v-command"; print(' + repr(report.model_dump_json()) + ')'

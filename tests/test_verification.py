@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture
 def model():
-    return BehavioralModel.model_validate_json((ROOT / 'docs/examples/order.json').read_text(encoding='utf-8'))
+    return BehavioralModel.model_validate_json((ROOT / 'tests/fixtures/models/order.json').read_text(encoding='utf-8'))
 
 
 def fixture_report(request, status='PROPERTY_VIOLATED'):
@@ -64,7 +64,7 @@ class FixtureChecker:
 @pytest.mark.parametrize('status', ['PROPERTY_HOLDS', 'PROPERTY_VIOLATED', 'MODEL_INVALID', 'TIMEOUT', 'STATE_LIMIT_REACHED', 'ENGINE_ERROR'])
 def test_six_statuses_and_provenance(model, status):
     if status == 'PROPERTY_HOLDS':
-        model = BehavioralModel.model_validate_json((ROOT / 'docs/examples/stock.json').read_text(encoding='utf-8'))
+        model = BehavioralModel.model_validate_json((ROOT / 'tests/fixtures/models/stock.json').read_text(encoding='utf-8'))
     checker = FixtureChecker(status)
     report = asyncio.run(check_behavior(model, checker))
     assert len(checker.calls) == 1 and report.mode == 'test'
