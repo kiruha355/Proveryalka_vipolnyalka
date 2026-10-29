@@ -127,8 +127,11 @@ class TLCChecker:
                 outcome = Outcome("TIMEOUT", "Время истекло во время разбора SANY", reason="timeout")
             elif sany.stopped == "cancelled":
                 outcome = Outcome("ENGINE_ERROR", "CANCELLED: проверка остановлена по запросу", reason="cancelled")
-            else:
+            elif any(mark in sany.stdout for mark in SANY_ERRORS):
                 outcome = Outcome("ENGINE_ERROR", f"SANY отклонил сгенерированную спецификацию: {sany.stdout.strip()[-1000:]}", reason="sany")
+            else:
+                output = (sany.stderr or sany.stdout).strip()[-1000:]
+                outcome = Outcome("ENGINE_ERROR", f"SANY завершился с кодом {sany.returncode}: {output}", reason="engine")
             return {identifier: outcome for identifier in pending}
         semaphore = asyncio.Semaphore(max(1, self.settings.tlc_parallel))
 

@@ -181,7 +181,7 @@ def test_external_cancellation_kills_processes(checker, settings):
 def test_engine_crash_is_engine_error(settings):
     broken = TLCChecker(replace(settings, tlc_heap_mb=1), cache=False)
     result = asyncio.run(check_behavior(load("stock"), broken)).results[0]
-    assert result.status == "ENGINE_ERROR" and result.executed
+    assert result.status == "ENGINE_ERROR" and result.executed and "SANY завершился с кодом" in result.message
 
 
 def test_missing_engine_is_reported_not_passed(settings, tmp_path):
