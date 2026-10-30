@@ -23,9 +23,10 @@ def identifier(prefix):
 
 
 from .versions import VersionStore
+from .runs import RunStore
 
 
-class SQLiteStore(VersionStore):
+class SQLiteStore(VersionStore, RunStore):
     def __init__(self, path):
         self.path = Path(path)
 
@@ -45,9 +46,9 @@ class SQLiteStore(VersionStore):
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("BEGIN IMMEDIATE")
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version > 2:
+            if version > 3:
                 raise RuntimeError("Database schema is newer than this application")
-            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql")]:
+            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql")]:
                 if version >= target:
                     continue
                 migration = Path(__file__).with_name("migrations") / filename

@@ -15,7 +15,8 @@ from ..contracts import (
     SessionCreate, SessionDetail, Source, TextSourceCreate,
 )
 from ..services import Backend, ServiceError
-from ..storage.sqlite import SQLiteBackend, SQLiteStore
+from ..storage.sqlite import SQLiteStore
+from .backend import ApplicationBackend
 
 
 def create_app(
@@ -23,16 +24,22 @@ def create_app(
     backend: Optional[Backend] = None,
     behavioral_model: Type[BaseModel] = BehavioralModel,
     verification_result: Type[BaseModel] = VerificationResult,
+    checker=None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
     store = SQLiteStore(settings.database_path) if backend is None else None
-    adapter = backend if backend is not None else SQLiteBackend(store)
+    adapter = backend if backend is not None else ApplicationBackend(store, settings, checker)
 
     @asynccontextmanager
     async def lifespan(app):
         if store is not None:
             store.initialize()
-        yield
+            await adapter.start()
+        try:
+            yield
+        finally:
+            if store is not None:
+                await adapter.close()
 
     app = FastAPI(title="Проверялка API", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
@@ -47,6 +54,8 @@ def create_app(
     )
     ModelCreate = create_model("ModelCreate", __base__=Contract, name=(StrictStr, Field(min_length=1, max_length=200)))
     Model = create_model("Model", __base__=ModelCreate, id=(str, ...), session_id=(str, ...))
+    from ..verification.contracts import CheckLimits
+    CheckRequest = create_model("CheckRequest", __base__=CheckCreate, limits=(CheckLimits, Field(default_factory=CheckLimits)))
     Check = create_model(
         "CheckRun", __base__=Contract, run=(Run, ...),
         results=(list[Result], ...),
@@ -142,7 +151,7 @@ def create_app(
         return adapter.call("approve_version", model_id=model_id, number=number)
 
     @app.post("/api/models/{model_id}/versions/{number}/checks", response_model=Run, status_code=202, responses=errors)
-    def create_check(model_id: str, number: int, body: CheckCreate,
+    def create_check(model_id: str, number: int, body: CheckRequest,
                      idempotency_key: str = Header(min_length=1, max_length=128)):
         return adapter.call("create_check", model_id=model_id, number=number, body=body.model_dump(), key=idempotency_key)
 
