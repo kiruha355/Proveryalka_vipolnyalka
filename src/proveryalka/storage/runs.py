@@ -16,14 +16,14 @@ class RunStore:
     def get_run(self, run_id):
         with self.transaction() as connection:
             row = self._run(connection, run_id)
-            return {k: row[k] for k in ("run_id", "session_id", "version_id", "state")}
+            return {k: row[k] for k in ("run_id", "session_id", "version_id", "state", "error_code")}
 
     def get_check(self, run_id):
         with self.transaction() as connection:
             row = self._run(connection, run_id)
             if row["kind"] != "check":
                 raise ServiceError(404, "NOT_FOUND", "Check not found")
-            return {"run": {k: row[k] for k in ("run_id", "session_id", "version_id", "state")},
+            return {"run": {k: row[k] for k in ("run_id", "session_id", "version_id", "state", "error_code")},
                     "results": json.loads(row["result_json"])["results"] if row["result_json"] else []}
 
     def create_check(self, model_id, number, body, key):
@@ -38,6 +38,7 @@ class RunStore:
             except ValidationError as error:
                 raise ServiceError(422, "INVALID_CHECK", "Select existing unique properties and valid limits") from error
             def action():
+                self.check_capacity(connection)
                 run = {"run_id": "chk_" + uuid4().hex, "session_id": version["session_id"],
                        "version_id": version["id"], "state": "queued"}
                 connection.execute("INSERT INTO runs(run_id,session_id,version_id,kind,state,request_json) VALUES (?,?,?,'check','queued',?)",
@@ -81,6 +82,7 @@ class RunStore:
         with self.transaction(write=True) as connection:
             self._session(connection, session_id)
             def action():
+                self.check_capacity(connection)
                 if connection.execute("SELECT 1 FROM runs WHERE session_id=? AND kind='agent' AND state IN ('queued','running','cancelling')", (session_id,)).fetchone():
                     raise ServiceError(409, "SESSION_BUSY", "An agent run is already active in this session")
                 run = {"run_id": "agent_" + uuid4().hex, "session_id": session_id, "version_id": None, "state": "queued"}
@@ -120,3 +122,41 @@ class RunStore:
                     raise ServiceError(409, "SOURCE_CONFLICT", "Source content changed")
                 from .sqlite import now
                 connection.execute("INSERT OR IGNORE INTO sources(id,session_id,kind,text,created_at) VALUES (?,?,'text',?,?)", (source.id,session_id,source.text,now()))
+
+    def check_capacity(self, connection):
+        count = connection.execute("SELECT COUNT(*) FROM runs WHERE state IN ('queued','running','cancelling')").fetchone()[0]
+        if count >= getattr(self, "max_pending_runs", 32):
+            raise ServiceError(429, "QUEUE_FULL", "Run queue is full; retry later")
+
+    def request_cancel(self, run_id):
+        with self.transaction(write=True) as connection:
+            row = self._run(connection, run_id)
+            if row["state"] in ("queued", "running"):
+                connection.execute("UPDATE runs SET state='cancelling',error_code='CANCELLED' WHERE run_id=?", (run_id,))
+        return self.get_run(run_id)
+
+    def finalize_events(self, run_id):
+        with self.transaction(write=True) as connection:
+            row = self._run(connection, run_id)
+            if row["state"] == "cancelling":
+                connection.execute("UPDATE runs SET state='cancelled' WHERE run_id=?", (run_id,))
+                row["state"] = "cancelled"
+            if row["state"] not in ('completed','failed','cancelled'):
+                return
+            existing = [json.loads(r[0])["type"] for r in connection.execute("SELECT event_json FROM run_events WHERE run_id=?",(run_id,))]
+            if "run_finished" in existing:
+                return
+            events = []
+            if row["error_code"]:
+                events.append(("error", {"code":row["error_code"],"message":"Run stopped; saved history is available"}))
+            events.append(("run_finished", {"state":row["state"]}))
+            number = connection.execute("SELECT COALESCE(MAX(event_id),0) FROM run_events WHERE run_id=?",(run_id,)).fetchone()[0]
+            for kind,data in events:
+                number += 1
+                event = {"event_id":number,"run_id":run_id,"session_id":row["session_id"],"type":kind,"data":data}
+                connection.execute("INSERT INTO run_events VALUES (?,?,?)",(run_id,number,json.dumps(event)))
+
+    def terminal_event_saved(self, run_id):
+        with self.transaction() as connection:
+            row = connection.execute("SELECT event_json FROM run_events WHERE run_id=? ORDER BY event_id DESC LIMIT 1",(run_id,)).fetchone()
+            return row is not None and json.loads(row[0])["type"] == "run_finished"

@@ -200,3 +200,18 @@ Last-Event-ID — номер события внутри этого run; кур�
 Агент сейчас возвращает структурированный turn: message_delta передаётся одним
 фрагментом после генерации, не имитирует поток токенов. События check_started и
 check_finished доступны для run проверок. Ошибки провайдера не отражают секреты.
+
+## Отмена и лимиты (#27)
+
+`POST /api/runs/{id}/cancel` идемпотентен: активный запуск сначала cancelling,
+затем cancelled после завершения инструмента. Завершённые результаты не
+перезаписываются. Остановка сервера отменяет и дожидается активных операций.
+`error_code` в Run хранит CANCELLED, SERVER_RESTARTED, RUN_TIMEOUT либо код сбоя.
+SSE сохраняет терминальное событие и ошибку без ответа провайдера/секретов.
+
+PROVERYALKA_MAX_PENDING_RUNS ограничивает общую очередь (32),
+PROVERYALKA_AGENT_PARALLEL и PROVERYALKA_CHECK_PARALLEL — активные run (по 2).
+PROVERYALKA_AGENT_TIMEOUT ограничивает LLM-run (630 секунд),
+PROVERYALKA_MAX_INPUT_CHARS — текст (100000). Переполнение очереди — HTTP 429,
+повтор уже принятого Idempotency-Key не расходует дополнительное место.
+PROVERYALKA_TLC_PARALLEL отдельно ограничивает процессы свойств внутри проверки.
