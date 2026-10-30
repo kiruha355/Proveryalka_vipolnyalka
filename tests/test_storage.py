@@ -205,4 +205,4 @@ def test_http_storage_restart_and_idempotency(tmp_path):
 def test_openapi_snapshot_matches_application():
     import json
     from pathlib import Path
-    assert create_app().openapi() == json.loads(Path("docs/openapi.json").read_text())
+    assert create_app().openapi() == json.loads((Path(__file__).parent / "fixtures/openapi.json").read_text())

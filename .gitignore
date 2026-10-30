@@ -36,3 +36,6 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Локальная сборка TLC: scripts/fetch_tla2tools.sh
+/tools/
