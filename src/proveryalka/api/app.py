@@ -159,7 +159,11 @@ def create_app(
     def get_check(run_id: str):
         return adapter.call("get_check", run_id=run_id)
 
-    @app.get("/api/checks/{run_id}/artifacts/{name}", response_class=Response, responses=errors)
+    @app.get("/api/checks/{run_id}/artifacts", responses=errors)
+    def list_artifacts(run_id: str):
+        return adapter.call("list_artifacts", run_id=run_id)
+
+    @app.get("/api/checks/{run_id}/artifacts/{name:path}", response_class=Response, responses=errors)
     def get_artifact(run_id: str, name: str):
         return adapter.call("get_artifact", run_id=run_id, name=name)
 
