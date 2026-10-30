@@ -1,0 +1,49 @@
+{
+  "_comment": "Ручные эталоны: ожидаемая семантика, а не скопированный вывод TLC. trace — точная последовательность переходов (BFS даёт кратчайший путь; при одном воркере порядок детерминирован). trace_length — длина без начального состояния, когда кратчайших путей несколько.",
+  "order_bug": {
+    "description": "Ошибка из ТЗ: отмена не снимает согласование, поэтому отменённую заявку можно исполнить.",
+    "properties": {
+      "NoCancelledExecution": {"status": "PROPERTY_VIOLATED", "trace": ["Approve", "Cancel", "Execute"], "related_requirements": ["R2", "R3", "R4", "R5"]},
+      "CanExecute": {"status": "PROPERTY_HOLDS", "trace": ["Approve", "Execute"]},
+      "EndsProperly": {"status": "PROPERTY_HOLDS", "trace": null}
+    }
+  },
+  "order_fixed": {
+    "description": "Исправление из ТЗ: Cancel сбрасывает approved, исполнение отменённой заявки невозможно.",
+    "properties": {
+      "NoCancelledExecution": {"status": "PROPERTY_HOLDS", "trace": null},
+      "CanExecute": {"status": "PROPERTY_HOLDS", "trace": ["Approve", "Execute"]},
+      "EndsProperly": {"status": "PROPERTY_HOLDS", "trace": null}
+    }
+  },
+  "tickets": {
+    "description": "enum, boolean и ограниченное integer, составные guards, сохранение неизменённых переменных; все четыре вида свойств с обоими исходами.",
+    "properties": {
+      "Capacity": {"status": "PROPERTY_HOLDS", "trace": null, "note": "invariant выполняется"},
+      "VipNotFull": {"status": "PROPERTY_VIOLATED", "trace_length": 2, "note": "invariant нарушается: одиночная продажа и vip-пара в любом порядке"},
+      "ClosedSoldOut": {"status": "PROPERTY_HOLDS", "trace_length": 3, "note": "reachable: путь к цели"},
+      "VipWithoutSales": {"status": "PROPERTY_VIOLATED", "trace": null, "note": "reachable: цель недостижима после полного перебора, трассы нет"},
+      "StopsOnlySoldOut": {"status": "PROPERTY_HOLDS", "trace": null, "note": "deadlock_free: единственный тупик — согласованное завершение"},
+      "NeverStops": {"status": "PROPERTY_VIOLATED", "trace_length": 3, "note": "deadlock_free без допустимых конечных состояний: путь к тупику"},
+      "SomethingSold": {"status": "PROPERTY_VIOLATED", "trace": [], "note": "нарушение уже в начальном состоянии"}
+    }
+  },
+  "counter_overflow": {
+    "description": "Переход выводит значение за область: ошибка модели, а не усечённое пространство состояний.",
+    "properties": {
+      "NonNegative": {"status": "MODEL_INVALID", "trace": null}
+    }
+  },
+  "grid": {
+    "description": "9 млн состояний: для проверки лимитов состояний, глубины и времени.",
+    "properties": {
+      "SumNonNegative": {"status": "STATE_LIMIT_REACHED", "trace": null, "limits": {"max_states": 1000}}
+    }
+  },
+  "stock": {
+    "description": "Пример команды: склад проекторов.",
+    "properties": {
+      "Nonnegative": {"status": "PROPERTY_HOLDS", "trace": null}
+    }
+  }
+}
