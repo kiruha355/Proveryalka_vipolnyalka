@@ -1,0 +1,1 @@
+{"counterexample":{"action":[],"state":[[1,{"v_sold":0,"v_vip":false,"v_phase":"Open"}]]},"vars":["v_phase","v_sold","v_vip"]}

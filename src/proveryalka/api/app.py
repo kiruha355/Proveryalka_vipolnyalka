@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from typing import Any, Optional, Type
+from typing import Optional, Type
 
 from fastapi import FastAPI, Header, Query
 from fastapi.exceptions import RequestValidationError
@@ -7,22 +7,23 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, create_model
 from starlette.exceptions import HTTPException
 
-from .config import Settings
-from .contracts import (
+from ..config import Settings
+from ..behavior import BehavioralModel
+from ..verification import VerificationResult
+from ..contracts import (
     CheckCreate, Contract, ErrorResponse, Event, MessageCreate, Run, Session,
     SessionCreate, SessionDetail, Source, TextSourceCreate,
 )
-from .services import Backend, ServiceError
-from .storage import SQLiteBackend, SQLiteStore
+from ..services import Backend, ServiceError
+from ..storage.sqlite import SQLiteBackend, SQLiteStore
 
 
 def create_app(
     settings: Optional[Settings] = None,
     backend: Optional[Backend] = None,
-    behavioral_model: Optional[Type[BaseModel]] = None,
-    verification_result: Optional[Type[BaseModel]] = None,
+    behavioral_model: Type[BaseModel] = BehavioralModel,
+    verification_result: Type[BaseModel] = VerificationResult,
 ) -> FastAPI:
-    """Inject the actual shared Pydantic classes from #1, without a second DSL."""
     settings = settings or Settings.from_env()
     store = SQLiteStore(settings.database_path) if backend is None else None
     adapter = backend if backend is not None else SQLiteBackend(store)
@@ -36,9 +37,8 @@ def create_app(
     app = FastAPI(title="Проверялка API", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.backend = adapter
-    # Until #1 lands these are opaque transport payloads, never a validator.
-    Spec = behavioral_model or dict[str, Any]
-    Result = verification_result or dict[str, Any]
+    Spec = behavioral_model
+    Result = verification_result
     VersionCreate = create_model("VersionCreate", __base__=Contract, spec=(Spec, ...))
     Version = create_model(
         "ModelVersion", __base__=Contract, id=(str, ...), model_id=(str, ...),
@@ -50,6 +50,7 @@ def create_app(
         results=(list[Result], ...),
     )
     errors = {code: {"model": ErrorResponse} for code in (404, 409, 422, 503)}
+    errors[422]["description"] = "Unprocessable Entity"
 
     @app.exception_handler(ServiceError)
     async def service_error(request, error):
@@ -123,8 +124,6 @@ def create_app(
     @app.post("/api/models/{model_id}/versions", response_model=Version, status_code=201, responses=errors)
     def create_version(model_id: str, body: VersionCreate,
                        idempotency_key: str = Header(min_length=1, max_length=128)):
-        if behavioral_model is None:
-            raise ServiceError(503, "CONTRACT_UNAVAILABLE", "Shared BehavioralModel from #1 is not connected")
         return adapter.call("create_version", model_id=model_id, body=body.model_dump(), key=idempotency_key)
 
     @app.post("/api/models/{model_id}/versions/{number}/approve", response_model=Version, responses=errors)
@@ -134,8 +133,6 @@ def create_app(
     @app.post("/api/models/{model_id}/versions/{number}/checks", response_model=Run, status_code=202, responses=errors)
     def create_check(model_id: str, number: int, body: CheckCreate,
                      idempotency_key: str = Header(min_length=1, max_length=128)):
-        if verification_result is None or behavioral_model is None:
-            raise ServiceError(503, "CONTRACT_UNAVAILABLE", "Shared checker contracts from #1 are not connected")
         return adapter.call("create_check", model_id=model_id, number=number, body=body.model_dump(), key=idempotency_key)
 
     @app.get("/api/checks/{run_id}", response_model=Check, responses=errors)
@@ -153,8 +150,8 @@ def create_app(
         schema["components"]["schemas"]["Event"] = Event.model_json_schema()
         schema["info"]["description"] = (
             "API foundation. Unconnected operations return 503. "
-            "BehavioralModel/VerificationResult are injected from issue #1; "
-            "opaque payloads are not semantic validation."
+            "BehavioralModel 1.0 and VerificationResult 1.0 use shared contracts. "
+            "The checking engine is not connected by default."
         )
         return schema
 

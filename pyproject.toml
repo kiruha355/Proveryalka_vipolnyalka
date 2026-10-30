@@ -5,18 +5,25 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "proveryalka"
 version = "0.1.0"
-requires-python = ">=3.9"
-dependencies = ["fastapi==0.115.12", "pydantic==2.11.3", "uvicorn==0.34.2"]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi==0.162.0",
+    "pydantic==2.14.1",
+    "uvicorn==0.34.2",
+    "openai-agents==0.24.0",
+    "python-dotenv==1.2.4",
+]
 
 [project.optional-dependencies]
 test = ["pytest==8.3.5", "httpx==0.28.1"]
 
 [tool.setuptools.packages.find]
+where = ["src"]
 include = ["proveryalka*"]
 
 [tool.setuptools.package-data]
-proveryalka = ["migrations/*.sql"]
+"proveryalka.storage" = ["migrations/*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = ["src"]
