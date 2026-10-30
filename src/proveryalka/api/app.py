@@ -4,7 +4,7 @@ from typing import Optional, Type
 from fastapi import FastAPI, Header, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel, Field, StrictStr, create_model
 from starlette.exceptions import HTTPException
 
 from ..config import Settings
@@ -39,12 +39,14 @@ def create_app(
     app.state.backend = adapter
     Spec = behavioral_model
     Result = verification_result
-    VersionCreate = create_model("VersionCreate", __base__=Contract, spec=(Spec, ...))
+    VersionCreate = create_model("VersionCreate", __base__=Contract, spec=(Spec, ...), parent_id=(Optional[str], None))
     Version = create_model(
         "ModelVersion", __base__=Contract, id=(str, ...), model_id=(str, ...),
         session_id=(str, ...), number=(int, ...), parent_id=(Optional[str], None),
         spec=(Spec, ...), spec_hash=(str, ...), approved=(bool, False),
     )
+    ModelCreate = create_model("ModelCreate", __base__=Contract, name=(StrictStr, Field(min_length=1, max_length=200)))
+    Model = create_model("Model", __base__=ModelCreate, id=(str, ...), session_id=(str, ...))
     Check = create_model(
         "CheckRun", __base__=Contract, run=(Run, ...),
         results=(list[Result], ...),
@@ -112,6 +114,15 @@ def create_app(
     }, response_class=Response)
     def events(run_id: str, last_event_id: Optional[int] = Header(None, ge=0)):
         return adapter.call("events", run_id=run_id, after=last_event_id or 0)
+
+    @app.post("/api/sessions/{session_id}/models", response_model=Model, status_code=201, responses=errors)
+    def create_model_record(session_id: str, body: ModelCreate,
+                            idempotency_key: str = Header(min_length=1, max_length=128)):
+        return adapter.call("create_model", session_id=session_id, body=body.model_dump(), key=idempotency_key)
+
+    @app.get("/api/sessions/{session_id}/models", response_model=list[Model], responses=errors)
+    def list_models(session_id: str):
+        return adapter.call("list_models", session_id=session_id)
 
     @app.get("/api/models/{model_id}/versions", response_model=list[Version], responses=errors)
     def list_versions(model_id: str):

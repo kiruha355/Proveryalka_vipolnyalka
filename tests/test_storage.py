@@ -165,11 +165,11 @@ def test_parallel_pop_does_not_return_same_item_twice(store):
 
 def test_migration_refuses_future_schema_without_modifying_it(store):
     with store.transaction(write=True) as connection:
-        connection.execute("PRAGMA user_version=2")
+        connection.execute("PRAGMA user_version=3")
     with pytest.raises(RuntimeError, match="newer"):
         store.initialize()
     with store.transaction() as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
 
 
 def test_unavailable_database_has_safe_service_error(tmp_path):

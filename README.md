@@ -152,3 +152,15 @@ Content-Type: application/json
 | `check_behavior(model_id, version, property_ids?)` | Результаты проверки свойств |
 | `get_tests(model_id, version)` | Тесты, выведенные из модели |
 | `compare_with_code(model_id, version, files)` | Места, где код расходится с моделью |
+
+## Версии моделей (#22)
+
+Создайте модель через `POST /api/sessions/{session_id}/models` с `{"name":"Заявка"}`
+и `Idempotency-Key`. Затем `POST /api/models/{model_id}/versions` принимает
+`{"spec": BehavioralModel, "parent_id": null}`. Источники spec должны уже быть
+сохранены в той же сессии и совпадать с ними по тексту. Требования и source_refs
+сохраняются целиком внутри неизменяемого spec. Без parent_id родителем становится
+последняя версия; явный parent_id должен принадлежать той же модели.
+Номера выделяются в транзакции. Повтор ключа возвращает прежний ответ, новое
+тело с прежним ключом — 409. Approve меняет только флаг согласования.
+Миграция 002 применяется автоматически и сохраняет старые сессии.
