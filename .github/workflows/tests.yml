@@ -1,0 +1,49 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: actions/cache@v4
+        with:
+          path: tools/tla2tools.jar
+          key: tla2tools-${{ hashFiles('scripts/fetch_tla2tools.sh') }}
+
+      - name: TLC
+        run: sh scripts/fetch_tla2tools.sh
+
+      - name: Зависимости
+        run: pip install -e ".[test]"
+
+      - name: Тесты, включая интеграцию с настоящим TLC
+        env:
+          # Без движка интеграционный набор падает, а не пропускается.
+          PROVERYALKA_REQUIRE_TLC: "1"
+        run: |
+          java -version
+          python -m pytest -q -rs --basetemp="$RUNNER_TEMP/pytest"
+
+      - name: Материалы прогонов TLC для разбора падения
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tlc-runs
+          path: ${{ runner.temp }}/pytest/**/artifacts/checks/
+          if-no-files-found: ignore
