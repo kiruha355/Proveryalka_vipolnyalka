@@ -89,6 +89,18 @@ def create_app(
     def health():
         return {"status": "ok"}
 
+    @app.get("/ready", tags=["system"], responses=errors)
+    async def ready():
+        if store is None:
+            raise ServiceError(503, "COMPONENT_UNAVAILABLE", "Readiness requires application backend")
+        try:
+            store.list_sessions(limit=1)
+            await adapter.checker.engine()
+        except Exception as error:
+            raise ServiceError(503, "DEPENDENCY_UNAVAILABLE", "SQLite or Java/TLC is unavailable; run python -m proveryalka.runtime") from error
+        import os
+        return {"status":"ready", "checker":"TLC", "agent_configured":bool(os.getenv("OPENAI_API_KEY") and os.getenv("OPENAI_BASE_URL"))}
+
     @app.post("/api/sessions", response_model=Session, status_code=201, responses=errors)
     def create_session(body: SessionCreate, idempotency_key: str = Header(min_length=1, max_length=128)):
         return adapter.call("create_session", body=body.model_dump(), key=idempotency_key)

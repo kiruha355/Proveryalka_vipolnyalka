@@ -22,6 +22,6 @@ def create_client() -> AsyncOpenAI:
 
 def create_model(client: AsyncOpenAI) -> OpenAIResponsesModel:
     return OpenAIResponsesModel(
-        model="deepseek-v4.1-flash",
+        model=os.getenv("OPENAI_MODEL", "deepseek-v4.1-flash"),
         openai_client=client,
     )
