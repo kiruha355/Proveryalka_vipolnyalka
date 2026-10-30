@@ -5,11 +5,11 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from fastapi.testclient import TestClient
 
-from proveryalka.app import create_app
+from proveryalka.api.app import create_app
 from proveryalka.config import Settings
 from proveryalka.services import ServiceError
-from proveryalka.session import StoredSession
-from proveryalka.storage import SQLiteStore
+from proveryalka.storage.session import StoredSession
+from proveryalka.storage.sqlite import SQLiteStore
 
 
 @pytest.fixture
@@ -165,11 +165,11 @@ def test_parallel_pop_does_not_return_same_item_twice(store):
 
 def test_migration_refuses_future_schema_without_modifying_it(store):
     with store.transaction(write=True) as connection:
-        connection.execute("PRAGMA user_version=2")
+        connection.execute("PRAGMA user_version=4")
     with pytest.raises(RuntimeError, match="newer"):
         store.initialize()
     with store.transaction() as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
 
 
 def test_unavailable_database_has_safe_service_error(tmp_path):
@@ -205,4 +205,4 @@ def test_http_storage_restart_and_idempotency(tmp_path):
 def test_openapi_snapshot_matches_application():
     import json
     from pathlib import Path
-    assert create_app().openapi() == json.loads(Path("docs/openapi.json").read_text())
+    assert create_app().openapi() == json.loads((Path(__file__).parent / "fixtures/openapi.json").read_text())

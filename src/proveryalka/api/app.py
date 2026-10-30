@@ -1,55 +1,67 @@
 from contextlib import asynccontextmanager
-from typing import Any, Optional, Type
+from typing import Optional, Type
 
 from fastapi import FastAPI, Header, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel, Field, StrictStr, create_model
 from starlette.exceptions import HTTPException
 
-from .config import Settings
-from .contracts import (
+from ..config import Settings
+from ..behavior import BehavioralModel
+from ..verification import VerificationResult
+from ..contracts import (
     CheckCreate, Contract, ErrorResponse, Event, MessageCreate, Run, Session,
     SessionCreate, SessionDetail, Source, TextSourceCreate,
 )
-from .services import Backend, ServiceError
-from .storage import SQLiteBackend, SQLiteStore
+from ..services import Backend, ServiceError
+from ..storage.sqlite import SQLiteStore
+from .backend import ApplicationBackend
 
 
 def create_app(
     settings: Optional[Settings] = None,
     backend: Optional[Backend] = None,
-    behavioral_model: Optional[Type[BaseModel]] = None,
-    verification_result: Optional[Type[BaseModel]] = None,
+    behavioral_model: Type[BaseModel] = BehavioralModel,
+    verification_result: Type[BaseModel] = VerificationResult,
+    checker=None,
 ) -> FastAPI:
-    """Inject the actual shared Pydantic classes from #1, without a second DSL."""
     settings = settings or Settings.from_env()
     store = SQLiteStore(settings.database_path) if backend is None else None
-    adapter = backend if backend is not None else SQLiteBackend(store)
+    adapter = backend if backend is not None else ApplicationBackend(store, settings, checker)
 
     @asynccontextmanager
     async def lifespan(app):
         if store is not None:
             store.initialize()
-        yield
+            await adapter.start()
+        try:
+            yield
+        finally:
+            if store is not None:
+                await adapter.close()
 
     app = FastAPI(title="Проверялка API", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.backend = adapter
-    # Until #1 lands these are opaque transport payloads, never a validator.
-    Spec = behavioral_model or dict[str, Any]
-    Result = verification_result or dict[str, Any]
-    VersionCreate = create_model("VersionCreate", __base__=Contract, spec=(Spec, ...))
+    Spec = behavioral_model
+    Result = verification_result
+    VersionCreate = create_model("VersionCreate", __base__=Contract, spec=(Spec, ...), parent_id=(Optional[str], None))
     Version = create_model(
         "ModelVersion", __base__=Contract, id=(str, ...), model_id=(str, ...),
         session_id=(str, ...), number=(int, ...), parent_id=(Optional[str], None),
         spec=(Spec, ...), spec_hash=(str, ...), approved=(bool, False),
     )
+    ModelCreate = create_model("ModelCreate", __base__=Contract, name=(StrictStr, Field(min_length=1, max_length=200)))
+    Model = create_model("Model", __base__=ModelCreate, id=(str, ...), session_id=(str, ...))
+    from ..verification.contracts import CheckLimits
+    CheckRequest = create_model("CheckRequest", __base__=CheckCreate, limits=(CheckLimits, Field(default_factory=CheckLimits)))
     Check = create_model(
         "CheckRun", __base__=Contract, run=(Run, ...),
         results=(list[Result], ...),
     )
     errors = {code: {"model": ErrorResponse} for code in (404, 409, 422, 503)}
+    errors[422]["description"] = "Unprocessable Entity"
 
     @app.exception_handler(ServiceError)
     async def service_error(request, error):
@@ -112,6 +124,15 @@ def create_app(
     def events(run_id: str, last_event_id: Optional[int] = Header(None, ge=0)):
         return adapter.call("events", run_id=run_id, after=last_event_id or 0)
 
+    @app.post("/api/sessions/{session_id}/models", response_model=Model, status_code=201, responses=errors)
+    def create_model_record(session_id: str, body: ModelCreate,
+                            idempotency_key: str = Header(min_length=1, max_length=128)):
+        return adapter.call("create_model", session_id=session_id, body=body.model_dump(), key=idempotency_key)
+
+    @app.get("/api/sessions/{session_id}/models", response_model=list[Model], responses=errors)
+    def list_models(session_id: str):
+        return adapter.call("list_models", session_id=session_id)
+
     @app.get("/api/models/{model_id}/versions", response_model=list[Version], responses=errors)
     def list_versions(model_id: str):
         return adapter.call("list_versions", model_id=model_id)
@@ -123,8 +144,6 @@ def create_app(
     @app.post("/api/models/{model_id}/versions", response_model=Version, status_code=201, responses=errors)
     def create_version(model_id: str, body: VersionCreate,
                        idempotency_key: str = Header(min_length=1, max_length=128)):
-        if behavioral_model is None:
-            raise ServiceError(503, "CONTRACT_UNAVAILABLE", "Shared BehavioralModel from #1 is not connected")
         return adapter.call("create_version", model_id=model_id, body=body.model_dump(), key=idempotency_key)
 
     @app.post("/api/models/{model_id}/versions/{number}/approve", response_model=Version, responses=errors)
@@ -132,10 +151,8 @@ def create_app(
         return adapter.call("approve_version", model_id=model_id, number=number)
 
     @app.post("/api/models/{model_id}/versions/{number}/checks", response_model=Run, status_code=202, responses=errors)
-    def create_check(model_id: str, number: int, body: CheckCreate,
+    def create_check(model_id: str, number: int, body: CheckRequest,
                      idempotency_key: str = Header(min_length=1, max_length=128)):
-        if verification_result is None or behavioral_model is None:
-            raise ServiceError(503, "CONTRACT_UNAVAILABLE", "Shared checker contracts from #1 are not connected")
         return adapter.call("create_check", model_id=model_id, number=number, body=body.model_dump(), key=idempotency_key)
 
     @app.get("/api/checks/{run_id}", response_model=Check, responses=errors)
@@ -153,8 +170,8 @@ def create_app(
         schema["components"]["schemas"]["Event"] = Event.model_json_schema()
         schema["info"]["description"] = (
             "API foundation. Unconnected operations return 503. "
-            "BehavioralModel/VerificationResult are injected from issue #1; "
-            "opaque payloads are not semantic validation."
+            "BehavioralModel 1.0 and VerificationResult 1.0 use shared contracts. "
+            "The checking engine is not connected by default."
         )
         return schema
 
