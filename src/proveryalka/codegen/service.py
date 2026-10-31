@@ -43,6 +43,7 @@ class CodegenService:
         self.tasks = {}
         self.stops = {}
         self.closing = False
+        self.cleanup_task = None
 
     # Жизненный цикл
 
@@ -53,7 +54,7 @@ class CodegenService:
         self.semaphore = asyncio.Semaphore(self.settings.parallel)
         self.closing = False
         if hasattr(self.sandbox, "cleanup_orphans"):
-            self.loop.create_task(self._cleanup_orphans())
+            self.cleanup_task = self.loop.create_task(self._cleanup_orphans())
 
     async def _cleanup_orphans(self):
         try:
@@ -65,6 +66,10 @@ class CodegenService:
 
     async def close(self):
         self.closing = True
+        if self.cleanup_task is not None:
+            self.cleanup_task.cancel()
+            await asyncio.gather(self.cleanup_task, return_exceptions=True)
+            self.cleanup_task = None
         for test_run_id in list(self.tasks):
             self.stop(test_run_id)
         if self.tasks:
