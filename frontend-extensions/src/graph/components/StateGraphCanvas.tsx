@@ -5,7 +5,6 @@ import {
   EdgeLabelRenderer,
   getBezierPath,
   Handle,
-  Panel,
   Position,
   ReactFlow,
   ReactFlowProvider,
@@ -23,6 +22,7 @@ import {
   useId,
   useMemo,
 } from "react";
+import {useExpandedGraph} from "./useExpandedGraph";
 import type { Transition } from "../../contracts/model";
 import { cx } from "../../ui/cx";
 import { FitIcon, MinusIcon, PlusIcon } from "../../ui/icons";
@@ -241,7 +241,7 @@ const ARIA_LABELS = {
   "controls.ariaLabel": "Масштаб",
   "controls.zoomIn.ariaLabel": "Приблизить",
   "controls.zoomOut.ariaLabel": "Отдалить",
-  "controls.fitView.ariaLabel": "Показать весь граф",
+  "controls.fitView.ariaLabel": "Вписать граф",
   "controls.interactive.ariaLabel": "Блокировка",
   "minimap.ariaLabel": "Миникарта",
   "handle.ariaLabel": "Точка соединения",
@@ -280,7 +280,7 @@ function ZoomControls() {
         type="button"
         className="pv-icon-button"
         onClick={() => flow.fitView({ duration: 160, padding: 0.2 })}
-        aria-label="Показать весь граф"
+        aria-label="Вписать граф"
       >
         <FitIcon />
       </button>
@@ -314,7 +314,9 @@ export type StateGraphCanvasProps = {
   /** Меняется при смене версии или проекции — граф заново вписывается в окно. */
   fitToken?: string;
   ariaLabel?: string;
-  /** Дополнительные элементы поверх холста (панель трассы и т.п.). */
+  /** Controls in the reserved footer, outside the React Flow pane. */
+  footer?: ReactNode;
+  /** Дополнительные элементы поверх холста (легенда). */
   children?: ReactNode;
 };
 
@@ -331,7 +333,7 @@ function CanvasInner(props: StateGraphCanvasProps) {
     onPositionsChange,
     fitToken = "",
     ariaLabel = "Диаграмма этапов",
-    children,
+    children, footer,
   } = props;
   const markerPrefix = `pv-arrow-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const { nodes, edges } = useMemo(
@@ -385,6 +387,7 @@ function CanvasInner(props: StateGraphCanvasProps) {
 
   return (
     <CanvasContext.Provider value={actions}>
+      <div className="pv-canvas">
       <ReactFlow<StageFlowNode, TransitionFlowEdge>
         nodes={nodes}
         edges={edges}
@@ -437,21 +440,33 @@ function CanvasInner(props: StateGraphCanvasProps) {
           className="pv-canvas-bg"
         />
         <FitOnChange token={fitToken} />
-        <Panel position="bottom-right">
-          <ZoomControls />
-        </Panel>
         {children}
       </ReactFlow>
+      <div className="pv-canvas-controls" role="toolbar" aria-label="Управление диаграммой">
+        {footer}
+        <ZoomControls />
+      </div>
+      </div>
     </CanvasContext.Provider>
   );
 }
 
 /** Холст React Flow для проекции модели. Положение узлов — только раскладка, не часть модели. */
 export function StateGraphCanvas(props: StateGraphCanvasProps) {
+  const full = useExpandedGraph();
+  const titleId = useId();
   return (
-    <div className="pv-canvas">
+    <div ref={full.shell} className={cx("pv-canvas-shell", full.expanded && "is-expanded")}
+      role={full.expanded ? "dialog" : "region"} aria-modal={full.expanded ? true : undefined}
+      aria-label={full.expanded ? undefined : "Область диаграммы"}
+      aria-labelledby={full.expanded ? titleId : undefined} onKeyDownCapture={full.onKeyDownCapture}>
+      <div className="pv-canvas-heading">
+        {full.expanded && <h2 id={titleId}>{props.ariaLabel ?? "Диаграмма этапов"}</h2>}
+        {full.expanded ? <button ref={full.close} type="button" className="pv-button" onClick={() => full.setExpanded(false)}>Закрыть диаграмму</button>
+          : <button ref={full.trigger} type="button" className="pv-button" onClick={() => full.setExpanded(true)}>Развернуть диаграмму</button>}
+      </div>
       <ReactFlowProvider>
-        <CanvasInner {...props} />
+        <CanvasInner {...props} fitToken={`${props.fitToken ?? ""}|${full.expanded}`} />
       </ReactFlowProvider>
     </div>
   );

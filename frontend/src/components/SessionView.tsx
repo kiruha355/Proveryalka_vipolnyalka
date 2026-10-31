@@ -142,6 +142,11 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
       });
       setPane("workspace");
     },
+    composeMessage: (text) => {
+      setReply(null);
+      setPane("chat");
+      requestAnimationFrame(() => composer.current?.prefill(text));
+    },
     replyTo: (questionId) => {
       setReply(capabilities.questionId ? questionId : null);
       setPane("chat");

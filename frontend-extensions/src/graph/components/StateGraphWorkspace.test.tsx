@@ -292,3 +292,63 @@ it("блокирует правку и trace overlay при подмене сп�
   expect(screen.getByRole("button", { name: "Изменить" })).toBeDisabled();
   expect(screen.queryByText(/Шаг 3 из 3/)).not.toBeInTheDocument();
 });
+
+describe("controls and expanded diagram", () => {
+  it("keeps trace and zoom controls outside the pane and operable at narrow width", async () => {
+    const user = userEvent.setup();
+    const {container} = render(<div style={{width:360,height:600}}><StateGraphWorkspace versions={ORDER_VERSIONS}
+      selectedVersionId={ORDER_VERSIONS[0]!.id} onSelectVersion={()=>{}} results={[TLC_ORDER_BUG_RESULT]}/></div>);
+    const toolbar=await screen.findByRole("toolbar",{name:"Управление диаграммой"});
+    const trace=within(toolbar).getByRole("group",{name:"Шаги трассы"});
+    const zoom=within(toolbar).getByRole("group",{name:"Масштаб"});
+    expect(trace.closest(".react-flow")).toBeNull();expect(zoom.closest(".react-flow")).toBeNull();
+    await user.click(within(trace).getByRole("button",{name:"Сбросить"}));
+    expect(within(trace).getByText("Шаг 0 из 3")).toBeInTheDocument();
+    await user.click(within(trace).getByRole("button",{name:"Шаг"}));
+    expect(within(trace).getByText("Шаг 1 из 3")).toBeInTheDocument();
+    const pane=container.querySelector(".react-flow__pane");
+    await user.click(within(zoom).getByRole("button",{name:"Вписать граф"}));
+    expect(container.querySelector(".react-flow__pane")).toBe(pane);
+    expect(within(trace).getByText("Шаг 1 из 3")).toBeInTheDocument();
+  });
+
+  it("expands the same graph, keeps selection and changed trace, traps focus and returns it on Escape", async () => {
+    const user=userEvent.setup();
+    const previousOverflow=document.body.style.overflow;
+    const {container}=render(<><button>Вне диаграммы</button><Harness/></>);
+    const chip=await screen.findByRole("button",{name:/«Исполнить» \(Execute\): Cancelled → Executed/});
+    await user.click(chip);expect(chip).toHaveAttribute("aria-pressed","true");
+    const pane=container.querySelector(".react-flow__pane");
+    const expand=screen.getByRole("button",{name:"Развернуть диаграмму"});
+    await user.click(expand);
+    const dialog=screen.getByRole("dialog",{name:/Диаграмма этапов модели/});
+    expect(dialog).toHaveAttribute("aria-modal","true");
+    expect(container.querySelector(".react-flow__pane")).toBe(pane);
+    expect(chip).toHaveAttribute("aria-pressed","true");
+    expect(screen.getByRole("button",{name:"Вне диаграммы"})).toHaveAttribute("inert");
+    const close=within(dialog).getByRole("button",{name:"Закрыть диаграмму"});
+    expect(close).toHaveFocus();
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(within(dialog).getByRole("button",{name:"Вписать граф"})).toHaveFocus();
+    await user.keyboard("{Tab}");expect(close).toHaveFocus();
+    await user.click(within(dialog).getByRole("button",{name:"Назад"}));
+    expect(within(dialog).getByText("Шаг 2 из 3")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("button",{name:"Развернуть диаграмму"})).toHaveFocus();
+    expect(screen.getByText("Шаг 2 из 3")).toBeInTheDocument();expect(chip).toHaveAttribute("aria-pressed","true");
+    expect(screen.getByRole("button",{name:"Вне диаграммы"})).not.toHaveAttribute("inert");
+    expect(document.body.style.overflow).toBe(previousOverflow);
+    await user.click(screen.getByRole("button",{name:"Развернуть диаграмму"}));
+    await user.click(screen.getByRole("button",{name:"Закрыть диаграмму"}));
+    expect(screen.getByRole("button",{name:"Развернуть диаграмму"})).toHaveFocus();
+  });
+
+  it("restores background and focus when an expanded graph unmounts", async () => {
+    const user=userEvent.setup();const outside=document.createElement("button");outside.textContent="outside";document.body.append(outside);
+    const {unmount}=render(<Harness/>);
+    await user.click(await screen.findByRole("button",{name:"Развернуть диаграмму"}));
+    expect(outside).toHaveAttribute("inert");unmount();expect(outside).not.toHaveAttribute("inert");
+    expect(document.body.style.overflow).not.toBe("hidden");outside.remove();
+  });
+});

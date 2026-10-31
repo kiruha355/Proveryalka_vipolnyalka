@@ -4,6 +4,7 @@ import { Close, Paperclip, Send } from "../icons";
 
 export interface ComposerHandle {
   focus(): void;
+  prefill(text: string): void;
 }
 
 interface Props {
@@ -24,7 +25,13 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer(prop
   const { value, onChange, onSubmit, blockedReason, busy = false, reply, attach } = props;
   const area = useRef<HTMLTextAreaElement>(null);
   const file = useRef<HTMLInputElement>(null);
-  useImperativeHandle(ref, () => ({ focus: () => area.current?.focus() }), []);
+  useImperativeHandle(ref, () => ({
+    focus: () => area.current?.focus(),
+    prefill: (text) => {
+      onChange(value.trim() ? `${value}\n\n${text}` : text);
+      area.current?.focus();
+    },
+  }), [value, onChange]);
 
   // Grow with the text up to a limit; the composer stays pinned to the bottom.
   useLayoutEffect(() => {

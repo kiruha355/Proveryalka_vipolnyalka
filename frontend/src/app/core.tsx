@@ -13,6 +13,7 @@ export interface CoreActions {
   limits: CheckLimits;
   setLimits(limits: CheckLimits): void;
   runCheck(): void;
+  composeMessage(text: string): void;
   replyTo(questionId: string): void;
 }
 

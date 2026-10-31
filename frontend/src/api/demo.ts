@@ -1,7 +1,7 @@
 import type { ApiCapabilities, MessageBody, ProveryalkaApi } from "./api";
 import { ApiError } from "./errors";
 import type {
-  BehavioralModel, CheckLimits, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session,
+  BehavioralModel, DialogueView, CheckLimits, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session,
   SessionDetail, VerificationResult,
 } from "./types";
 import { DEFAULT_LIMITS, isTerminal } from "./types";
@@ -9,6 +9,7 @@ import orderBug from "../fixtures/order_bug.json";
 import orderFixed from "../fixtures/order_fixed.json";
 import grid from "../fixtures/grid.json";
 import counterOverflow from "../fixtures/counter_overflow.json";
+import recordedDialogue from "../fixtures/recorded-dialogue.json";
 import recorded from "../fixtures/recorded-reports.json";
 
 // Demo adapter: backend test fixtures plus checker reports recorded from real
@@ -21,10 +22,18 @@ interface Recording {
   report: { results: VerificationResult[] };
 }
 
-const RECORDS = recorded as unknown as Record<string, Recording> & { _meta: Record<string, string> };
+export const LIVE_RECORDING = recordedDialogue as unknown as {
+  _meta: Record<string, unknown>; session: SessionDetail; dialogue: DialogueView; models: Model[]; versions: ModelVersion[];
+  checks: (CheckRun & {events: RunEvent[]})[];
+};
+const recordedReports = Object.fromEntries(LIVE_RECORDING.checks.map(check => [check.run.run_id,
+  {fixture: "recorded GPT subscription + TLC", spec_hash: check.results[0]?.spec_hash ?? "", report: {results: check.results}}]));
+const RECORDS = {...recorded, ...recordedReports} as unknown as Record<string, Recording> & { _meta: Record<string, string> };
 export const DEMO_RECORDING_META = RECORDS._meta;
 
 interface DemoCheck {
+  explanation?: CheckRun["explanation"];
+  after_entry_id?: string;
   run: Run;
   results: VerificationResult[];
   pending: VerificationResult[];
@@ -100,6 +109,13 @@ export class DemoApi implements ProveryalkaApi {
   constructor(options: DemoApiOptions = {}) {
     this.stepMs = options.stepMs ?? 600;
     for (const seed of SEEDS) this.seed(seed);
+    this.sessions.set(LIVE_RECORDING.session.id, structuredClone(LIVE_RECORDING.session));
+    for (const model of LIVE_RECORDING.models) this.models.set(model.id, structuredClone(model));
+    for (const version of LIVE_RECORDING.versions) {
+      this.versions.set(version.id, structuredClone(version));
+      this.recordings.set(version.id, LIVE_RECORDING.checks.filter(c => c.run.version_id === version.id).map(c => c.run.run_id));
+    }
+    for (const check of LIVE_RECORDING.checks) this.checks.set(check.run.run_id, {...structuredClone(check), pending: []});
   }
 
   private seed(seed: DemoSessionSeed) {
@@ -142,7 +158,7 @@ export class DemoApi implements ProveryalkaApi {
   }
 
   async capabilities(): Promise<ApiCapabilities> {
-    return { adapter: "demo", agent: false, questionId: false, customLimits: false, artifacts: false, checkDiscovery: true, documents: false };
+    return { adapter: "demo", agent: false, questionId: false, customLimits: false, artifacts: false, checkDiscovery: true, documents: false, dialogue: true };
   }
 
   async ready(): Promise<ReadyInfo> {
@@ -151,7 +167,7 @@ export class DemoApi implements ProveryalkaApi {
 
   async listSessions(): Promise<Session[]> {
     return [...this.sessions.values()]
-      .map(({ id, title, mode, created_at }) => ({ id, title, mode, created_at }))
+      .map(({ id, title, mode, created_at, recording_label }) => ({ id, title, mode, created_at, recording_label }))
       .sort((a, b) => a.created_at.localeCompare(b.created_at));
   }
 
@@ -169,6 +185,16 @@ export class DemoApi implements ProveryalkaApi {
     const session = this.sessions.get(sessionId);
     if (!session) throw new ApiError("http", "Session not found", { status: 404, code: "NOT_FOUND" });
     return structuredClone(session);
+  }
+
+  async getDialogue(sessionId: string): Promise<DialogueView> {
+    if (sessionId === LIVE_RECORDING.session.id) return structuredClone(LIVE_RECORDING.dialogue);
+    const session = await this.getSession(sessionId);
+    return {session_id: sessionId, status: "not_started", round: null, max_rounds: null, reply: null,
+      requirements: [], questions: [], open_question_ids: [], corrections: [], analysis: null, model: null, pending: null,
+      entries: session.messages.filter(m => m.message_data.role === "user" && typeof m.message_data.content === "string").map(m => ({id:m.id, sequence:m.sequence,
+        created_at:m.created_at, kind:"user", text:String(m.message_data.content), status:"processed"})),
+    };
   }
 
   async sendMessage(_sessionId: string, _body: MessageBody): Promise<Run> {
@@ -259,7 +285,7 @@ export class DemoApi implements ProveryalkaApi {
 
   async getCheck(runId: string): Promise<CheckRun> {
     const check = this.check(runId);
-    return structuredClone({ run: check.run, results: check.results });
+    return structuredClone({ run: check.run, results: check.results, explanation: check.explanation, after_entry_id: check.after_entry_id });
   }
 
   async listArtifacts(): Promise<never> {

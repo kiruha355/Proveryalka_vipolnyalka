@@ -3,6 +3,7 @@ import { useCore } from "../../app/core";
 import type { WorkspaceViewProps } from "../../app/extensions";
 import { describeCode, describeError } from "../../api/errors";
 import { isTerminal, type VerificationResult } from "../../api/types";
+import { discussionPrompt } from "../../domain/discussion";
 import { RUN_STATE, statusInfo, summarizeResults } from "../../domain/status";
 import type { CheckRunView } from "../../state/types";
 import { findNarrative, ResultDetail } from "../check/ResultDetail";
@@ -132,7 +133,7 @@ export function CheckView({ context }: WorkspaceViewProps) {
             <div className="quiet" role="status">
               {["queued", "running"].includes(selected.explanation.state) ? "Готовится объяснение" : <>
                 {selected.explanation.state === "not_requested" ? "Объяснение не запрошено" : `Объяснение недоступно: ${selected.explanation.error_code ?? selected.explanation.state}`}
-                <button type="button" className="button button--small" onClick={() => void core.workspace.retryExplanation(selected.runId)}>Объяснить</button>
+                {context.capabilities.explanations && context.api.retryExplanation && <button type="button" className="button button--small" onClick={() => void core.workspace.retryExplanation(selected.runId)}>Объяснить</button>}
               </>}
             </div>
           )}
@@ -152,6 +153,10 @@ export function CheckView({ context }: WorkspaceViewProps) {
                   );
                 })}
               </ul>
+          {result?.status === "PROPERTY_VIOLATED" && <div className="discussion-actions" role="group" aria-label="Обсудить контрпример в чате">
+            <button type="button" className="button button--small" onClick={() => core.composeMessage(discussionPrompt(version, selected.runId, result, "cause"))}>Объяснить причину</button>
+            <button type="button" className="button button--small" onClick={() => core.composeMessage(discussionPrompt(version, selected.runId, result, "correction"))}>Обсудить исправление</button>
+          </div>}
               {result && (
                 <ResultDetail version={version} result={result}
                   focus={trace && trace.result.property_id === result.property_id && trace.check.runId === selected.runId ? trace : null}
@@ -161,6 +166,7 @@ export function CheckView({ context }: WorkspaceViewProps) {
               )}
             </div>
           )}
+
 
           {context.capabilities.artifacts && run?.state === "completed" && (
             <section className="artifacts" aria-label="Файлы прогона">

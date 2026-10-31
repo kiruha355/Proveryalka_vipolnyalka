@@ -3,6 +3,8 @@
 export type SessionMode = "analyzer" | "debugger" | "overview" | "codegen";
 
 export interface Session {
+  /** Local recorded demo provenance, not a live backend status. */
+  recording_label?: string;
   id: string;
   title: string;
   mode: SessionMode;
@@ -200,6 +202,8 @@ export interface VerificationResult {
 }
 
 export interface CheckRun {
+  /** Recorded transcript anchor; absent from live HTTP responses. */
+  after_entry_id?: string;
   run: Run;
   results: VerificationResult[];
   explanation?: ExplanationView;

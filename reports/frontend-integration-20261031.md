@@ -11,3 +11,12 @@ DOCX UTF-16 DTD bypass воспроизведён и закрыт отдельн
 Проверки: frontend 30 PASS; отдельный opt-in реальный HTTP adapter scenario PASS с Java/TLC, codegen и Docker pytest 79 PASS; extensions 104 PASS, typecheck/library/host types PASS; полный backend с обязательными TLC/Docker 344 PASS (47.99 s). Ядро и расширения собираются вместе. Полный browser+GPT E2E NOT_RUN; пользовательская визуальная приёмка pending. Политика allow_unverified генерации остаётся открытым продуктовым вопросом.
 
 Стабильная demo-сборка, автономные walkthrough/check/requirements HTML, PNG и logs сохранены вне временного runtime: `/Users/a/Proveryalka_vipolnyalka/reports/project-review-20261031/frontend-integration/`. Отдельный runtime5294 использовался только для HTTP adapters test и штатно остановлен; его БД сохранена. Старый demo4180 не изменён. Dependencies сохранены для активного frontend5291 и ручной проверки; не удалять их, пока стенд используется.
+
+
+## Второй просмотр
+
+Новые прямые отзывы: footer трассы/zoom больше не накладывается; отдельное разворачивание сохраняет тот же граф, выбор и шаг; Escape/close/focus return. Основные controls/cards/nodes получили radius4–6px по уточнению пользователя. Два действия контрпримера только дополняют draft и фокусируют чат, не отправляя сообщение и не меняя модель.
+
+В demo добавлен отдельный настоящий пятиходовый GPT subscription transcript из supplied backend-acceptance; статусы, модели и отчёты принадлежат ему, fixture status-enum с ним не смешивается. Reimport: `python3 frontend/scripts/import-recorded-dialogue.py /path/to/backend-acceptance`. Provenance hashes сохранены в `recorded-dialogue.json`; backend timestamps отсутствуют и не выдуманы. Read-only checkcards размещены в порядке записанного сценария.
+
+Frontend33PASS, extensions107PASS, types/build/hosttypesPASS. Новых provider/TLC/Docker calls нет; прежние344backendPASS не являются новым запуском. before/after/expanded/recorded HTML/PNG и отдельный stable demo-dir — root reports/.../frontend-integration/revision-2/. Old demo-dist и4182/4183 сохранены. Browser walkthrough и пользовательская приёмка pending у root.

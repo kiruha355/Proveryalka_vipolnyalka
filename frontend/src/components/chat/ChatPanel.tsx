@@ -69,7 +69,7 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
   else if (history?.dialogue?.status === "limit_reached") blocked = "Лимит уточняющих раундов исчерпан. Начните новый чат с уточнённым описанием.";
 
   // Chronological timeline: stored history, then checks started from this browser.
-  const items: { at: string; node: ReactNode; key: string }[] = [];
+  const items: { at: string; node: ReactNode; key: string; after?: string }[] = [];
   for (const entry of history?.entries ?? []) {
     if (entry.kind === "user") {
       const isPending = entry.status === "pending" && !active;
@@ -78,7 +78,7 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
         at: entry.createdAt, key: entry.key,
         node: (
           <UserBubble key={entry.key} text={entry.text} time={clock(entry.createdAt)}>
-            {capabilities.adapter === "demo" && <p className="msg__note">Исходный текст записанного примера</p>}
+            {capabilities.adapter === "demo" && !session.recording_label && <p className="msg__note">Исходный текст записанного примера</p>}
             {entry.status === "discarded" && <p className="msg__note">Сообщение отменено и не разобрано</p>}
             {isPending && (
               <div className="msg__note msg__note--pending">
@@ -119,7 +119,7 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
   for (const check of [...workspace.checks].reverse()) {
     const version = context.versions.find((v) => v.id === check.versionId);
     items.push({
-      at: check.startedAt ?? "", key: check.runId,
+      at: check.startedAt ?? "", key: check.runId, after: check.afterEntryId,
       node: <CheckCard key={check.runId} check={check} version={version} context={context}
         modelName={(workspace.models.data?.length ?? 0) > 1 ? workspace.models.data?.find((g) => g.model.id === check.modelId)?.model.name : undefined}
         onCancel={() => void workspace.cancelCheck(check.runId)} />,
@@ -127,9 +127,11 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
   }
   // Recorded checks without a client timestamp follow the dated timeline in their own order.
   const timeline = [
-    ...items.filter((i) => i.at).sort((a, b) => a.at.localeCompare(b.at)),
-    ...items.filter((i) => !i.at),
+    ...items.filter((i) => i.at && !i.after).sort((a, b) => a.at.localeCompare(b.at)),
+    ...items.filter((i) => !i.at && !i.after),
   ];
+
+  const anchoredTimeline = timeline.flatMap(item => [item, ...items.filter(check => check.after === item.key)]);
 
   const activeInHistory = active && pending && pending.text === active.text;
 
@@ -140,6 +142,7 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
         <span className="chip chip--mode" title="Режим сессии; сейчас все режимы обрабатывает аналитик">{MODE_LABEL[session.mode] ?? session.mode}</span>
       </header>
 
+      {session.recording_label && <p className="recording-caption">{session.recording_label} · новые вызовы не выполняются</p>}
       <div className="chat__body" tabIndex={-1}>
         {workspace.detail.error !== null && !workspace.detail.data && (
           <ErrorNotice error={workspace.detail.error} title="История сессии не загружена"
@@ -153,7 +156,7 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
           </div>
         )}
         <ol className="timeline" ref={list} aria-label="История диалога">
-          {timeline.map((item) => item.node)}
+          {anchoredTimeline.map((item) => item.node)}
           {active && (
             <>
               {!activeInHistory && <UserBubble text={active.text} time={clock(active.startedAt)} />}

@@ -424,7 +424,6 @@ export function StateGraphWorkspace({
   const sortedVersions = [...versions].sort((a, b) => a.number - b.number);
 
   const traceBar = trace && traceSteps > 0 && (
-    <Panel position="bottom-left">
       <div className="pv-tracebar" role="group" aria-label="Шаги трассы">
         <button
           type="button"
@@ -456,7 +455,6 @@ export function StateGraphWorkspace({
           Шаг {traceIndex} из {traceSteps - 1}
         </span>
       </div>
-    </Panel>
   );
 
   const inspectorContent = (() => {
@@ -998,8 +996,8 @@ export function StateGraphWorkspace({
               }
               fitToken={`${version.id}|${projectionIds.join("+")}|${draft ? "draft" : "version"}`}
               ariaLabel={`Диаграмма этапов модели ${spec.name}, версия ${version.number}`}
+              footer={traceBar}
             >
-              {traceBar}
               {projection && (
                 <Panel position="top-left">
                   <div className="pv-legend" aria-label="Обозначения">

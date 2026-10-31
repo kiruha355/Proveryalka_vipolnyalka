@@ -23,8 +23,8 @@
   --pv-violation-soft: #f6ded6;
   --pv-ok: #4f7a5a;
   --pv-focus: #c4673d;
-  --pv-radius: 0;
-  --pv-radius-small: 0;
+  --pv-radius: 6px;
+  --pv-radius-small: 4px;
   --pv-font-mono:
     ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   --pv-shadow: none;
@@ -344,15 +344,21 @@
   flex: 1 1 360px;
   min-height: 360px;
   border: 1px solid var(--pv-border);
-  border-radius: 0;
+  border-radius: var(--pv-radius);
   background: var(--pv-canvas);
   overflow: hidden;
 }
 
-.pv-canvas {
-  position: absolute;
-  inset: 0;
-}
+.pv-canvas-shell {position:absolute; inset:0; display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--pv-canvas);}
+.pv-canvas-heading {display:flex; align-items:center; justify-content:flex-end; gap:12px; padding:8px; flex:none; border-bottom:1px solid var(--pv-border);}
+.pv-canvas-heading h2 {font-size:15px; font-weight:600; margin:0; flex:1; min-width:0;}
+.pv-canvas-shell.is-expanded {position:fixed; inset:12px; z-index:10000; border:1px solid var(--pv-border-strong); border-radius:var(--pv-radius); box-shadow:0 0 0 100vmax rgb(43 37 33 / 35%);}
+.pv-canvas {display:flex; flex-direction:column; flex:1; min-width:0; min-height:0;}
+.pv-canvas > .react-flow {flex:1; min-height:0;}
+.pv-canvas-controls {display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; padding:8px; flex:none; border-top:1px solid var(--pv-border); background:var(--pv-surface);}
+.pv-canvas-controls .pv-tracebar {flex-wrap:wrap; min-width:0;}
+.pv-canvas-controls .pv-zoom {margin-left:auto; flex:none;}
+@media(max-width:560px) {.pv-canvas-shell.is-expanded{inset:4px}.pv-canvas-heading {flex-wrap:wrap}.pv-canvas-heading h2 {flex-basis:100%}}
 
 .pv-canvas .react-flow__renderer {
   background: transparent;
@@ -555,7 +561,7 @@
   gap: 5px;
   padding: 2px 8px;
   border: 1px solid var(--pv-border);
-  border-radius: 0;
+  border-radius: var(--pv-radius);
   background: var(--pv-canvas);
   color: #5c544d;
   font: inherit;
@@ -701,7 +707,7 @@
 .pv-inspector__card {
   padding: 8px 10px;
   border: 1px solid var(--pv-border);
-  border-radius: 0;
+  border-radius: var(--pv-radius);
   background: var(--pv-surface);
 }
 
@@ -1129,7 +1135,7 @@ span.pv-req-code {
   flex: 1 1 360px;
   min-height: 320px;
   border: 1px solid var(--pv-border);
-  border-radius: 0;
+  border-radius: var(--pv-radius);
   background: var(--pv-surface);
   overflow: hidden;
 }
@@ -1402,7 +1408,7 @@ span.pv-req-code {
 
 .pv-tests {
   border: 1px solid var(--pv-border);
-  border-radius: 0;
+  border-radius: var(--pv-radius);
   background: var(--pv-surface);
   padding: 8px 10px;
 }

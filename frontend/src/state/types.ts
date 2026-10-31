@@ -34,6 +34,7 @@ export interface AgentRunView {
 }
 
 export interface CheckRunView {
+  afterEntryId?: string;
   explanation?: ExplanationView;
   runId: string;
   versionId: string;

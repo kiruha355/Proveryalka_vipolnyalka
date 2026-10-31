@@ -30,7 +30,7 @@ type Action =
   | { type: "check/events"; runId: string; events: RunEvent[] }
   | { type: "check/stream"; runId: string; stream: StreamStatus }
   | { type: "check/run"; run: Run }
-  | { type: "check/results"; runId: string; results: VerificationResult[] | null; error: unknown | null; run?: Run }
+  | { type: "check/results"; runId: string; results: VerificationResult[] | null; error: unknown | null; run?: Run; afterEntryId?: string }
   | { type: "check/explanation"; runId: string; explanation: ExplanationView }
   | { type: "check/artifacts"; runId: string; artifacts: CheckRunView["artifacts"] }
   | { type: "check/cancel"; runId: string };
@@ -117,6 +117,7 @@ function reducer(state: RunsState, action: Action): RunsState {
         results: action.results ?? view.results,
         resultsError: action.error,
         run: action.run ?? view.run,
+        afterEntryId: action.afterEntryId ?? view.afterEntryId,
       };
       if (action.run?.error_code && !next.failure) next.failure = { code: action.run.error_code, message: "" };
       return { ...state, checks: { ...state.checks, [action.runId]: next } };
@@ -315,7 +316,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     api.getCheck(runId, signal).then(
       (check) => {
         if (signal.aborted || checkRequestSeq.current.get(runId) !== sequence) return;
-        dispatch({ type: "check/results", runId, results: check.results, error: null, run: check.run });
+        dispatch({ type: "check/results", runId, results: check.results, error: null, run: check.run, afterEntryId: check.after_entry_id });
         followExplanation(runId, check.explanation);
       },
       (error: unknown) => { if (!isAbort(error)) dispatch({ type: "check/results", runId, results: null, error }); },
@@ -388,7 +389,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     api.getCheck(record.runId, root.current.signal).then(
       (check) => {
         if (root.current.signal.aborted) return;
-        dispatch({ type: "check/results", runId: record.runId, results: check.results, error: null, run: check.run });
+        dispatch({ type: "check/results", runId: record.runId, results: check.results, error: null, run: check.run, afterEntryId: check.after_entry_id });
         followExplanation(record.runId, check.explanation);
         if (!isTerminal(check.run.state)) track("check", record.runId);
         else {
