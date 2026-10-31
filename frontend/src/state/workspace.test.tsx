@@ -8,7 +8,7 @@ import {useSessionWorkspace} from "./useSessionWorkspace";
 import {loadLocal, updateLocal} from "./persist";
 import {App} from "../App";
 import {registerCoreViews} from "../app/coreViews";
-import {resetExtensions} from "../app/extensions";
+import {resetExtensions, registerWorkspaceView} from "../app/extensions";
 
 const sid="demo_s_order";
 const caps={adapter:"http" as const,agent:true,questionId:true,customLimits:true,artifacts:false,checkDiscovery:false,documents:true,dialogue:true,explanations:true};
@@ -100,4 +100,34 @@ it("late response from previous adapter cannot replace current session list",asy
   await screen.findByText("Заявка: отмена и исполнение");
   await act(async()=>resolve([{id:"foreign",title:"Устаревшая сессия",mode:"analyzer",created_at:"2026-10-31"}]));
   expect(screen.queryByText("Устаревшая сессия")).toBeNull();
+});
+
+
+it("host createVersion posts, refreshes and selects new immutable version",async()=>{
+  resetExtensions();registerCoreViews();
+  const api=fake();api.capabilities=async()=>caps;
+  const original=(await api.listVersions("demo_m_order"))[1]!;
+  const created={...structuredClone(original),id:"new-version",number:3,parent_id:original.id,approved:false};
+  const list=api.listVersions.bind(api);let persisted=false;
+  api.createVersion=vi.fn(async()=>{persisted=true;return created;});
+  api.listVersions=async id=>{const versions=await list(id);return persisted && id===original.model_id?[...versions,created]:versions;};
+  let context:import("../app/workspace").WorkspaceContextValue|null=null;
+  registerWorkspaceView({id:"probe",label:"Probe",component:props=>{context=props.context;return <p>host bridge</p>;}});
+  window.location.hash="/s/demo_s_order?m=demo_m_order&v=2&view=probe";
+  render(<App initialApi={api}/>);await screen.findByText("host bridge");
+  await act(async()=>{await context!.createVersion!(original.model_id,{spec:created.spec,parent_id:original.id},"version-key");});
+  await waitFor(()=>expect(context!.version?.id).toBe("new-version"));
+  expect(context!.version?.approved).toBe(false);expect(context!.versions.find(v=>v.id===original.id)).toEqual(original);
+  expect(api.createVersion).toHaveBeenCalledWith(original.model_id,{spec:created.spec,parent_id:original.id},"version-key",expect.any(AbortSignal));
+});
+
+
+it("late check acceptance after session unmount cannot navigate back or persist into current session",async()=>{
+ const api=fake();const version=(await api.listVersions("demo_m_order"))[0]!;let resolve!:(run:Run)=>void;
+ api.createCheck=()=>new Promise(r=>{resolve=r;});
+ const {result,unmount}=renderHook(()=>useSessionWorkspace({api,capabilities:caps,sessionId:sid}));
+ await waitFor(()=>expect(result.current.versions.length).toBeGreaterThan(0));
+ let request!:Promise<string|null>;act(()=>{request=result.current.startCheck(version,null,DEFAULT_LIMITS);});
+ unmount();resolve({run_id:"late",session_id:sid,state:"queued",version_id:version.id,error_code:null});
+ expect(await request).toBeNull();expect(loadLocal(api.id,sid).checkRuns).toHaveLength(0);
 });

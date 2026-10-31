@@ -5,7 +5,7 @@ import {VERIFICATION_STATUSES, type DialogueView, type RunEvent} from "../api/ty
 import {statusInfo, traceRole} from "./status";
 import {buildSteps, focusIndex} from "./trace";
 import {boundResults} from "../components/views/CheckView";
-import {findNarrative} from "../components/check/ResultDetail";
+import {ResultDetail, findNarrative} from "../components/check/ResultDetail";
 import {CheckLauncher} from "../components/workspace/CheckLauncher";
 import {PaneSeparator, usePaneWidth} from "../components/PaneSeparator";
 import {publicHistory} from "./dialogue";
@@ -22,12 +22,15 @@ it("initial violation and reachable witness keep exact values; nullable statisti
   const check=await api.getCheck((await api.listCheckRuns(version.id))[0]!);const result=check.results[0]!;
   const property=version.spec.properties.find(p=>p.id===result.property_id)!;
   const initial={...result,trace:result.trace.slice(0,1)};
-  const steps=buildSteps(initial,version.spec,property);
+  const initialProperty={...property,predicate:{kind:"literal" as const,value:true}};
+  const steps=buildSteps(initial,version.spec,initialProperty);
   expect(steps).toHaveLength(1);expect(steps[0]?.state).toEqual(initial.trace[0]?.state);
-  expect(focusIndex(steps,property,"counterexample")).toBeTypeOf("number");
+  expect(steps[0]?.predicate).toBe(true);
+  expect(focusIndex(steps,initialProperty,"counterexample")).toBe(0);
   expect(traceRole({...result,status:"PROPERTY_HOLDS"},"reachable")).toBe("witness");
   const unknown={...result,statistics:{states_generated:null,distinct_states:null,depth:null,elapsed_seconds:null}};
-  expect(unknown.statistics.distinct_states).toBeNull();
+  render(<ResultDetail version={version} result={unknown} focus={null} requirements={null} narrative={null} onStep={()=>{}} onSelect={()=>{}}/>);
+  expect(screen.getAllByText("нет данных")).toHaveLength(4);
 });
 
 it("does not attach another version/hash report or narrative to selected version",async()=>{

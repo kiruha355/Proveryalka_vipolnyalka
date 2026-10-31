@@ -71,3 +71,16 @@ def test_retry_discard_and_cancel_do_not_duplicate_user_entries(world):
         assert saved[-1]["status"] == "discarded" and saved[-1]["text"] == "Отменённый ход"
         assert sum(e["text"] == TEXT for e in saved) == 1
         world.script.gate.set()
+
+
+def test_actual_user_json_is_preserved_while_internal_requests_are_hidden():
+    import json
+    from proveryalka.api.history import dialogue_entries
+    text = json.dumps({"verification_request": {"text": "Actual user input"}})
+    def row(number, role, content):
+        return {"id": str(number), "sequence": number, "created_at": "2026-10-31", "message_data": {"role": role, "content": content}}
+    internal = row(1, "user", text)
+    assert dialogue_entries([internal], lambda _: "") == []
+    marker = row(2, "assistant", json.dumps({"analyst_pending": {"source": {"id": "source", "text": text}, "question_id": None}}))
+    public = dialogue_entries([internal, marker], lambda _: "")
+    assert len(public) == 1 and public[0]["text"] == text and public[0]["source_id"] == "source"

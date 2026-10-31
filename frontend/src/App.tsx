@@ -4,6 +4,7 @@ import { DemoApi } from "./api/demo";
 import { isAbort } from "./api/errors";
 import { HttpApi } from "./api/http";
 import type { ReadyInfo, Session } from "./api/types";
+import { configureFilesForAdapter } from "./extensions/load";
 import { useRoute } from "./app/route";
 import { ConnectionDialog } from "./components/ConnectionDialog";
 import { NewChat } from "./components/NewChat";
@@ -43,6 +44,7 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
     () => initialApi ?? (prefs.adapter === "demo" ? new DemoApi() : new HttpApi(prefs.baseUrl)),
     [initialApi, prefs.adapter, prefs.baseUrl],
   );
+  useEffect(() => { configureFilesForAdapter(api.id === "demo" ? "demo" : "http", prefs.baseUrl); }, [api, prefs.baseUrl]);
   const [route, navigate] = useRoute();
   // On narrow screens the session list is an overlay: closed by default, closed after a choice.
   const [narrow, setNarrow] = useState(() => window.matchMedia?.("(max-width: 900px)").matches ?? false);

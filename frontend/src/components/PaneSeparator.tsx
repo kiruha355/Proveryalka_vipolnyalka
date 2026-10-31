@@ -18,7 +18,7 @@ export function usePaneWidth(key: string, initial: number, minPx: number, remain
     return () => { observer?.disconnect(); window.removeEventListener("resize", measure); };
   }, []);
   const min = Math.min(minPx / width, .45);
-  const max = Math.max(min, Math.min(maxFraction, 1 - remainingPx / width));
+  const max = Math.max(min, Math.min(maxFraction, 1 - (remainingPx + 6) / width));
   const current = clamp(fraction, min, max);
   const change = (n: number) => {
     const next = clamp(n, min, max); setFraction(next);

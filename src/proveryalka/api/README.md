@@ -176,3 +176,9 @@ type VerificationNarrative = {summary: string; question: string|null;
 Ответ любого провайдера проходит ту же Pydantic-валидацию, строится BehavioralModel, проверку выполняет только TLC.
 
 Ограничение `codex`: глобальный `~/.codex/AGENTS.md` пользователя Codex подключается к инструкциям потока (Codex сообщает его в `instructionSources`); инструкции аналитика передаются как developer instructions и задают формат ответа. Время хода в live-проверке — 14–20 с на `PROVERYALKA_CODEX_EFFORT=medium`.
+
+## Публичная история диалога
+
+`GET /api/sessions/{sid}/dialogue` дополнен `entries`: упорядоченные фактические реплики со стабильными `id`, `sequence`, `created_at`, `kind: user|assistant`, `text`. По наличию сохраняются `source_id`, `question_id`, `status: processed|pending|discarded`; `questions` у ответа содержит открытые вопросы того сохранённого хода. Их текущие состояния доступны в верхнем `questions`.
+
+Проекция читает сохранённые ходы и ответы аналитика, исключает служебные SDK/tool и verification wrappers, не меняет raw history. Повтор незавершённого хода сохраняет идентичность пользовательской реплики. Отмена/отказ отмечается `discarded`; после refresh порядок и исходный текст остаются теми же. Источники без фактического хода не превращаются в выдуманную историю чата. Все ранее существовавшие поля `/dialogue` сохранены.

@@ -62,7 +62,7 @@ export function WorkspacePanel({ context, viewId }: Props) {
   const core = useCore();
   const { workspace } = core;
   const views = workspaceViews().filter((v) => (v.available ? v.available(context) : true));
-  const active: WorkspaceViewDefinition | undefined = views.find((v) => v.id === viewId) ?? views.find((v) => v.id === (context.version ? "model" : "requirements")) ?? views[0];
+  const active: WorkspaceViewDefinition | undefined = views.find((v) => v.id === viewId) ?? (context.version ? views.find(v => v.id === "diagram") : undefined) ?? views.find((v) => v.id === (context.version ? "model" : "requirements")) ?? views[0];
   const title = context.version?.spec.name ?? core.history?.dialogue?.analysis.subject ?? "Рабочая область";
   const dialogue = core.history?.dialogue;
 

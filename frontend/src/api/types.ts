@@ -76,6 +76,7 @@ export type Domain =
   | { kind: "enum"; values: string[] };
 
 export interface SourceRef {
+  // start/end are Unicode codepoint offsets, matching Python backend strings.
   source_id: string;
   quote: string;
   start: number;
@@ -338,9 +339,7 @@ export interface VerificationOutcome {
   check_id?: string | null;
 }
 
-// Uploaded TXT/MD/DOCX document. Planned backend contract (see
-// reports/project-review-20261031/frontend-module-contract.md); used only when
-// capabilities().documents is true.
+// Normalized document source. HttpApi maps the public {source, document} DTO.
 export interface DocumentSource {
   id: string;
   session_id: string;

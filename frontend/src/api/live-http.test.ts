@@ -2,6 +2,8 @@
 import {expect,it} from "vitest";
 import {HttpApi} from "./http";
 import {newKey} from "./api";
+import {createCodegenProvider} from "../../../frontend-extensions/src/files/provider";
+import orderFixed from "../fixtures/order_fixed.json";
 import orderBug from "../fixtures/order_bug.json";
 import type {BehavioralModel} from "./types";
 
@@ -30,4 +32,27 @@ it.skipIf(!base)("real HttpApi + multipart + immutable model + SSE + TLC counter
   expect(violation.trace.map(s=>s.transition_id).filter(Boolean)).toEqual(["Approve","Cancel","Execute"]);
   expect(check.results).toHaveLength(spec.properties.length);
   expect((await api.listArtifacts(run.run_id)).some(file=>file.name==="report.json")).toBe(true);
+  // The fixed fixture is a second immutable version; no LLM/correction dialogue is simulated.
+  const fixed=structuredClone(orderFixed) as unknown as BehavioralModel;
+  const fixedSource=await api.uploadDocument(session.id,new File([fixed.sources[0]!.text],"corrected.md"),newKey());
+  for(const s of fixed.sources){const old=s.id;s.id=fixedSource.id;s.session_id=session.id;for(const r of fixed.requirements)for(const ref of r.source_refs)if(ref.source_id===old)ref.source_id=fixedSource.id;}
+  const fixedVersion=await api.createVersion(model.id,{spec:fixed,parent_id:version.id},newKey());
+  const fixedRun=await api.createCheck(model.id,fixedVersion.number,{property_ids:null},newKey());
+  for await(const _event of api.streamEvents(fixedRun.run_id,0,AbortSignal.timeout(60000))){/* wait for the actual checker */}
+  const fixedReport=await api.getCheck(fixedRun.run_id);
+  expect(fixedReport.results.every(r=>r.status==="PROPERTY_HOLDS")).toBe(true);
+  await api.approveVersion(model.id,fixedVersion.number);
+  const provider=createCodegenProvider({baseUrl:base});
+  expect((await provider.status()).available).toBe(true);
+  const generation=await provider.createGeneration({model_id:model.id,number:fixedVersion.number},{allowUnverified:false},newKey());
+  expect(generation).toMatchObject({version_id:fixedVersion.id,spec_hash:fixedVersion.spec_hash,verification:{state:"holds"}});
+  expect((await provider.readFile(generation.generation_id,"README.md")).bytes.length).toBeGreaterThan(0);
+  expect((await provider.downloadArchive(generation.generation_id)).bytes.length).toBeGreaterThan(0);
+  let test=await provider.startTestRun(generation.generation_id,newKey());
+  const deadline=Date.now()+60000;
+  while(["queued","running"].includes(test.status) && Date.now()<deadline){await new Promise(r=>setTimeout(r,100));test=await provider.getTestRun(test.test_run_id);}
+  expect(test.status).toBe("passed");
+  expect((await provider.getTestLog(test.test_run_id)).length).toBeGreaterThan(0);
+  console.info(JSON.stringify({proof:"HTTP adapters + real TLC + codegen + Docker, no LLM or browser",version_id:fixedVersion.id,generation_id:generation.generation_id,test_run_id:test.test_run_id,status:test.status,counts:test.counts}));
+
 },90000);

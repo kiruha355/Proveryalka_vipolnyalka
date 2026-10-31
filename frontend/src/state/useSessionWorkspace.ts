@@ -490,6 +490,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
 
   const sendMessage = useCallback((text: string, questionId: string | null) => {
     const current = send.outbox;
+    if (current && (current.text !== text || current.questionId !== questionId)) return Promise.resolve(false);
     // Same text and target as the unsent message: reuse its key so a lost response cannot duplicate the run.
     const outbox = current && current.text === text && current.questionId === questionId
       ? current
@@ -572,7 +573,9 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
       startingRef.current = true;
       setCheckStart({ starting: true, error: null, retry: null });
       try {
-        const run = await api.createCheck(version.model_id, version.number, body, key, root.current.signal);
+        const signal = root.current.signal;
+        const run = await api.createCheck(version.model_id, version.number, body, key, signal);
+        if (signal.aborted) return null;
         const record: CheckRunRecord = {
           runId: run.run_id, versionId: version.id, modelId: version.model_id, number: version.number,
           propertyIds, startedAt: new Date().toISOString(),

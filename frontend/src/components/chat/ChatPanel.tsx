@@ -64,6 +64,7 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
   let blocked: string | null = null;
   if (!capabilities.agent) blocked = capabilities.adapter === "demo" ? "Записанные данные: агент не вызывается." : "Агент не настроен. Проверьте подключение.";
   else if (active) blocked = "Агент ещё работает в этой сессии.";
+  else if (workspace.send.outbox) blocked = "Повторите или отмените неотправленное сообщение.";
   else if (pending) blocked = "Повторите или отмените незавершённый разбор.";
   else if (history?.dialogue?.status === "limit_reached") blocked = "Лимит уточняющих раундов исчерпан. Начните новый чат с уточнённым описанием.";
 
@@ -213,14 +214,14 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
         </div>}
         {workspace.upload.documents.map(document => <div key={document.id} className="document-line">
           <span>{document.filename}</span>
-          <button type="button" className="button button--small" disabled={Boolean(blocked) || workspace.send.sending} onClick={() => void workspace.analyzeDocument(document)}>Разобрать документ</button>
+          {workspace.dialogue?.status === "not_started" && <button type="button" className="button button--small" disabled={Boolean(blocked) || workspace.send.sending} onClick={() => void workspace.analyzeDocument(document)}>Разобрать документ</button>}
         </div>)}
         {workspace.upload.uploading && <QuietStatus busy>Загрузка {workspace.upload.uploading}</QuietStatus>}
         <Composer ref={composerRef} value={draft} onChange={setDraftPersist} onSubmit={() => void submit()}
           label="Сообщение агенту" placeholder={openQuestions.length > 0 ? "Ответьте на уточнение или добавьте правило…" : "Добавить правило или уточнение…"}
           blockedReason={blocked} busy={workspace.send.sending}
           reply={replyQuestion && capabilities.questionId ? { text: replyQuestion.text, onClear: () => onReply(null) } : null}
-          attach={capabilities.documents ? { busy: workspace.upload.uploading !== null, onFile: (file) => void workspace.uploadDocument(file) } : null} />
+          attach={capabilities.documents && workspace.dialogue?.status === "not_started" ? { busy: workspace.upload.uploading !== null, onFile: (file) => void workspace.uploadDocument(file) } : null} />
       </div>
     </section>
   );

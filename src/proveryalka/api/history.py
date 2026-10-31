@@ -25,9 +25,9 @@ def dialogue_entries(rows, render_turn):
         base = {"id": row["id"], "sequence": row["sequence"], "created_at": row["created_at"]}
         if role == "user":
             # Legacy verify_and_explain records an internal request as a user item.
+            last_user = {**base, "kind": "user", "text": content, "status": "processed"}
             if payload is not None and set(payload) == {"verification_request"}:
                 continue
-            last_user = {**base, "kind": "user", "text": content, "status": "processed"}
             entries.append(last_user)
             continue
         if payload is None:
@@ -37,6 +37,10 @@ def dialogue_entries(rows, render_turn):
             source = turn.get("source", {})
             # A retry resumes the same pending turn and writes no second user item.
             if last_user is not None and last_user["text"] == source.get("text"):
+                if last_user not in entries:
+                    # Actual user text can itself look like the legacy wrapper;
+                    # its persisted pending marker proves this was a real input.
+                    entries.append(last_user)
                 pending = last_user
                 pending.update(source_id=source.get("id"), question_id=turn.get("question_id"), status="pending")
         elif "analyst_pending_cancelled" in payload:

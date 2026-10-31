@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
 import type { CheckLimits, ModelVersion, Session } from "../api/types";
 import { DEFAULT_LIMITS } from "../api/types";
@@ -47,6 +47,8 @@ export function resolveTrace(version: ModelVersion | null, checks: WorkspaceCont
 
 export function SessionView({ api, capabilities, sessionId, listed, route, navigate }: Props) {
   const chatPane = usePaneWidth("proveryalka:chat-width", .36, 250, 390, .65);
+  const lifetime = useRef(new AbortController());
+  useEffect(() => {const controller = new AbortController(); lifetime.current = controller; return () => controller.abort();}, []);
   const routeRef = useRef(route);
   routeRef.current = route;
   const [pane, setPane] = useState<"chat" | "workspace">("chat");
@@ -104,8 +106,11 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
         go({ step: Math.max(0, Math.min(step, trace.steps.length - 1)) });
       },
       createVersion: capabilities.adapter === "http" && api.createVersion ? async (modelId, body, key) => {
-        const created = await api.createVersion!(modelId, body, key);
+        const signal = lifetime.current.signal;
+        const created = await api.createVersion!(modelId, body, key, signal);
+        if (signal.aborted) throw new DOMException("Session changed", "AbortError");
         await workspace.reloadModels();
+        if (signal.aborted) throw new DOMException("Session changed", "AbortError");
         setElement(null);
         go({modelId: created.model_id, version: created.number, check: undefined, property: undefined, step: undefined});
         return created;
@@ -117,8 +122,7 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
         go({ modelId: target.model_id, version: target.number, check: undefined, property: undefined, step: undefined });
       },
       openView: (viewId) => {
-        setElement(null);
-        go({ view: viewId, check: undefined, property: undefined, step: undefined });
+        go({ view: viewId });
         setPane("workspace");
       },
     };

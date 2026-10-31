@@ -65,7 +65,7 @@ export interface ProveryalkaApi {
   artifactUrl(runId: string, name: string): string;
   /** Only when capabilities().checkDiscovery is true. */
   listCheckRuns?(versionId: string, signal?: AbortSignal): Promise<string[]>;
-  /** Only when capabilities().documents is true. A failed extraction resolves with status "failed". */
+  /** Only when capabilities().documents is true. HTTP extraction errors reject with their API code. */
   uploadDocument?(sessionId: string, file: File, key: string, signal?: AbortSignal): Promise<DocumentSource>;
 }
 
