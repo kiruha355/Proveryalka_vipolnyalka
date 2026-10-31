@@ -1,0 +1,218 @@
+{
+  "unchanged_properties": true,
+  "unchanged_variables": false,
+  "changes": [
+    {
+      "transition": "revoke_a",
+      "before": {
+        "id": "revoke_a",
+        "name": "А отзывает согласие",
+        "requirement_ids": [
+          "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+          "req_f733dfb689045f05a53fcc41164e258e",
+          "req_3a25204fb3ae52aeb36b18f4d55dc022",
+          "req_85e0cfb054105e959c4b9775aafa50b7",
+          "req_d95075df515d53209c12aefda8319544"
+        ],
+        "guard": {
+          "kind": "binary",
+          "op": "or",
+          "left": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Review"
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Approved"
+            }
+          }
+        },
+        "effects": [
+          {
+            "variable": "approved_a",
+            "value": {
+              "kind": "literal",
+              "value": false
+            }
+          }
+        ]
+      },
+      "after": {
+        "id": "revoke_a",
+        "name": "А отзывает согласие",
+        "requirement_ids": [
+          "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+          "req_f733dfb689045f05a53fcc41164e258e",
+          "req_06acdd527d9158408233550bd32d8985",
+          "req_85e0cfb054105e959c4b9775aafa50b7",
+          "req_d95075df515d53209c12aefda8319544"
+        ],
+        "guard": {
+          "kind": "binary",
+          "op": "or",
+          "left": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Review"
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Approved"
+            }
+          }
+        },
+        "effects": [
+          {
+            "variable": "approved_a",
+            "value": {
+              "kind": "literal",
+              "value": false
+            }
+          },
+          {
+            "variable": "status",
+            "value": {
+              "kind": "literal",
+              "value": "Review"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "transition": "revoke_b",
+      "before": {
+        "id": "revoke_b",
+        "name": "Б отзывает согласие",
+        "requirement_ids": [
+          "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+          "req_f733dfb689045f05a53fcc41164e258e",
+          "req_3a25204fb3ae52aeb36b18f4d55dc022",
+          "req_85e0cfb054105e959c4b9775aafa50b7",
+          "req_d95075df515d53209c12aefda8319544"
+        ],
+        "guard": {
+          "kind": "binary",
+          "op": "or",
+          "left": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Review"
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Approved"
+            }
+          }
+        },
+        "effects": [
+          {
+            "variable": "approved_b",
+            "value": {
+              "kind": "literal",
+              "value": false
+            }
+          }
+        ]
+      },
+      "after": {
+        "id": "revoke_b",
+        "name": "Б отзывает согласие",
+        "requirement_ids": [
+          "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+          "req_f733dfb689045f05a53fcc41164e258e",
+          "req_06acdd527d9158408233550bd32d8985",
+          "req_85e0cfb054105e959c4b9775aafa50b7",
+          "req_d95075df515d53209c12aefda8319544"
+        ],
+        "guard": {
+          "kind": "binary",
+          "op": "or",
+          "left": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Review"
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Approved"
+            }
+          }
+        },
+        "effects": [
+          {
+            "variable": "approved_b",
+            "value": {
+              "kind": "literal",
+              "value": false
+            }
+          },
+          {
+            "variable": "status",
+            "value": {
+              "kind": "literal",
+              "value": "Review"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+Складской заказ на 2 единицы товара. На складе всего 3 единицы. Нужна конечная модель с переменными: available — integer 0..3, reserved — integer 0..2, shipped — integer 0..2, status — enum Draft/Reserved/Cancelled/Shipped, paid — boolean. Изначально status=Draft, available=3, reserved=0, shipped=0.
+
+Действия:
+1. Reserve разрешён только из Draft при available>=2. Одновременно available=available-2, reserved=2, status=Reserved.
+2. Pay разрешён только при status=Reserved и paid=false. Устанавливает paid=true.
+3. Ship разрешён только при status=Reserved, paid=true и reserved=2. Одновременно reserved=0, shipped=2, status=Shipped.
+4. Cancel разрешён только при status=Reserved. Устанавливает status=Cancelled и reserved=0. В текущей версии available не изменяется — это намеренная учебная ошибка, не исправляй её автоматически.
+Все неуказанные переменные сохраняются. Из Cancelled и Shipped действий нет.
+
+Проверяемые критерии: available+reserved+shipped всегда должно равняться 3; отменённый заказ не должен иметь отгруженный товар; отгрузка возможна только после оплаты. Это свойства для проверки модели, а не дополнительные guards. Сначала уточни действительно недостающие сведения.

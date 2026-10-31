@@ -1,0 +1,1 @@
+Первая попытка native screenshot v1 diagram: Preview snapshot failed: Preview automation snapshot timed out after15000ms. Event operation snapshot/failureCount1. DOM evaluate и native actions продолжают работать. Это известная ранее диагностированная граница T3; пользовательские процессы/вкладки не перезапускались. Никаких новых агентов диагностики согласно task.
