@@ -1,0 +1,96 @@
+{
+  "status": "PASS",
+  "proof": "value 4827 appears only in pixels, absent from provider prompt",
+  "provider": "codex",
+  "model_requested": "gpt-6.1-sol",
+  "effort_requested": "xhigh",
+  "source": {
+    "id": "img_54a05a3b428449acbce7024177221b9e",
+    "session_id": "s_9a5ab49ead1347b7af9a4487e8122d6c",
+    "kind": "image",
+    "filename": "synthetic.png",
+    "format": "png",
+    "media_type": "image/png",
+    "size_bytes": 7364,
+    "sha256": "198cff85289777c4eddc74a09a627f88ce4c1006d511ebff5c42183ca044cb66",
+    "width": 720,
+    "height": 280,
+    "canonical_media_type": "image/png",
+    "canonical_sha256": "198cff85289777c4eddc74a09a627f88ce4c1006d511ebff5c42183ca044cb66",
+    "canonical_size_bytes": 7364,
+    "coordinate_space": "canonical_pixels"
+  },
+  "analysis": {
+    "id": "imganalysis_f80bd501e8d54acd9ecb35764255250b",
+    "source_id": "img_54a05a3b428449acbce7024177221b9e",
+    "provider": "codex",
+    "description": "На белом фоне расположены красный квадрат слева и синий круг справа. Под фигурами чёрным текстом написано «Capacity limit: 4827».",
+    "requirements": [
+      {
+        "text": "Показывать красный квадрат и синий круг рядом, квадрат слева от круга.",
+        "origin": "visible",
+        "id": "imgreq_ef3a69f51d795e6d9471f1e62c824839",
+        "source_refs": [
+          {
+            "kind": "image_reference",
+            "source_id": "img_54a05a3b428449acbce7024177221b9e",
+            "sha256": "198cff85289777c4eddc74a09a627f88ce4c1006d511ebff5c42183ca044cb66",
+            "canonical_sha256": "198cff85289777c4eddc74a09a627f88ce4c1006d511ebff5c42183ca044cb66",
+            "coordinate_space": "canonical_pixels",
+            "region": null,
+            "scope": "whole_image"
+          }
+        ]
+      },
+      {
+        "text": "Под фигурами отображать надпись «Capacity limit: 4827» чёрным цветом.",
+        "origin": "visible",
+        "id": "imgreq_e2fd9a7507e15fcb862ea42ef52affc0",
+        "source_refs": [
+          {
+            "kind": "image_reference",
+            "source_id": "img_54a05a3b428449acbce7024177221b9e",
+            "sha256": "198cff85289777c4eddc74a09a627f88ce4c1006d511ebff5c42183ca044cb66",
+            "canonical_sha256": "198cff85289777c4eddc74a09a627f88ce4c1006d511ebff5c42183ca044cb66",
+            "coordinate_space": "canonical_pixels",
+            "region": null,
+            "scope": "whole_image"
+          }
+        ]
+      },
+      {
+        "text": "Использовать белый фон.",
+        "origin": "visible",
+        "id": "imgreq_6f43547351da598aa59ba04b98dfa9b7",
+        "source_refs": [
+          {
+            "kind": "image_reference",
+            "source_id": "img_54a05a3b428449acbce7024177221b9e",
+            "sha256": "198cff85289777c4eddc74a09a627f88ce4c1006d511ebff5c42183ca044cb66",
+            "canonical_sha256": "198cff85289777c4eddc74a09a627f88ce4c1006d511ebff5c42183ca044cb66",
+            "coordinate_space": "canonical_pixels",
+            "region": null,
+            "scope": "whole_image"
+          }
+        ]
+      }
+    ],
+    "uncertainties": [
+      "Не указаны назначение фигур и их связь с надписью.",
+      "Неизвестно, к чему относится лимит, каковы его единицы и является ли 4827 фиксированным значением или примером данных.",
+      "Поведение и интерактивность элементов по изображению определить нельзя."
+    ],
+    "source_refs": [
+      {
+        "kind": "image_reference",
+        "source_id": "img_54a05a3b428449acbce7024177221b9e",
+        "sha256": "198cff85289777c4eddc74a09a627f88ce4c1006d511ebff5c42183ca044cb66",
+        "canonical_sha256": "198cff85289777c4eddc74a09a627f88ce4c1006d511ebff5c42183ca044cb66",
+        "coordinate_space": "canonical_pixels",
+        "region": null,
+        "scope": "whole_image"
+      }
+    ]
+  },
+  "limitations": "One synthetic image; no browser, main dialogue chain, CI or production E2E"
+}

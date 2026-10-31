@@ -177,11 +177,31 @@ class CodexClient:
         else:
             self.send({"id": message["id"], "error": {"code": -32601, "message": "Not available for analysis"}})
 
-    async def complete(self, instructions, text, schema=None):
+    async def image_model(self):
+        """Fail closed: image capability must be explicitly advertised for the selected model."""
+        cursor = None
+        for _ in range(20):
+            page = await self.request("model/list", {"includeHidden": True, "limit": 100, "cursor": cursor})
+            for model in page.get("data") or []:
+                selected = (self.model in (model.get("id"), model.get("model"))) if self.model else model.get("isDefault")
+                if selected:
+                    if "image" not in (model.get("inputModalities") or []):
+                        raise AgentError("PROVIDER_IMAGE_UNSUPPORTED", "Выбранная модель не подтверждает поддержку изображений")
+                    return model["model"]
+            cursor = page.get("nextCursor")
+            if not cursor:
+                break
+        raise AgentError("PROVIDER_IMAGE_UNSUPPORTED", "Выбранная модель отсутствует в каталоге image-capable моделей")
+
+    async def complete(self, instructions, text, schema=None, *, image_urls=()):
+        # This interface never fetches remote URLs or reads caller-selected local files.
+        if any(not isinstance(url, str) or not url.startswith("data:image/png;base64,") for url in image_urls):
+            raise AgentError("PROVIDER_IMAGE_UNSUPPORTED", "Допустим только подготовленный PNG data URL")
         async with self.lock:
+            model = await self.image_model() if image_urls else self.model
             started = await self.request("thread/start", {
                 "ephemeral": True, "cwd": self.workdir, "sandbox": "read-only", "approvalPolicy": "never",
-                "developerInstructions": instructions, "model": self.model,
+                "developerInstructions": instructions, "model": model,
                 "config": {"mcp_servers": self.disabled_servers} if self.disabled_servers else None,
             })
             thread_id = started["thread"]["id"]
@@ -190,7 +210,9 @@ class CodexClient:
             if (started.get("sandbox") or {}).get("type") != "readOnly" or any(s.get("runtimeStatus") != "disabled" for s in servers):
                 raise AgentError("PROVIDER_ISOLATION", "Codex не подтвердил изоляцию аналитика; запрос к модели не отправлен")
             turn = await self.request("turn/start", {
-                "threadId": thread_id, "input": [{"type": "text", "text": text}],
+                "threadId": thread_id, "input": [{"type": "text", "text": text}] + [
+                    {"type": "image", "url": url} for url in image_urls
+                ],
                 "outputSchema": schema, "effort": self.effort,
                 "sandboxPolicy": {"type": "readOnly", "networkAccess": False},
             })

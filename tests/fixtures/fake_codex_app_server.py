@@ -50,6 +50,11 @@ for line in sys.stdin:
         send({"id": ident, "result": {"account": account, "requiresOpenaiAuth": True}})
     elif method == "config/read":
         send({"id": ident, "result": {"config": {"mcp_servers": {"docs": {"command": "docs"}}}, "origins": {}}})
+    elif method == "model/list":
+        model = {"id": "gpt-test", "model": "gpt-test", "isDefault": True}
+        if MODE != "missing_modalities":
+            model["inputModalities"] = ["text"] if MODE == "text_only" else ["text", "image"]
+        send({"id": ident, "result": {"data": [model], "nextCursor": None}})
     elif method == "thread/start":
         sandbox = {"type": "dangerFullAccess"} if MODE == "unsafe_sandbox" else {"type": "readOnly", "networkAccess": False}
         send({"id": ident, "result": {"thread": {"id": "t1", "ephemeral": True}, "sandbox": sandbox, "model": "gpt-test",
