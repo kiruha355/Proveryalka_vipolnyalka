@@ -2054,6 +2054,7 @@
           },
           "max_states": {
             "type": "integer",
+            "maximum": 2147483647.0,
             "exclusiveMinimum": 0.0,
             "title": "Max States",
             "default": 100000
@@ -2062,6 +2063,7 @@
             "anyOf": [
               {
                 "type": "integer",
+                "maximum": 2147483646.0,
                 "minimum": 0.0
               },
               {

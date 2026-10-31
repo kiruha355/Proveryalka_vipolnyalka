@@ -14,10 +14,14 @@ VerificationStatus = Literal[
 ElapsedSeconds = Annotated[StrictFloat, Field(ge=0, allow_inf_nan=False)]
 
 
+# TLC сравнивает лимиты как 32-битные целые; глубина в спецификации записывается как max_depth + 1.
+TLC_MAX_INT = 2_147_483_647
+
+
 class CheckLimits(Contract):
     timeout_seconds: StrictFloat = Field(default=30.0, gt=0, le=3600)
-    max_states: StrictInt = Field(default=100_000, gt=0)
-    max_depth: StrictInt | None = Field(default=None, ge=0)
+    max_states: StrictInt = Field(default=100_000, gt=0, le=TLC_MAX_INT)
+    max_depth: StrictInt | None = Field(default=None, ge=0, le=TLC_MAX_INT - 1)
 
 
 class VerificationRequest(Contract):
