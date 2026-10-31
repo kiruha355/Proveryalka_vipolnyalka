@@ -213,6 +213,7 @@ export function FilesView({ context }: HostViewProps) {
       provider={source.provider}
       currentVersion={context.version}
       focus={focus}
+      onAskFile={context.discussFile ? (generation, entry)=>context.discussFile!({generation_id:generation.generation_id,version_id:generation.version_id,version_number:generation.version_number,path:entry.path,sha256:entry.sha256}) : undefined}
       onRuleSelect={(ref) => {
         context.select(ruleToElement(ref));
         if (ref.kind === "transition") context.openView(DIAGRAM_VIEW_ID);

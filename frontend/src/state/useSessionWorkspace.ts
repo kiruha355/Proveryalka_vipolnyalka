@@ -3,7 +3,7 @@ import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
 import { newKey } from "../api/api";
 import { ApiError, isAbort } from "../api/errors";
 import type {
-  CheckLimits, DialogueView, ExplanationView, DocumentSource, ModelVersion, Question, Run, RunEvent, SessionDetail, VerificationResult,
+  CheckLimits, FileContextRef, DialogueView, ExplanationView, DocumentSource, ModelVersion, Question, Run, RunEvent, SessionDetail, VerificationResult,
 } from "../api/types";
 import { DEFAULT_LIMITS, isTerminal } from "../api/types";
 import { parseHistory, publicHistory, type ParsedHistory } from "../domain/dialogue";
@@ -192,7 +192,7 @@ export interface SessionWorkspace {
   lastAgentRun: AgentRunView | null;
   checks: CheckRunView[];
   send: SendState;
-  sendMessage(text: string, questionId: string | null): Promise<boolean>;
+  sendMessage(text: string, questionId: string | null, fileContext?: FileContextRef | null): Promise<boolean>;
   retryOutbox(): Promise<boolean>;
   discardOutbox(): void;
   retryPending(): Promise<boolean>;
@@ -459,7 +459,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     updateLocal(api.id, sessionId, (local) => ({ ...local, outbox }));
     setSend({ sending: true, outbox, error: null });
     try {
-      const body = outbox.sourceId ? {source_id: outbox.sourceId} : outbox.questionId ? { text: outbox.text, question_id: outbox.questionId } : { text: outbox.text };
+      const body = outbox.fileContext ? {text: outbox.text, file_context: {generation_id:outbox.fileContext.generation_id, version_id:outbox.fileContext.version_id, path:outbox.fileContext.path, sha256:outbox.fileContext.sha256}} : outbox.sourceId ? {source_id: outbox.sourceId} : outbox.questionId ? { text: outbox.text, question_id: outbox.questionId } : { text: outbox.text };
       const run = outbox.pendingRetry && api.retryPending
         ? await api.retryPending(sessionId, outbox.key, root.current.signal)
         : await api.sendMessage(sessionId, body, outbox.key, root.current.signal);
@@ -489,13 +489,13 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     }
   }, [api, refreshRun, sessionId, track]);
 
-  const sendMessage = useCallback((text: string, questionId: string | null) => {
+  const sendMessage = useCallback((text: string, questionId: string | null, fileContext: FileContextRef | null = null) => {
     const current = send.outbox;
-    if (current && (current.text !== text || current.questionId !== questionId)) return Promise.resolve(false);
+    if (current && (current.text !== text || current.questionId !== questionId || JSON.stringify(current.fileContext ?? null) !== JSON.stringify(fileContext))) return Promise.resolve(false);
     // Same text and target as the unsent message: reuse its key so a lost response cannot duplicate the run.
     const outbox = current && current.text === text && current.questionId === questionId
       ? current
-      : { text, questionId, key: newKey() };
+      : { text, questionId, fileContext, key: newKey() };
     return dispatchSend(outbox);
   }, [dispatchSend, send.outbox]);
 

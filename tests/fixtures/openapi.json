@@ -3854,6 +3854,18 @@
       },
       "DialogueEntry": {
         "properties": {
+          "file_context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Context"
+          },
           "id": {
             "type": "string",
             "title": "Id"
@@ -4305,6 +4317,42 @@
         ],
         "title": "ExtractedRequirement"
       },
+      "FileContext": {
+        "properties": {
+          "generation_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Generation Id"
+          },
+          "version_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Version Id"
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Path"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "generation_id",
+          "version_id",
+          "path",
+          "sha256"
+        ],
+        "title": "FileContext"
+      },
       "FileElement": {
         "properties": {
           "kind": {
@@ -4688,6 +4736,16 @@
               }
             ],
             "title": "Source Id"
+          },
+          "file_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FileContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -4822,6 +4880,18 @@
       },
       "PendingView": {
         "properties": {
+          "file_context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Context"
+          },
           "source_id": {
             "type": "string",
             "title": "Source Id"

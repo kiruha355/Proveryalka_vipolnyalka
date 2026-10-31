@@ -367,7 +367,9 @@ export interface DocumentInfo {
   media_type: string; size_bytes: number; sha256: string; characters: number;
 }
 export interface DocumentUpload { source: Source; document: DocumentInfo }
+export interface FileContextRef {generation_id: string; version_id: string; path: string; sha256: string; version_number?: number; spec_hash?: string}
 export interface DialogueEntry {
+  file_context?: FileContextRef | null;
   id: string; sequence: number; created_at: string; kind: "user" | "assistant"; text: string;
   source_id?: string | null; question_id?: string | null; status?: "processed" | "pending" | "discarded" | null;
   questions?: Question[];

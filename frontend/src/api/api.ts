@@ -1,5 +1,5 @@
 import type {
-  ArtifactEntry, DocumentSource, DialogueView, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session, SessionDetail,
+  ArtifactEntry, FileContextRef, DocumentSource, DialogueView, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session, SessionDetail,
 } from "./types";
 
 export interface ApiCapabilities {
@@ -19,11 +19,13 @@ export interface ApiCapabilities {
   documents: boolean;
   dialogue?: boolean;
   explanations?: boolean;
+  fileDialogue?: boolean;
 }
 
 export const DOCUMENT_TYPES = [".txt", ".md", ".docx"] as const;
 
 export interface MessageBody {
+  file_context?: FileContextRef;
   text?: string;
   source_id?: string;
   question_id?: string;

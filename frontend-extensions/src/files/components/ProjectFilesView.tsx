@@ -32,6 +32,7 @@ export type ProjectFocus = {
   generationId?: string;
 };
 export type ProjectFilesViewProps = {
+  onAskFile?: (generation: Generation, entry: Generation["files"][number])=>void;
   provider: CodegenProvider;
   currentVersion: VersionRef | null;
   focus?: ProjectFocus | null;
@@ -56,7 +57,7 @@ function VersionProjects({
   currentVersion,
   focus,
   onRuleSelect,
-  onManifestLoaded,
+  onManifestLoaded, onAskFile,
   className,
 }: ProjectFilesViewProps & { currentVersion: VersionRef }) {
   const [projects, setProjects] = useState<Generation[]>([]),
@@ -249,7 +250,7 @@ function VersionProjects({
           currentVersion={currentVersion}
           focus={focus}
           onRuleSelect={onRuleSelect}
-          onManifestLoaded={onManifestLoaded}
+          onManifestLoaded={onManifestLoaded} onAskFile={onAskFile}
         />
       )}
     </div>
@@ -262,7 +263,7 @@ function GenerationFiles({
   currentVersion,
   focus,
   onRuleSelect,
-  onManifestLoaded,
+  onManifestLoaded, onAskFile,
 }: {
   sandboxReason: string | null;
   provider: CodegenProvider;
@@ -271,6 +272,7 @@ function GenerationFiles({
   focus: ProjectFocus | null | undefined;
   onRuleSelect: ProjectFilesViewProps["onRuleSelect"];
   onManifestLoaded: ProjectFilesViewProps["onManifestLoaded"];
+  onAskFile?: ProjectFilesViewProps["onAskFile"];
 }) {
   const loadedCallback = useRef(onManifestLoaded);
   loadedCallback.current = onManifestLoaded;
@@ -505,6 +507,7 @@ function GenerationFiles({
                 <div key="code" className="pv-viewer">
                   <header className="pv-viewer__head">
                     {entry?.path ?? "Выберите файл"}
+                    {onAskFile && valid && entry && file?.path === entry.path && !file.error && file.text != null && <button type="button" className="pv-button" disabled={entry.size>65536} title={entry.size>65536 ? "Объяснение доступно для файлов до 64 КиБ" : undefined} onClick={()=>onAskFile(generation,entry)}>Спросить агента о файле</button>}
                   </header>
                   {!valid ? null : entry && file?.path !== entry.path ? (
                     <p role="status">Загрузка файла…</p>

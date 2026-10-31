@@ -23,6 +23,17 @@ def dialogue_entries(rows, render_turn):
             except ValueError:
                 pass
         base = {"id": row["id"], "sequence": row["sequence"], "created_at": row["created_at"]}
+        if payload and "file_discussion" in payload:
+            item = payload["file_discussion"]
+            if item["kind"] == "user":
+                entries.append({**base, "id": item["turn_id"], "kind": "user", "text": item["text"], "file_context": item["file_context"], "status": "pending"})
+            else:
+                original = next((e for e in entries if e["id"] == item["turn_id"]), None)
+                if item["kind"] == "assistant":
+                    if original: original["status"] = "processed"
+                    entries.append({**base, "kind": "assistant", "text": item["text"], "file_context": item["file_context"]})
+                elif item["kind"] == "discarded" and original: original["status"] = "discarded"
+            continue
         if role == "user":
             # Legacy verify_and_explain records an internal request as a user item.
             last_user = {**base, "kind": "user", "text": content, "status": "processed"}

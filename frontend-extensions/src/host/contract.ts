@@ -81,6 +81,7 @@ export interface HostWorkspaceContext {
   ): void;
   setTraceStep(step: number): void;
   selectVersion(versionId: string): void;
+  discussFile?(ref: {generation_id:string;version_id:string;path:string;sha256:string;version_number?:number}): void;
   openView(viewId: string): void;
   /**
    * Нет в 42e9a8b; запрошено: создать версию (POST /api/models/{id}/versions),

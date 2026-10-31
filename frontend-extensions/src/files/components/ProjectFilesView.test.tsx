@@ -294,3 +294,12 @@ it("изменение callback загрузки не создаёт цикл у
   await screen.findByText(/Версия.*файлов/);
   expect(callback).toHaveBeenCalledTimes(1);
 });
+
+it("asks about the verified selected file without submitting or generating",async()=>{
+  const p=createRecordedCodegenProvider();p.startTestRun=vi.fn();p.createGeneration=vi.fn();
+  const ask=vi.fn();render(<ProjectFilesView provider={p} currentVersion={version} focus={{path:"app/rules.py"}} onAskFile={ask}/>);
+  await screen.findByLabelText("Содержимое app/rules.py");
+  await userEvent.click(screen.getByRole("button",{name:"Спросить агента о файле"}));
+  expect(ask).toHaveBeenCalledWith(expect.objectContaining({generation_id:g.generation_id,version_id:g.version_id}),expect.objectContaining({path:"app/rules.py",sha256:g.files.find(f=>f.path==="app/rules.py")!.sha256}));
+  expect(p.startTestRun).not.toHaveBeenCalled();expect(p.createGeneration).not.toHaveBeenCalled();
+});

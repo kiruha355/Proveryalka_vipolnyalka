@@ -131,3 +131,15 @@ it("late check acceptance after session unmount cannot navigate back or persist 
  unmount();resolve({run_id:"late",session_id:sid,state:"queued",version_id:version.id,error_code:null});
  expect(await request).toBeNull();expect(loadLocal(api.id,sid).checkRuns).toHaveLength(0);
 });
+
+it("file context survives an indeterminate send and retries with the same key",async()=>{
+ const api=fake();const ref={generation_id:"g",version_id:"v-old",path:"app/rules.py",sha256:"b".repeat(64),version_number:1};
+ const send=vi.fn<ProveryalkaApi["sendMessage"]>().mockRejectedValueOnce(new ApiError("network","Lost response")).mockResolvedValue({run_id:"file-run",session_id:sid,state:"completed",version_id:"v-old",error_code:null});api.sendMessage=send;
+ const {result}=renderHook(()=>useSessionWorkspace({api,capabilities:{...caps,fileDialogue:true},sessionId:sid}));
+ await waitFor(()=>expect(result.current.detail.loading).toBe(false));
+ await act(async()=>{await result.current.sendMessage("Объясни файл",null,ref);});
+ expect(loadLocal(api.id,sid).outbox?.fileContext).toEqual(ref);
+ await act(async()=>{await result.current.retryOutbox();});
+ expect(send.mock.calls[1]![2]).toBe(send.mock.calls[0]![2]);
+ expect(send.mock.calls[1]![1]).toEqual({text:"Объясни файл",file_context:{generation_id:"g",version_id:"v-old",path:"app/rules.py",sha256:"b".repeat(64)}});
+});

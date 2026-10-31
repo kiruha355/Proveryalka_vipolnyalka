@@ -76,6 +76,13 @@ class SessionDetail(Session):
     documents: list[DocumentInfo] = Field(default_factory=list)
 
 
+class FileContext(Contract):
+    generation_id: StrictStr = Field(min_length=1, max_length=200)
+    version_id: StrictStr = Field(min_length=1, max_length=200)
+    path: StrictStr = Field(min_length=1, max_length=500)
+    sha256: StrictStr = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 class MessageCreate(Contract):
     """Текст сообщения либо ID сохранённого источника для начала разбора.
 
@@ -84,6 +91,7 @@ class MessageCreate(Contract):
     text: Optional[StrictStr] = Field(default=None, min_length=1, max_length=100_000)
     question_id: Optional[StrictStr] = Field(default=None, min_length=1, max_length=200)
     source_id: Optional[StrictStr] = Field(default=None, min_length=1, max_length=200)
+    file_context: Optional[FileContext] = None
 
     @model_validator(mode="after")
     def one_input(self):
@@ -91,6 +99,8 @@ class MessageCreate(Contract):
             raise ValueError("Нужен ровно один вход: text или source_id")
         if self.question_id is not None and self.text is None:
             raise ValueError("question_id допустим только с text")
+        if self.file_context is not None and (self.text is None or self.question_id is not None):
+            raise ValueError("file_context requires text and cannot answer a business clarification")
         return self
 
 
@@ -140,6 +150,7 @@ class Event(Contract):
 
 
 class PendingView(Contract):
+    file_context: Optional[dict[str, Any]] = None
     source_id: str
     text: str
     question_id: Optional[str]
@@ -156,6 +167,7 @@ class ModelRef(Contract):
 
 
 class DialogueEntry(Contract):
+    file_context: Optional[dict[str, Any]] = None
     id: str
     sequence: int
     created_at: str

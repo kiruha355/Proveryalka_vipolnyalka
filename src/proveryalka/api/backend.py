@@ -89,6 +89,10 @@ class ApplicationBackend(SQLiteBackend):
         run = self.store.get_run(run_id)
         if run["state"] not in ("cancelling", "cancelled") or run["error_code"] != "CANCELLED":
             return
+        from .file_dialogue import pending_file, marker
+        file_pending = pending_file(self.store, session_id)
+        if file_pending:
+            self.store.append_messages(session_id, [marker({"kind": "discarded", "turn_id": file_pending["turn_id"]})])
         if find_pending(self.store.history(session_id)) is not None:
             self.store.append_messages(session_id, [CANCELLED_MARK])
 
@@ -128,6 +132,12 @@ class ApplicationBackend(SQLiteBackend):
             body = json.loads(row["request_json"])
             body["source_key"] = run_id
             body["run_id"] = run_id
+            from .file_dialogue import discuss_file, pending_file
+            if body.get("file_context") or (body.get("retry_pending") and pending_file(self.store, row["session_id"])):
+                context, text = await asyncio.wait_for(discuss_file(self.store, row["session_id"], body), timeout=self.settings.agent_timeout_seconds)
+                await asyncio.to_thread(self.store.event, run_id, "message_delta", {"text": text})
+                await asyncio.to_thread(self.store.complete_agent, run_id, context["version_id"])
+                return
             state = await asyncio.wait_for(self.analyst(self.store, row["session_id"], body), timeout=self.settings.agent_timeout_seconds)
             await asyncio.to_thread(self.store.save_dialogue_sources, row["session_id"], state.sources)
             version, changed = None, False
@@ -283,6 +293,8 @@ class ApplicationBackend(SQLiteBackend):
     def get_dialogue(self, session_id):
         state, pending = self.dialogue_items(session_id)
         from .history import dialogue_entries
+        from .file_dialogue import pending_file
+        file_pending = pending_file(self.store, session_id)
         view = {"session_id": session_id, "status": "not_started",
                 "entries": dialogue_entries(self.store.history_rows(session_id), render_turn)}
         if state is not None:
@@ -299,12 +311,16 @@ class ApplicationBackend(SQLiteBackend):
         if pending is None:
             # Explicit cancellation may already be durable before its history marker.
             for entry in view["entries"]:
-                if entry.get("status") == "pending":
+                if entry.get("status") == "pending" and not (entry.get("file_context") and file_pending and entry["id"] == file_pending["turn_id"]):
                     entry["status"] = "discarded"
         if pending is not None:
             run = self.store.get_run(pending.run_id) if pending.run_id else None
             view["pending"] = {"source_id": pending.source.id, "text": pending.source.text, "question_id": pending.question_id,
                                "run_id": pending.run_id, "run_state": run["state"] if run else None}
+        elif file_pending:
+            run = self.store.get_run(file_pending["run_id"])
+            view["pending"] = {"source_id": "file:" + file_pending["turn_id"], "text": file_pending["text"], "question_id": None,
+                               "run_id": run["run_id"], "run_state": run["state"], "file_context": file_pending["file_context"]}
         return view
 
     def send_message(self, session_id, body, key):
@@ -315,7 +331,13 @@ class ApplicationBackend(SQLiteBackend):
             if self.store.active_agent_run(session_id) is not None:
                 raise ServiceError(409, "SESSION_BUSY", "An agent run is already active in this session")
             state, pending = self.dialogue_items(session_id, repair=True)
-            if pending is not None:
+            from .file_dialogue import pending_file, resolve_file
+            if pending_file(self.store, session_id):
+                raise ServiceError(409, "PENDING_MESSAGE", "Retry or discard the unfinished file discussion")
+            if body.get("file_context"):
+                if pending is not None: raise ServiceError(409, "PENDING_MESSAGE", "Finish the pending business message first")
+                resolve_file(self.store, session_id, body["file_context"])
+            elif pending is not None:
                 if body.get("source_id") is not None or pending.source.text != text or body.get("question_id") != pending.question_id:
                     raise ServiceError(409, "PENDING_MESSAGE", "Retry or discard the unfinished message before sending a new one")
             elif body.get("source_id") is not None:
@@ -339,7 +361,8 @@ class ApplicationBackend(SQLiteBackend):
             if self.store.active_agent_run(session_id) is not None:
                 raise ServiceError(409, "SESSION_BUSY", "An agent run is already active in this session")
             _, pending = self.dialogue_items(session_id, repair=True)
-            if pending is None:
+            from .file_dialogue import pending_file
+            if pending is None and pending_file(self.store, session_id) is None:
                 raise ServiceError(409, "NO_PENDING", "There is no unfinished message to retry")
         run = self.store.create_agent_run(session_id, body, key)
         self.loop.call_soon_threadsafe(self.schedule, run["run_id"])
@@ -351,6 +374,9 @@ class ApplicationBackend(SQLiteBackend):
         _, pending = self.dialogue_items(session_id, repair=True)
         if pending is not None:
             self.store.append_messages(session_id, [CANCELLED_MARK])
+        from .file_dialogue import pending_file, marker
+        file_pending = pending_file(self.store, session_id)
+        if file_pending: self.store.append_messages(session_id, [marker({"kind": "discarded", "turn_id": file_pending["turn_id"]})])
         return self.get_dialogue(session_id)
 
     def create_document(self, session_id, filename, data, key):

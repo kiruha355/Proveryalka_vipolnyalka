@@ -4,6 +4,7 @@ import { registerExtension, type ExtensionModule } from "../app/extensions";
 // The glob resolves to nothing when the directory is absent, so the core app
 // builds and runs without them.
 interface ConfigurableModule extends ExtensionModule {
+  setProjectFocus?: (focus: {path: string; generationId: string}) => void;
   configureProjectFiles?: (options: {provider: unknown} | null) => void;
   createCodegenProvider?: (options?: {baseUrl?: string}) => unknown;
 }
@@ -27,4 +28,8 @@ export function configureFilesForAdapter(adapter: "http" | "demo", baseUrl = "")
     if (!module.configureProjectFiles || !module.createCodegenProvider) continue;
     module.configureProjectFiles(adapter === "demo" ? null : {provider: module.createCodegenProvider({baseUrl})});
   }
+}
+
+export function focusGeneratedFile(ref: {path:string; generation_id:string}): void {
+  for (const module of Object.values(modules)) module.setProjectFocus?.({path:ref.path,generationId:ref.generation_id});
 }

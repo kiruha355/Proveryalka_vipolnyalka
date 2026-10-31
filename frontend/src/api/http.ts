@@ -29,10 +29,11 @@ export class HttpApi implements ProveryalkaApi {
     this.id = `http:${this.base || "same-origin"}`;
   }
 
-  // Feature detection from the server's own OpenAPI document; nothing is assumed.
-  capabilities(signal?: AbortSignal): Promise<ApiCapabilities> {
+  // Read-only capability discovery is shared across consumers. Do not bind its
+  // cached promise to a StrictMode mount signal that can be aborted on remount.
+  capabilities(_signal?: AbortSignal): Promise<ApiCapabilities> {
     if (!this.capabilitiesPromise) {
-      this.capabilitiesPromise = this.request("GET", "/openapi.json", { signal })
+      this.capabilitiesPromise = this.request("GET", "/openapi.json")
         .then((doc) => detectCapabilities(doc))
         .catch((error: unknown) => {
           this.capabilitiesPromise = null;
@@ -213,6 +214,7 @@ export function detectCapabilities(doc: unknown): ApiCapabilities {
     adapter: "http",
     agent: "/api/sessions/{session_id}/messages" in paths,
     questionId: Boolean(schemas.MessageCreate?.properties && "question_id" in schemas.MessageCreate.properties),
+    fileDialogue: Boolean(schemas.MessageCreate?.properties && "file_context" in schemas.MessageCreate.properties),
     customLimits: true,
     artifacts: "/api/checks/{run_id}/artifacts" in paths,
     checkDiscovery: false,

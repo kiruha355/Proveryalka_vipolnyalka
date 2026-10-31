@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useCore } from "../../app/core";
 import type { WorkspaceContextValue } from "../../app/workspace";
 import { describeCode } from "../../api/errors";
-import { isTerminal, type Question } from "../../api/types";
+import { isTerminal, type FileContextRef, type Question } from "../../api/types";
 import { RUN_STATE } from "../../domain/status";
 import { loadLocal, updateLocal } from "../../state/persist";
 import { ErrorNotice, QuietStatus } from "../Notice";
@@ -14,12 +14,14 @@ const MODE_LABEL: Record<string, string> = { analyzer: "Анализатор", d
 
 interface Props {
   context: WorkspaceContextValue;
+  fileContext: FileContextRef | null;
+  onClearFile(): void;
   replyQuestionId: string | null;
   onReply(questionId: string | null): void;
   composerRef: React.RefObject<ComposerHandle | null>;
 }
 
-export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Props) {
+export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, onReply, composerRef }: Props) {
   const core = useCore();
   const { workspace, history } = core;
   const { api, capabilities, session } = context;
@@ -54,9 +56,10 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
   const submit = async () => {
     const text = draft.trim();
     if (!text) return;
-    const ok = await workspace.sendMessage(text, replyQuestion?.id ?? null);
+    const ok = await workspace.sendMessage(text, fileContext ? null : replyQuestion?.id ?? null, fileContext);
     if (ok) {
       setDraftPersist("");
+      onClearFile();
       onReply(null);
     }
   };
@@ -66,8 +69,9 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
   else if (active) blocked = "Агент ещё работает в этой сессии.";
   else if (workspace.send.outbox) blocked = "Повторите или отмените неотправленное сообщение.";
   else if (pending) blocked = "Повторите или отмените незавершённый разбор.";
-  else if (history?.dialogue?.status === "limit_reached") blocked = "Лимит уточняющих раундов исчерпан. Начните новый чат с уточнённым описанием.";
+  else if (history?.dialogue?.status === "limit_reached" && !fileContext) blocked = "Лимит уточняющих раундов исчерпан. Начните новый чат с уточнённым описанием.";
 
+  const fileLink = (ref?: FileContextRef | null) => ref ? <button type="button" className="text-link small" onClick={()=>context.openGeneratedFile?.(ref)}>Файл {ref.path} · версия {ref.version_number ?? ref.version_id}</button> : null;
   // Chronological timeline: stored history, then checks started from this browser.
   const items: { at: string; node: ReactNode; key: string; after?: string }[] = [];
   for (const entry of history?.entries ?? []) {
@@ -78,6 +82,7 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
         at: entry.createdAt, key: entry.key,
         node: (
           <UserBubble key={entry.key} text={entry.text} time={clock(entry.createdAt)}>
+            {fileLink(entry.fileContext)}
             {capabilities.adapter === "demo" && !session.recording_label && <p className="msg__note">Исходный текст записанного примера</p>}
             {entry.status === "discarded" && <p className="msg__note">Сообщение отменено и не разобрано</p>}
             {isPending && (
@@ -105,6 +110,7 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
     } else if (entry.kind === "reply") {
       items.push({at: entry.createdAt, key: entry.key, node: <AgentBlock key={entry.key} time={clock(entry.createdAt)}>
         <p className="msg__text">{entry.text}</p>
+        {fileLink(entry.fileContext)}
         {entry.questions.map(question => <QuestionCard key={question.id}
           question={history?.dialogue?.questions.find(q => q.id === question.id) ?? question}
           active={replyQuestionId === question.id} canAnswer={entry.isLatest && capabilities.agent && !active && !pending}
@@ -220,6 +226,7 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
           {workspace.dialogue?.status === "not_started" && <button type="button" className="button button--small" disabled={Boolean(blocked) || workspace.send.sending} onClick={() => void workspace.analyzeDocument(document)}>Разобрать документ</button>}
         </div>)}
         {workspace.upload.uploading && <QuietStatus busy>Загрузка {workspace.upload.uploading}</QuietStatus>}
+        {fileContext && <div className="document-line"><span>Вопрос о {fileContext.path} · версия {fileContext.version_number ?? fileContext.version_id}</span><button type="button" className="button button--small" onClick={onClearFile}>Убрать контекст файла</button></div>}
         <Composer ref={composerRef} value={draft} onChange={setDraftPersist} onSubmit={() => void submit()}
           label="Сообщение агенту" placeholder={openQuestions.length > 0 ? "Ответьте на уточнение или добавьте правило…" : "Добавить правило или уточнение…"}
           blockedReason={blocked} busy={workspace.send.sending}

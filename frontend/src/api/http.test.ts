@@ -49,3 +49,20 @@ describe("public HTTP contract", () => {
     expect(events[0]?.data.text).toBe("Да");expect((fetcher.mock.calls[0] as unknown as [string,RequestInit])[1].headers).toMatchObject({"Last-Event-ID":"7"});
   });
 });
+
+it("sends file identity as typed context, never as a business source",async()=>{
+ const fetcher=vi.fn<typeof fetch>(async()=>json(run));const api=new HttpApi("",fetcher);
+ const ref={generation_id:"gen",version_id:"old-version",path:"app/rules.py",sha256:"a".repeat(64)};
+ await api.sendMessage("s",{text:"Объясни файл",file_context:ref},"file-key");
+ const body=JSON.parse(fetcher.mock.calls[0]![1]!.body as string);
+ expect(body).toEqual({text:"Объясни файл",file_context:ref});expect(body).not.toHaveProperty("source_id");
+});
+
+it("shared OpenAPI discovery survives the first StrictMode consumer abort",async()=>{
+ let resolve!:(r:Response)=>void;const fetcher=vi.fn<typeof fetch>(()=>new Promise(r=>{resolve=r;}));const api=new HttpApi("",fetcher);
+ const first=new AbortController();const one=api.capabilities(first.signal);first.abort();
+ const two=api.capabilities(new AbortController().signal);
+ resolve(json({paths:{"/api/sessions":{},"/api/sessions/{session_id}/messages":{}},components:{schemas:{}}}));
+ expect((await two).agent).toBe(true);expect(await one).toEqual(await two);
+ expect(fetcher.mock.calls[0]![1]?.signal).toBeUndefined();
+});

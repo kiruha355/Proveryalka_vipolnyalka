@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
-import type { ModelVersion, Property, Session, VerificationResult } from "../api/types";
+import type { FileContextRef, ModelVersion, Property, Session, VerificationResult } from "../api/types";
 import type { RequirementIndex } from "../domain/requirements";
 import type { TraceRole } from "../domain/status";
 import type { StepView } from "../domain/trace";
@@ -60,6 +60,8 @@ export interface WorkspaceContextValue {
   setTraceStep(step: number): void;
   createVersion?(modelId: string, body: {spec: ModelVersion["spec"]; parent_id?: string | null}, key: string): Promise<ModelVersion>;
   selectVersion(versionId: string): void;
+  discussFile?(ref: FileContextRef): void;
+  openGeneratedFile?(ref: FileContextRef): void;
   openView(viewId: string): void;
 }
 

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
-import type { CheckLimits, ModelVersion, Session } from "../api/types";
+import type { CheckLimits, FileContextRef, ModelVersion, Session } from "../api/types";
 import { DEFAULT_LIMITS } from "../api/types";
+import {loadLocal, updateLocal} from "../state/persist";
+import {focusGeneratedFile} from "../extensions/load";
 import { CoreContext, type CoreActions } from "../app/core";
 import type { Route } from "../app/route";
 import { WorkspaceContext, type ElementRef, type TraceFocus, type WorkspaceContextValue } from "../app/workspace";
@@ -53,6 +55,8 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   routeRef.current = route;
   const [pane, setPane] = useState<"chat" | "workspace">("chat");
   const [element, setElement] = useState<ElementRef | null>(null);
+  const [fileContext, setFileContext] = useState<FileContextRef | null>(()=>loadLocal(api.id,sessionId).draftFileContext ?? null);
+  const fileReply = (ref: FileContextRef | null) => {setFileContext(ref); updateLocal(api.id, sessionId, local=>({...local,draftFileContext:ref}));};
   const [reply, setReply] = useState<string | null>(null);
   const [selectedByVersion, setSelectedByVersion] = useState<Record<string, string[]>>({});
   const [limits, setLimits] = useState<CheckLimits>(DEFAULT_LIMITS);
@@ -121,6 +125,15 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
         setElement(null);
         go({ modelId: target.model_id, version: target.number, check: undefined, property: undefined, step: undefined });
       },
+      discussFile: capabilities.agent && capabilities.fileDialogue ? (ref) => {
+        fileReply(ref); setReply(null); setPane("chat");
+        requestAnimationFrame(()=>composer.current?.prefill(`Объясни файл ${ref.path} из генерации ${ref.generation_id}, версия ${ref.version_number ?? ref.version_id}. Как в нём реализованы правила этой модели? Ничего не изменяй.`));
+      } : undefined,
+      openGeneratedFile: (ref) => {
+        const target=workspace.versions.find(v=>v.id===ref.version_id);
+        if (!target) return;
+        focusGeneratedFile(ref); go({modelId:target.model_id,version:target.number,view:"files",check:undefined,property:undefined,step:undefined});setPane("workspace");
+      },
       openView: (viewId) => {
         go({ view: viewId });
         setPane("workspace");
@@ -173,7 +186,7 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
             <button type="button" aria-pressed={pane === "chat"} onClick={() => setPane("chat")}>Чат</button>
             <button type="button" aria-pressed={pane === "workspace"} onClick={() => setPane("workspace")}>Модель и проверка</button>
           </div>
-          <ChatPanel context={context} replyQuestionId={reply} onReply={setReply} composerRef={composer} />
+          <ChatPanel fileContext={fileContext} onClearFile={()=>fileReply(null)} context={context} replyQuestionId={reply} onReply={setReply} composerRef={composer} />
           <PaneSeparator pane={chatPane} label="Ширина чата"/>
           <WorkspacePanel context={context} viewId={route.view} />
         </div>

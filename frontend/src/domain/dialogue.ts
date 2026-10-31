@@ -5,8 +5,8 @@ import type { DialogueState, Message, VerificationOutcome } from "../api/types";
 // parsed here and never shown to the reader as raw JSON.
 
 export type HistoryEntry =
-  | {kind: "reply"; key: string; text: string; questions: import("../api/types").Question[]; createdAt: string; sequence: number; isLatest: boolean}
-  | { kind: "user"; key: string; text: string; createdAt: string; sequence: number; status: "processed" | "pending" | "discarded" }
+  | {kind: "reply"; fileContext?: import("../api/types").FileContextRef | null; key: string; text: string; questions: import("../api/types").Question[]; createdAt: string; sequence: number; isLatest: boolean}
+  | { kind: "user"; fileContext?: import("../api/types").FileContextRef | null; key: string; text: string; createdAt: string; sequence: number; status: "processed" | "pending" | "discarded" }
   | { kind: "analysis"; key: string; state: DialogueState; createdAt: string; sequence: number; isLatest: boolean }
   | { kind: "verification"; key: string; outcome: VerificationOutcome; createdAt: string; sequence: number }
   | { kind: "assistant_text"; key: string; text: string; createdAt: string; sequence: number }
@@ -134,9 +134,9 @@ export function publicHistory(view: import("../api/types").DialogueView, session
   const latestAssistant = publicEntries.filter(entry => entry.kind === "assistant").at(-1)?.id;
   const entries: HistoryEntry[] = publicEntries.map(entry => entry.kind === "user" ? {
     kind: "user", key: entry.id, text: entry.text, sequence: entry.sequence, createdAt: entry.created_at,
-    status: entry.status ?? "processed",
+    status: entry.status ?? "processed", fileContext:entry.file_context,
   } : {kind: "reply", key: entry.id, text: entry.text, questions: entry.questions ?? [], sequence: entry.sequence,
-    createdAt: entry.created_at, isLatest: entry.id === latestAssistant});
+    createdAt: entry.created_at, isLatest: entry.id === latestAssistant, fileContext:entry.file_context});
   const dialogue: DialogueState | null = view.analysis && view.status !== "not_started" ? {
     schema_version: "2.0", sources, analysis: {...view.analysis, requirements: view.requirements},
     questions: view.questions, answers: [], corrections: view.corrections, property_approvals: {},

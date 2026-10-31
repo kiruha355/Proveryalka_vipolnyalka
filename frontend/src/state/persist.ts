@@ -1,3 +1,4 @@
+import type {FileContextRef} from "../api/types";
 // Client-side records the backend has no listing endpoint for: run ids of a
 // session, an unsent message with its idempotency key, and the draft text.
 
@@ -21,6 +22,7 @@ export interface CheckRunRecord {
 }
 
 export interface Outbox {
+  fileContext?: FileContextRef | null;
   sourceId?: string;
   pendingRetry?: boolean;
   text: string;
@@ -35,6 +37,7 @@ export interface Outbox {
 }
 
 export interface SessionLocal {
+  draftFileContext?: FileContextRef | null;
   agentRuns: AgentRunRecord[];
   checkRuns: CheckRunRecord[];
   draft: string;
@@ -56,6 +59,7 @@ export function loadLocal(apiId: string, sessionId: string): SessionLocal {
     return {
       agentRuns: Array.isArray(value.agentRuns) ? value.agentRuns : [],
       checkRuns: Array.isArray(value.checkRuns) ? value.checkRuns : [],
+      draftFileContext: value.draftFileContext ?? null,
       draft: typeof value.draft === "string" ? value.draft : "",
       outbox: value.outbox && typeof value.outbox.key === "string" ? value.outbox : null,
     };
