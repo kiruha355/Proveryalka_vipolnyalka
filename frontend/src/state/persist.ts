@@ -37,6 +37,7 @@ export interface Outbox {
 }
 
 export interface SessionLocal {
+  draftQuestionId?: string | null;
   draftFileContext?: FileContextRef | null;
   agentRuns: AgentRunRecord[];
   checkRuns: CheckRunRecord[];
@@ -60,6 +61,7 @@ export function loadLocal(apiId: string, sessionId: string): SessionLocal {
       agentRuns: Array.isArray(value.agentRuns) ? value.agentRuns : [],
       checkRuns: Array.isArray(value.checkRuns) ? value.checkRuns : [],
       draftFileContext: value.draftFileContext ?? null,
+      draftQuestionId: typeof value.draftQuestionId === "string" ? value.draftQuestionId : null,
       draft: typeof value.draft === "string" ? value.draft : "",
       outbox: value.outbox && typeof value.outbox.key === "string" ? value.outbox : null,
     };

@@ -12,6 +12,7 @@ import { Stop } from "../icons";
 import { MessageText } from "./MessageText";
 import { AgentTrace } from "./AgentTrace";
 import type { AgentRunView } from "../../state/types";
+import { DemoAnswers } from "./DemoAnswers";
 
 interface Props {
   context: WorkspaceContextValue;
@@ -50,8 +51,8 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
 
   const answer = (question: Question, prefill: string | null) => {
     onReply(capabilities.questionId ? question.id : null);
-    if (prefill !== null) setDraftPersist(prefill);
-    composerRef.current?.focus();
+    if (prefill !== null) composerRef.current?.prefill(prefill);
+    else composerRef.current?.focus();
   };
 
   const submit = async () => {
@@ -235,10 +236,13 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
         {workspace.upload.uploading && <QuietStatus busy>Загрузка {workspace.upload.uploading}</QuietStatus>}
         {fileContext && <div className="document-line"><span>Вопрос о {fileContext.path} · версия {fileContext.version_number ?? fileContext.version_id}</span><button type="button" className="button button--small" onClick={onClearFile}>Убрать контекст файла</button></div>}
         <Composer ref={composerRef} value={draft} onChange={setDraftPersist} onSubmit={() => void submit()}
-          label="Сообщение агенту" placeholder={openQuestions.length > 0 ? "Ответьте на уточнение или добавьте правило…" : "Добавить правило или уточнение…"}
+          label="Сообщение агенту" placeholder={replyQuestion ? "Ваш ответ на выбранный вопрос…" : openQuestions.length > 0 ? "Ответьте на уточнение или добавьте правило…" : "Добавить правило или уточнение…"}
           blockedReason={blocked} busy={workspace.send.sending}
           reply={replyQuestion && capabilities.questionId ? { text: replyQuestion.text, onClear: () => onReply(null) } : null}
           attach={capabilities.documents && workspace.dialogue?.status === "not_started" ? { busy: workspace.upload.uploading !== null, onFile: (file) => void workspace.uploadDocument(file) } : null} />
+        {new URLSearchParams(window.location.search).get("scenario") === "order" && (
+          <DemoAnswers onChoose={(text) => composerRef.current?.prefill(text)} />
+        )}
       </div>
     </section>
   );

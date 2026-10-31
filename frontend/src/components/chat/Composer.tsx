@@ -50,8 +50,10 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer(prop
     <div className="composer">
       {reply && (
         <div className="composer__reply">
-          <span className="composer__reply-label">Ответ на вопрос</span>
-          <span className="composer__reply-text">{reply.text}</span>
+          <div className="composer__reply-content">
+            <span className="composer__reply-label">Ответ на вопрос</span>
+            <p className="composer__reply-text">{reply.text}</p>
+          </div>
           <button type="button" className="icon-button icon-button--small" onClick={reply.onClear} aria-label="Отвязать ответ от вопроса">
             <Close size={14} />
           </button>
