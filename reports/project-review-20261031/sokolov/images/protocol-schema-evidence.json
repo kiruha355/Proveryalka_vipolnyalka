@@ -1,0 +1,59 @@
+{
+  "codex_version": "codex-cli 0.166.0",
+  "command": "codex app-server generate-json-schema --out <temporary-directory>",
+  "native_user_input_image": {
+    "anyOf": [
+      {
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "UrlUserInput",
+        "type": "object"
+      },
+      {
+        "properties": {
+          "fileId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId"
+        ],
+        "title": "FileIdUserInput",
+        "type": "object"
+      }
+    ],
+    "properties": {
+      "detail": {
+        "anyOf": [
+          {
+            "$ref": "#/definitions/ImageDetail"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "type": {
+        "enum": [
+          "image"
+        ],
+        "title": "ImageUserInputType",
+        "type": "string"
+      }
+    },
+    "required": [
+      "type"
+    ],
+    "title": "ImageUserInput",
+    "type": "object"
+  },
+  "capability_check": "model/list inputModalities must explicitly contain image; unknown fails closed",
+  "official_docs": "https://learn.chatgpt.com/docs/app-server"
+}

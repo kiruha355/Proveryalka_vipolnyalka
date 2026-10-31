@@ -1,6 +1,6 @@
 # Интеграция изображений (#45)
 
-Актуальный issue: https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/45, прочитан 31.10.2026. Оставлен открытым. База работы: `393ac0e`, draft PR должен иметь base `t3/frontend-live-documents-tests`.
+Актуальный issue: https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/45, прочитан 31.10.2026. Оставлен открытым. База работы: `393ac0e`, draft PR https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/67 имеет base `t3/frontend-live-documents-tests`.
 
 ## Коммиты и ownership
 
@@ -41,3 +41,8 @@
 Модуль реализует загрузку, сохранение metadata+canonical bytes, pixel delivery, структурированное извлечение требований, provenance и восстановление результатов image analysis. Он не создаёт формальную BehavioralModel и не выдаёт image source за прежний текстовый Source: отправлять `img_*` в `/messages.source_id` нельзя. Если нужен единый image-to-formal-model сценарий, root должен отдельно согласовать расширение text-oriented dialogue/formalization contracts; этот draft его не заявляет. Browser/frontend visual acceptance, CI и production E2E не выполнялись.
 
 Все defaults ImageLimits (8 MiB, 16M pixels, 8192 edge, 32 MiB canonical, 180 секунд, один concurrent analysis) и OpenAI-compatible vision opt-in являются **предложениями реализации**, не новыми согласованными продуктовыми политиками.
+
+
+## Остановка старого full suite
+
+Старый pytest был остановлен владельцем через SIGINT только своего PID27874 после проверки cwd. Он завершился с KeyboardInterrupt и 233 PASS; это частичный результат. Последним модулем был `test_clarification`, но это **не доказывает отсутствия broad container cleanup**: более ранние `TestClient(create_app())` могли вызвать его через startup lifespan. Предыдущее сообщение с обратным выводом было ошибочным. Новый прогон разрешён root только после фактической остановки процесса и подключения точного ownership fix `fe3e5ca`, после освобождения слота #47. Ни T3, ни чужие процессы/демо/профили не останавливались.
