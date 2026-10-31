@@ -10,6 +10,8 @@ import { Composer, type ComposerHandle } from "./Composer";
 import { AgentBlock, AnalysisEntry, CheckCard, clock, UserBubble, QuestionCard } from "./entries";
 import { Stop } from "../icons";
 import { MessageText } from "./MessageText";
+import { AgentTrace } from "./AgentTrace";
+import type { AgentRunView } from "../../state/types";
 
 interface Props {
   context: WorkspaceContextValue;
@@ -71,6 +73,11 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   else if (history?.dialogue?.status === "limit_reached" && !fileContext) blocked = "Лимит уточняющих раундов исчерпан. Начните новый чат с уточнённым описанием.";
 
   const fileLink = (ref?: FileContextRef | null) => ref ? <button type="button" className="text-link small" onClick={()=>context.openGeneratedFile?.(ref)}>Файл {ref.path} · версия {ref.version_number ?? ref.version_id}</button> : null;
+  const trace = (view: AgentRunView, action?: ReactNode) => <AgentTrace key={view.runId} trace={{
+    runId: view.runId, run: view.run, events: view.events,
+    createdAt: view.trace?.created_at, finishedAt: view.trace?.finished_at,
+    eventsTruncated: view.trace?.events_truncated, stream: view.stream, cancelRequested: view.cancelRequested,
+  }} action={action}/>;
   // Chronological timeline: stored history, then checks started from this browser.
   const items: { at: string; node: ReactNode; key: string; after?: string }[] = [];
   for (const entry of history?.entries ?? []) {
@@ -108,6 +115,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
       });
     } else if (entry.kind === "reply") {
       items.push({at: entry.createdAt, key: entry.key, node: <AgentBlock key={entry.key} time={clock(entry.createdAt)}>
+        {workspace.agentRuns.filter(run => run.trace?.reply_entry_id === entry.key).map(run => trace(run))}
         <MessageText text={entry.text} />
         {fileLink(entry.fileContext)}
         {entry.questions.map(question => <QuestionCard key={question.id}
@@ -120,6 +128,17 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
     } else if (entry.kind === "corrupt") {
       items.push({ at: entry.createdAt, key: entry.key, node: <AgentBlock key={entry.key}><p className="warn-text">Запись истории повреждена и не показана ({entry.wrapper}).</p></AgentBlock> });
     }
+  }
+  for (const run of workspace.agentRuns) {
+    if (!run.run || !isTerminal(run.run.state)) continue;
+    // Completed replies own their trace. A failed attempt belongs to its exact
+    // persisted input, including retries of the same turn.
+    if (run.trace?.reply_entry_id && history?.entries.some(entry => entry.key === run.trace?.reply_entry_id)) continue;
+    if (!run.trace && run.events.length === 0) continue;
+    const input = run.trace?.input_entry_id;
+    items.push({key: `trace:${run.runId}`, at: run.trace?.created_at ?? run.startedAt,
+      after: input && history?.entries.some(entry => entry.key === input) ? input : undefined,
+      node: <AgentBlock key={`trace:${run.runId}`}>{trace(run)}</AgentBlock>});
   }
   for (const check of [...workspace.checks].reverse()) {
     const version = context.versions.find((v) => v.id === check.versionId);
@@ -138,7 +157,8 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
 
   const anchoredTimeline = timeline.flatMap(item => [item, ...items.filter(check => check.after === item.key)]);
 
-  const activeInHistory = active && pending && pending.text === active.text;
+  const activeInHistory = active && (history?.entries.some(entry => entry.key === active.trace?.input_entry_id)
+    || pending && pending.text === active.text);
 
   return (
     <section className="chat" aria-labelledby="chat-title">
@@ -148,6 +168,10 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
 
       {session.recording_label && <p className="recording-caption">{session.recording_label} · новые вызовы не выполняются</p>}
       <div className="chat__body" tabIndex={-1}>
+        {workspace.agentTraceHistory.error !== null && <ErrorNotice error={workspace.agentTraceHistory.error} title="Ход работы не загружен"
+          action={<button type="button" className="button button--small" onClick={workspace.reloadAgentRuns}>Повторить</button>}/>}
+        {workspace.agentTraceHistory.nextCursor !== null && <button type="button" className="button button--small button--ghost agent-trace-history"
+          disabled={workspace.agentTraceHistory.loading} onClick={workspace.loadOlderAgentRuns}>Предыдущие запуски</button>}
         {workspace.detail.error !== null && !workspace.detail.data && (
           <ErrorNotice error={workspace.detail.error} title="История сессии не загружена"
             action={<button type="button" className="button button--small" onClick={workspace.reloadDetail}>Повторить</button>} />
@@ -163,42 +187,27 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
           {anchoredTimeline.map((item) => item.node)}
           {active && (
             <>
-              {!activeInHistory && <UserBubble text={active.text} time={clock(active.startedAt)} />}
+              {!activeInHistory && active.text && <UserBubble text={active.text} time={clock(active.startedAt)} />}
               <AgentBlock>
-                <div className="run-status" role="status" aria-live="polite">
-                  <span className="spinner" aria-hidden="true" />
-                  <span>
-                    {active.cancelRequested || active.run?.state === "cancelling" ? "Останавливается"
-                      : active.run?.state === "queued" ? "В очереди"
-                        : "Агент разбирает описание"}
-                  </span>
-                  {active.run && (active.run.state === "queued" || active.run.state === "running") && (
+                {trace(active, active.run && (active.run.state === "queued" || active.run.state === "running") ? (
                     <button type="button" className="button button--small button--ghost" onClick={() => void workspace.cancelAgent()} disabled={active.cancelRequested}>
                       <Stop size={13} /> Остановить
                     </button>
-                  )}
-                </div>
-                {active.stream.kind === "reconnecting" && (
-                  <p className="quiet">Связь прервана · повтор {active.stream.attempt}/{active.stream.maxAttempts}</p>
-                )}
+                  ) : undefined)}
                 {active.stream.kind === "lost" && (
                   <ErrorNotice error={active.stream.error} title="Нет связи с ходом анализа"
                     action={<button type="button" className="button button--small" onClick={() => workspace.reconnect(active.runId)}>Переподключиться</button>} />
                 )}
-                {active.delta && <p className="msg__text">{active.delta}</p>}
-                {active.questions.length > 0 && <p className="small">Агент задаёт вопросов: {active.questions.length}</p>}
-                {active.proposed.map((p) => (
-                  <p key={p.version_id} className="small">Предложена версия модели {p.number}</p>
-                ))}
+                {active.delta && <MessageText text={active.delta}/>}
               </AgentBlock>
             </>
           )}
-          {!active && last && last.run && last.run.state === "failed" && !pending && last.failure && (
+          {!active && last && !last.trace && last.events.length === 0 && last.run && last.run.state === "failed" && !pending && last.failure && (
             <AgentBlock>
               <p className="warn-text">Анализ не выполнен: {describeCode(last.failure.code) ?? last.failure.code}</p>
             </AgentBlock>
           )}
-          {!active && last?.run?.state === "cancelled" && !pending && (
+          {!active && last && !last.trace && last.events.length === 0 && last.run?.state === "cancelled" && !pending && (
             <AgentBlock><p className="quiet">{RUN_STATE.cancelled}</p></AgentBlock>
           )}
         </ol>

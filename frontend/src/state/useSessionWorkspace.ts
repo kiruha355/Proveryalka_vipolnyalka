@@ -3,7 +3,7 @@ import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
 import { newKey } from "../api/api";
 import { ApiError, isAbort } from "../api/errors";
 import type {
-  CheckLimits, FileContextRef, DialogueView, ExplanationView, DocumentSource, ModelVersion, Question, Run, RunEvent, SessionDetail, VerificationResult,
+  AgentRunTrace, CheckLimits, FileContextRef, DialogueView, ExplanationView, DocumentSource, ModelVersion, Question, Run, RunEvent, SessionDetail, VerificationResult,
 } from "../api/types";
 import { DEFAULT_LIMITS, isTerminal } from "../api/types";
 import { parseHistory, publicHistory, type ParsedHistory } from "../domain/dialogue";
@@ -22,6 +22,7 @@ interface RunsState {
 
 type Action =
   | { type: "agent/add"; view: AgentRunView }
+  | { type: "agent/snapshots"; traces: AgentRunTrace[]; older: boolean }
   | { type: "agent/events"; runId: string; events: RunEvent[] }
   | { type: "agent/stream"; runId: string; stream: StreamStatus }
   | { type: "agent/run"; run: Run }
@@ -50,6 +51,9 @@ function applyAgentEvents(view: AgentRunView, events: RunEvent[]): AgentRunView 
   let { delta, questions, proposed } = view;
   let run = view.run;
   for (const event of fresh) {
+    if (event.type === "activity" && run?.state === "queued" && typeof event.data.phase === "string" && event.data.phase !== "queued") {
+      run = {...run, state: "running"};
+    }
     if (event.type === "message_delta" && typeof event.data.text === "string") delta += event.data.text;
     if (event.type === "clarification_requested") {
       const question = event.data as unknown as Question;
@@ -70,6 +74,21 @@ function reducer(state: RunsState, action: Action): RunsState {
     case "agent/add":
       if (state.agent[action.view.runId]) return state;
       return { ...state, agent: { ...state.agent, [action.view.runId]: action.view }, agentOrder: [...state.agentOrder, action.view.runId] };
+    case "agent/snapshots": {
+      const agent = {...state.agent};
+      const incoming = [...action.traces].reverse();
+      for (const trace of incoming) {
+        const runId = trace.run.run_id;
+        const existing = agent[runId] ?? agentView({runId, text: "", questionId: null, startedAt: trace.created_at ?? ""}, trace.run.session_id);
+        // An older HTTP snapshot must not undo a terminal SSE event.
+        const run = existing.run && isTerminal(existing.run.state) && !isTerminal(trace.run.state) ? existing.run : trace.run;
+        agent[runId] = applyAgentEvents({...existing, trace, run,
+          stream: isTerminal(run.state) ? {kind: "closed"} : existing.stream,
+          failure: run.error_code ? existing.failure ?? {code: run.error_code, message: ""} : existing.failure}, trace.events);
+      }
+      const newIds = incoming.map(trace => trace.run.run_id).filter(id => !state.agentOrder.includes(id));
+      return {...state, agent, agentOrder: action.older ? [...newIds, ...state.agentOrder] : [...state.agentOrder, ...newIds]};
+    }
     case "agent/events": {
       const view = state.agent[action.runId];
       if (!view) return state;
@@ -187,6 +206,9 @@ export interface SessionWorkspace {
   models: Loadable<ModelGroup[]>;
   versions: ModelVersion[];
   agentRuns: AgentRunView[];
+  agentTraceHistory: {loading: boolean; error: unknown | null; nextCursor: number | null};
+  loadOlderAgentRuns(): void;
+  reloadAgentRuns(): void;
   activeAgentRun: AgentRunView | null;
   /** Latest finished agent run, for the failure/cancel line under the pending message. */
   lastAgentRun: AgentRunView | null;
@@ -223,6 +245,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   runsRef.current = runs;
   const [detail, setDetail] = useState<Loadable<SessionDetail>>({ data: null, error: null, loading: true });
   const [dialogue, setDialogue] = useState<DialogueView | null>(null);
+  const [agentTraceHistory, setAgentTraceHistory] = useState({loading: false, error: null as unknown | null, nextCursor: null as number | null});
   const [models, setModels] = useState<Loadable<ModelGroup[]>>({ data: null, error: null, loading: true });
   const [send, setSend] = useState<SendState>(() => ({ sending: false, outbox: loadLocal(api.id, sessionId).outbox, error: null }));
   const [checkStart, setCheckStart] = useState<CheckStartState>({ starting: false, error: null, retry: null });
@@ -237,11 +260,30 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const explainingRef = useRef(new Set<string>());
   const detailSeq = useRef(0);
   const modelsSeq = useRef(0);
+  const agentTraceSeq = useRef(0);
   const proposedRef = useRef(onModelProposed);
   proposedRef.current = onModelProposed;
   const addCheckRef = useRef<(record: Parameters<typeof checkView>[0]) => void>(() => undefined);
 
   // ---- loading
+
+  const loadAgentRunPage = useCallback((before: number | null, older: boolean) => {
+    if (!capabilities.agentTrace || !api.listAgentRuns) return;
+    const seq = ++agentTraceSeq.current;
+    const signal = root.current.signal;
+    setAgentTraceHistory(value => ({...value, loading: true, error: null}));
+    api.listAgentRuns(sessionId, before, signal).then(page => {
+      if (signal.aborted || seq !== agentTraceSeq.current) return;
+      dispatch({type: "agent/snapshots", traces: page.runs, older});
+      setAgentTraceHistory({loading: false, error: null, nextCursor: page.next_cursor});
+    }, error => {
+      if (!isAbort(error) && !signal.aborted && seq === agentTraceSeq.current) setAgentTraceHistory(value => ({...value, loading: false, error}));
+    });
+  }, [api, capabilities.agentTrace, sessionId]);
+  const reloadAgentRuns = useCallback(() => loadAgentRunPage(null, false), [loadAgentRunPage]);
+  const loadOlderAgentRuns = useCallback(() => {
+    if (!agentTraceHistory.loading && agentTraceHistory.nextCursor !== null) loadAgentRunPage(agentTraceHistory.nextCursor, true);
+  }, [agentTraceHistory.loading, agentTraceHistory.nextCursor, loadAgentRunPage]);
 
   const reloadDetail = useCallback(() => {
     const seq = ++detailSeq.current;
@@ -368,6 +410,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
             void refreshRun(runId, "agent").then((run) => persistAgentOutcome(runId, run));
             reloadDetail();
             reloadModels();
+            reloadAgentRuns();
           }
         } else {
           dispatch({ type: "check/events", runId, events: [event] });
@@ -381,7 +424,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     });
     trackers.current.set(runId, tracker);
     tracker.start();
-  }, [api, fetchCheck, loadArtifacts, persistAgentOutcome, refreshRun, reloadDetail, reloadModels]);
+  }, [api, fetchCheck, loadArtifacts, persistAgentOutcome, refreshRun, reloadDetail, reloadModels, reloadAgentRuns]);
 
   const addCheck = useCallback((record: Parameters<typeof checkView>[0]) => {
     if (runsRef.current.checks[record.runId]) return;
@@ -413,6 +456,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     const map = trackers.current;
     reloadDetail();
     reloadModels();
+    reloadAgentRuns();
     const local = loadLocal(api.id, sessionId);
     const latest = local.agentRuns[local.agentRuns.length - 1];
     if (latest) {
@@ -441,6 +485,12 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     };
     // Mount-only: the owning component is keyed by session id.
   }, []);
+
+  useEffect(() => {
+    for (const view of Object.values(runs.agent)) {
+      if (view.trace && view.run && !isTerminal(view.run.state)) track("agent", view.runId);
+    }
+  }, [runs.agent, track]);
 
   useEffect(() => {
     const pending = dialogue?.pending;
@@ -543,7 +593,11 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     finally { explainingRef.current.delete(runId); }
   }, [api, followExplanation]);
 
-  const agentRuns = runs.agentOrder.map((id) => runs.agent[id]).filter((v): v is AgentRunView => Boolean(v));
+  const agentRuns = runs.agentOrder.map((id) => runs.agent[id]).filter((v): v is AgentRunView => Boolean(v)).sort((a, b) => {
+    const left = a.trace?.created_at ?? a.startedAt;
+    const right = b.trace?.created_at ?? b.startedAt;
+    return left && right ? left.localeCompare(right) : 0;
+  });
   const activeAgentRun = [...agentRuns].reverse().find((v) => !v.run || !isTerminal(v.run.state)) ?? null;
   const lastAgentRun = agentRuns[agentRuns.length - 1] ?? null;
 
@@ -650,7 +704,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const checks = runs.checkOrder.map((id) => runs.checks[id]).filter((v): v is CheckRunView => Boolean(v)).reverse();
 
   return {
-    detail, dialogue, discardPending, analyzeDocument, retryExplanation, history, models, versions, agentRuns, activeAgentRun, lastAgentRun, checks,
+    detail, dialogue, discardPending, analyzeDocument, retryExplanation, history, models, versions, agentRuns, agentTraceHistory, loadOlderAgentRuns, reloadAgentRuns, activeAgentRun, lastAgentRun, checks,
     send, sendMessage, retryOutbox, discardOutbox, retryPending, cancelAgent,
     checkStart, startCheck, cancelCheck, reconnect, approve, approveError,
     reloadDetail, reloadModels, loadArtifacts, upload, uploadDocument,

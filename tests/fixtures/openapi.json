@@ -1655,6 +1655,114 @@
         }
       }
     },
+    "/api/sessions/{session_id}/agent-runs": {
+      "get": {
+        "summary": "Get Agent Runs",
+        "operationId": "get_agent_runs_api_sessions__session_id__agent_runs_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunTracePage"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/api/sessions/{session_id}/pending/retry": {
       "post": {
         "summary": "Retry Pending",
@@ -4890,6 +4998,125 @@
   },
   "components": {
     "schemas": {
+      "AgentRunTrace": {
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/Run"
+          },
+          "input_entry_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Entry Id"
+          },
+          "reply_entry_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply Entry Id"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "events_truncated": {
+            "type": "boolean",
+            "title": "Events Truncated",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run"
+        ],
+        "title": "AgentRunTrace"
+      },
+      "AgentRunTracePage": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/AgentRunTrace"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "runs"
+        ],
+        "title": "AgentRunTracePage"
+      },
       "Assignment-Input": {
         "properties": {
           "variable": {
@@ -5867,6 +6094,71 @@
           "error"
         ],
         "title": "ErrorResponse"
+      },
+      "Event": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "minimum": 1,
+            "title": "Event Id",
+            "type": "integer"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "message_delta",
+              "tool_call",
+              "clarification_requested",
+              "model_proposed",
+              "check_started",
+              "check_finished",
+              "file_written",
+              "run_finished",
+              "error",
+              "dialogue_updated",
+              "explanation_queued",
+              "explanation_started",
+              "explanation_ready",
+              "activity"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Created At"
+          }
+        },
+        "required": [
+          "event_id",
+          "run_id",
+          "session_id",
+          "type",
+          "data"
+        ],
+        "title": "Event",
+        "type": "object"
       },
       "ExplanationView": {
         "properties": {
@@ -8705,57 +8997,6 @@
           "spec"
         ],
         "title": "VersionCreate"
-      },
-      "Event": {
-        "additionalProperties": false,
-        "properties": {
-          "event_id": {
-            "minimum": 1,
-            "title": "Event Id",
-            "type": "integer"
-          },
-          "run_id": {
-            "title": "Run Id",
-            "type": "string"
-          },
-          "session_id": {
-            "title": "Session Id",
-            "type": "string"
-          },
-          "type": {
-            "enum": [
-              "message_delta",
-              "tool_call",
-              "clarification_requested",
-              "model_proposed",
-              "check_started",
-              "check_finished",
-              "file_written",
-              "run_finished",
-              "error",
-              "dialogue_updated",
-              "explanation_queued",
-              "explanation_started",
-              "explanation_ready"
-            ],
-            "title": "Type",
-            "type": "string"
-          },
-          "data": {
-            "additionalProperties": true,
-            "title": "Data",
-            "type": "object"
-          }
-        },
-        "required": [
-          "event_id",
-          "run_id",
-          "session_id",
-          "type",
-          "data"
-        ],
-        "title": "Event",
-        "type": "object"
       }
     }
   }

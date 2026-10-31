@@ -13,7 +13,7 @@ from ..config import Settings
 from ..behavior import BehavioralModel
 from ..verification import VerificationResult
 from ..contracts import (
-    CheckCreate, Contract, DialogueView, DocumentUpload, ErrorResponse, Event, ExplanationView,
+    AgentRunTracePage, CheckCreate, Contract, DialogueView, DocumentUpload, ErrorResponse, Event, ExplanationView,
     MessageCreate, Run, Session, SessionCreate, SessionDetail, Source, TextSourceCreate,
 )
 from ..services import Backend, ServiceError
@@ -180,6 +180,10 @@ def create_app(
     @app.get("/api/sessions/{session_id}/dialogue", response_model=DialogueView, responses=errors)
     def get_dialogue(session_id: str):
         return adapter.call("get_dialogue", session_id=session_id)
+
+    @app.get("/api/sessions/{session_id}/agent-runs", response_model=AgentRunTracePage, responses=errors)
+    def get_agent_runs(session_id: str, before: Optional[int] = Query(None, ge=1), limit: int = Query(50, ge=1, le=100)):
+        return adapter.call("agent_runs", session_id=session_id, before=before, limit=limit)
 
     @app.post("/api/sessions/{session_id}/pending/retry", response_model=Run, status_code=202, responses=errors)
     def retry_pending(session_id: str, idempotency_key: str = Header(min_length=1, max_length=128)):

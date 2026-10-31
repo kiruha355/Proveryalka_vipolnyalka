@@ -186,7 +186,7 @@ details[open]>summary{margin-bottom:8px}
       <li><a href="#decisions">Решения и вопросы</a></li>
       <li><a href="#sources">Источники</a></li>
     </ol>
-  </nav>
+  <a href="#agent-work">Ход работы агента</a></nav>
 </aside>
 
 <main>
@@ -201,8 +201,8 @@ details[open]>summary{margin-bottom:8px}
 <p>Человек описывает поведение и уточняет правила; LLM формализует <code>BehavioralModel</code>. Человек просматривает модель и сам запускает TLC. Исправление создаёт новую версию только после явной реплики человека. Согласование разрешает использовать модель для кода; затем детерминированный генератор создаёт Python + FastAPI + pytest, а тесты запускаются отдельным действием.</p>
 <ul>
 <li><b>Общая поставка.</b> В draft <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/71">PR #71</a> объединены API, клиент Vite, источники, MCP и native launcher. Миграции SQLite 6 → 8 сохраняют данные. GitHub merge и закрытие issues не выполнялись.</li>
-<li><b>Общие проверки.</b> Backend: <b>513 PASS, 0 skipped</b> с <code>REQUIRE_TLC</code> и <code>REQUIRE_SANDBOX</code>; после последней правки UI: <b>38 frontend PASS + 1 opt-in skip</b>, <b>108 extensions PASS</b>, types/build PASS (<a href="final-demo/ui-feedback.json">квитанция UI</a>). Это локальные результаты; состояние GitHub CI ими не устанавливается.</li>
-<li><b>Живой сценарий #39/#49.</b> T3 Browser + GPT + TLC: v1 VIOLATED → явная правка guard → v2 HOLDS → согласование → 16 файлов → ZIP 20 392 байта → вопрос GPT о файле → refresh → Docker <b>54/54 PASS</b>. <a href="end-to-end-acceptance/receipt.md">Квитанция</a> относится к выполненному основному сценарию до подключения PR67–70; общая интеграция подтверждена отдельно <a href="integration/receipt.json">513 тестами</a>.</li>
+<li><b>Общие проверки.</b> Backend: <b>522 PASS, 0 skipped</b> с <code>REQUIRE_TLC</code> и <code>REQUIRE_SANDBOX</code>; после последней правки UI: <b>38 frontend PASS + 1 opt-in skip</b>, <b>108 extensions PASS</b>, types/build PASS (<a href="final-demo/ui-feedback.json">квитанция UI</a>). Это локальные результаты; состояние GitHub CI ими не устанавливается.</li>
+<li><b>Живой сценарий #39/#49.</b> T3 Browser + GPT + TLC: v1 VIOLATED → явная правка guard → v2 HOLDS → согласование → 16 файлов → ZIP 20 392 байта → вопрос GPT о файле → refresh → Docker <b>54/54 PASS</b>. <a href="end-to-end-acceptance/receipt.md">Квитанция</a> относится к выполненному основному сценарию до подключения PR67–70; общая интеграция подтверждена отдельно <a href="integration/receipt.json">522 тестами</a>.</li>
 <li><b>Новый UI.</b> Кнопка «Согласовать для кода» называет действие прямо; разворачивание панели и закрытие обозначены иконками. Убрана лишняя метка «Анализатор», высота просмотра файла ограничена, базовое форматирование кода в сообщениях экранируется.</li>
 <li><b>Тесты на общем стенде.</b> После публикации UI5 запуск тестов через native UI на порту 5300 дал Docker <b>54/54 PASS</b>, <code>trun_fe56347d07154d83815d3f677f500ac5</code>; генерация не изменилась.</li>
 <li><b>Границы.</b> Изображения, снимки репозиториев и MCP подключены к общему backend; экранов изображений/репозиториев ещё нет. Автоматического image → BehavioralModel нет. <code>compare_with_code</code> проверяет только точную сохранённую генерацию. Корпус #30, установка на чистой машине и пользовательская визуальная приёмка остаются открытыми. Native screenshot/AX живого сценария завершился timeout; сохранённый DOM и его render не выдаются за screenshot.</li>
@@ -210,7 +210,7 @@ details[open]>summary{margin-bottom:8px}
 <p><a href="http://127.0.0.1:5300/?ui=5">Общий локальный стенд</a> · <a href="final-demo/live-scenario.html">Ручной сценарий</a> · <a href="../../output/pdf/proveryalka-architecture.pdf">Семь схем в PDF</a>. Колонки Kanban не обновлены из-за прав доступа; тексты и чеклисты 23 открытых issues обновлены.</p>
 </section>
 
-<section id="system-diagrams" class="integration-atlas">
+<section id="agent-work"><h2>Ход работы агента</h2><p>В чате раскрывается журнал фактических операций: подготовка контекста, запрос и ответ модели, проверка структуры, повтор при ошибке и сохранение версии. Время берётся из сохранённых событий сервера. История восстанавливается после обновления страницы; прежним запускам неизвестные этапы и время не дописываются.</p><p>Новый настоящий запрос GPT выполнен за 37 секунд; тот же журнал восстановлен в другом браузерном профиле. <a href="http://127.0.0.1:5300/?ui=8#/s/s_38a15207f8d646b0860d70b4c96ca1c4?m=m_b68ace559a9d47489c51d4a79e27c83a&amp;v=1&amp;view=diagram">Открыть пример</a> · <a href="agent-trace/acceptance/receipt.json">Квитанция проверки</a>.</p><p>Граф занимает свободную высоту рабочей области. Разворачивание осталось в нижнем управлении; инспектор прокручивается отдельно. Подписи петель размещены сверху и снизу, длинный текст переносится.</p></section><section id="system-diagrams" class="integration-atlas">
 <h2>Схемы системы</h2>
 <div class="tbl"><table><thead><tr><th>Участник</th><th>Зона</th><th>Что передаёт другим компонентам</th></tr></thead><tbody>
 <tr><td>Mput13</td><td>UI · #32–#40, #49</td><td>Текст и ответы человека, выбранную версию и команды проверки, согласования, генерации и тестов; показывает трассу и сохранённые файлы.</td></tr>

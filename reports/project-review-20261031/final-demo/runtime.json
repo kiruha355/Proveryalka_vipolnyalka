@@ -1,6 +1,6 @@
 {
   "port": 5300,
-  "pid": 29762,
+  "pid": 15325,
   "url": "http://127.0.0.1:5300/",
   "database": "/tmp/proveryalka-final-demo-20261031/proveryalka.sqlite3",
   "artifacts": "/tmp/proveryalka-final-demo-20261031/artifacts",
@@ -17,7 +17,8 @@
   "reference_violation_url": "http://127.0.0.1:5300/#/s/s_ff90b8535d404f5fbb977e68feccaa8a?m=m_796f0f6574b447849ac1c5c316dc78e0&v=1&view=check&check=chk_31b776b8756a4a8da102d1475dfa53ea&p=no_cancelled_and_executed&step=3",
   "reference_fixed_url": "http://127.0.0.1:5300/#/s/s_ff90b8535d404f5fbb977e68feccaa8a?m=m_796f0f6574b447849ac1c5c316dc78e0&v=2&view=check&check=chk_2d9f34b50857443bae914c9873628583&p=no_cancelled_and_executed",
   "copied_at": "2026-10-31T10:22:24.477678+00:00",
-  "ui_revision": "5",
-  "frontend_index_sha256": "5f508edcccc4f7a49ebaddfed4d550a19875308ecdf601a451857af4add92f3a",
-  "integration_commit_before_feedback": "2310352"
+  "ui_revision": "8",
+  "frontend_index_sha256": "f44007c29b590c34971577a9167c5c56b6451b3d07cbdf06d294eac2fbb8bb36",
+  "integration_commit_before_feedback": "2310352",
+  "trace_example_session": "s_38a15207f8d646b0860d70b4c96ca1c4"
 }

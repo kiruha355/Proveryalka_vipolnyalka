@@ -1,6 +1,6 @@
 import { ApiError } from "./errors";
 import type {
-  ArtifactEntry, CheckRun, DialogueView, DocumentUpload, Model, ModelVersion, Run, RunEvent, Session, SessionDetail,
+  AgentRunTracePage, ArtifactEntry, CheckRun, DialogueView, DocumentUpload, Model, ModelVersion, Run, RunEvent, Session, SessionDetail,
 } from "./types";
 
 // Shallow structural checks: a response missing fields the UI depends on is
@@ -38,7 +38,18 @@ export const isArtifactEntry: Guard<ArtifactEntry> = (v): v is ArtifactEntry =>
   isObject(v) && isString(v.name) && typeof v.size === "number" && isString(v.sha256);
 
 export const isRunEvent: Guard<RunEvent> = (v): v is RunEvent =>
-  isObject(v) && typeof v.event_id === "number" && v.event_id >= 1 && isString(v.run_id) && isString(v.type) && isObject(v.data);
+  isObject(v) && Number.isInteger(v.event_id) && Number(v.event_id) >= 1 && isString(v.run_id) && isString(v.type) && isObject(v.data)
+  && (v.created_at === undefined || v.created_at === null || isString(v.created_at));
+
+export const isAgentRunTracePage: Guard<AgentRunTracePage> = (v): v is AgentRunTracePage =>
+  isObject(v) && (v.next_cursor === null || (Number.isInteger(v.next_cursor) && Number(v.next_cursor) >= 1))
+  && Array.isArray(v.runs) && v.runs.every(item => {
+    if (!isObject(item) || !isRun(item.run)) return false;
+    const run = item.run;
+    return [item.input_entry_id, item.reply_entry_id, item.source_id, item.created_at, item.started_at, item.finished_at].every(value => value === null || isString(value))
+      && typeof item.events_truncated === "boolean" && Array.isArray(item.events)
+      && item.events.every(event => isRunEvent(event) && event.run_id === run.run_id && event.session_id === run.session_id);
+  });
 
 export function expect<T>(value: unknown, guard: Guard<T>, what: string): T {
   if (!guard(value)) throw new ApiError("malformed", what);

@@ -144,9 +144,27 @@ class Event(Contract):
     type: Literal[
         "message_delta", "tool_call", "clarification_requested", "model_proposed",
         "check_started", "check_finished", "file_written", "run_finished", "error",
-        "dialogue_updated", "explanation_queued", "explanation_started", "explanation_ready",
+        "dialogue_updated", "explanation_queued", "explanation_started", "explanation_ready", "activity",
     ]
     data: dict[str, Any]
+    created_at: Optional[datetime] = None
+
+
+class AgentRunTrace(Contract):
+    run: Run
+    input_entry_id: Optional[str] = None
+    reply_entry_id: Optional[str] = None
+    source_id: Optional[str] = None
+    created_at: Optional[str] = None
+    started_at: Optional[str] = None
+    finished_at: Optional[str] = None
+    events: list[Event] = Field(default_factory=list)
+    events_truncated: bool = False
+
+
+class AgentRunTracePage(Contract):
+    runs: list[AgentRunTrace]
+    next_cursor: Optional[int] = None
 
 
 class PendingView(Contract):

@@ -167,7 +167,10 @@ def test_text_to_explained_counterexample_over_http(world):
         assert view["open_question_ids"] == ids and view["model"] is None and view["pending"] is None
         assert [r["code"] for r in view["requirements"]] == ["R1", "R2", "R3", "R4", "R5"]
         assert all(r["source_refs"][0]["quote"] in TEXT for r in view["requirements"])
-        kinds = [e["type"] for e in events(client, first["run_id"])]
+        emitted = events(client, first["run_id"])
+        phases = [e["data"]["phase"] for e in emitted if e["type"] == "activity"]
+        assert phases == ["queued", "started", "context_ready", "saving", "answer_ready"]
+        kinds = [e["type"] for e in emitted if e["type"] != "activity"]
         assert kinds == ["dialogue_updated", "clarification_requested", "clarification_requested", "message_delta", "run_finished"]
 
         assert post(client, url, {"text": "Да", "question_id": "q_unknown"}, "bad").json()["error"]["code"] == "UNKNOWN_QUESTION"
