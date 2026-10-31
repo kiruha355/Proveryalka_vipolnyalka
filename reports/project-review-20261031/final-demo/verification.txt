@@ -1,0 +1,6 @@
+Unified backend: 513 passed, 0 skipped, 75.12 s; REQUIRE_TLC=1 REQUIRE_SANDBOX=1.
+UI feedback follow-up: frontend38 passed +1 opt-in HTTP skipped; extensions108 passed; types and builds PASS.
+Native browser QA: bounded file view, expand/X, Escape/focus return, basic escaped code formatting.
+New integrated native UI Docker run: trun_fe56347d07154d83815d3f677f500ac5 passed54/54.
+PDF:7 vector A4 landscape pages; every page rendered and visually inspected.
+Kanban:23 issue bodies/checklists updated, project columns unchanged: GitHub viewer role=read.

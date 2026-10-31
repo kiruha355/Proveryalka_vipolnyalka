@@ -23,8 +23,9 @@
     "storage_mcp": 39
   },
   "frontend": {
-    "passed": 36,
-    "opt_in_http_skipped": 1
+    "passed": 38,
+    "opt_in_http_skipped": 1,
+    "types_build": "PASS"
   },
   "extensions": {
     "passed": 108,

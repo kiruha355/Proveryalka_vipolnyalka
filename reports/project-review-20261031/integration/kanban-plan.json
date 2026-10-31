@@ -86,5 +86,9 @@
   "49": {
     "status": "In review",
     "note": "Дерево/файлы/ZIP/tests и проверенный server file_context→GPT с сохранением истории; live ZIP+54/54 PASS."
+  },
+  "1": {
+    "status": "In review",
+    "note": "Единые контракты DSL/результата используются всеми компонентами; общий набор513PASS."
   }
 }

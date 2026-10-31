@@ -25,7 +25,7 @@ import {
 import {useExpandedGraph} from "./useExpandedGraph";
 import type { Transition } from "../../contracts/model";
 import { cx } from "../../ui/cx";
-import { FitIcon, MinusIcon, PlusIcon } from "../../ui/icons";
+import { CloseIcon, ExpandIcon, FitIcon, MinusIcon, PlusIcon } from "../../ui/icons";
 import { buildFlowElements } from "../flow-elements";
 import type {
   EdgeChip,
@@ -462,8 +462,8 @@ export function StateGraphCanvas(props: StateGraphCanvasProps) {
       aria-labelledby={full.expanded ? titleId : undefined} onKeyDownCapture={full.onKeyDownCapture}>
       <div className="pv-canvas-heading">
         {full.expanded && <h2 id={titleId}>{props.ariaLabel ?? "Диаграмма этапов"}</h2>}
-        {full.expanded ? <button ref={full.close} type="button" className="pv-button" onClick={() => full.setExpanded(false)}>Закрыть диаграмму</button>
-          : <button ref={full.trigger} type="button" className="pv-button" onClick={() => full.setExpanded(true)}>Развернуть диаграмму</button>}
+        {full.expanded ? <button ref={full.close} type="button" className="pv-icon-button" aria-label="Закрыть диаграмму" title="Закрыть диаграмму" onClick={() => full.setExpanded(false)}><CloseIcon /></button>
+          : <button ref={full.trigger} type="button" className="pv-icon-button" aria-label="Развернуть диаграмму" title="Развернуть диаграмму" onClick={() => full.setExpanded(true)}><ExpandIcon /></button>}
       </div>
       <ReactFlowProvider>
         <CanvasInner {...props} fitToken={`${props.fitToken ?? ""}|${full.expanded}`} />

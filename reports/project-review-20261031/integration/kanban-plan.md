@@ -26,3 +26,4 @@
 | [#47](https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/47) | In review | MCP SDK /mcp и 4 инструмента, policy/shared services подключены; arbitrary-code comparison unsupported. |
 | [#48](https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/48) | In review | Docker isolation/timeout/OOM/cancel/hostile tests PASS; owner cleanup не затрагивает чужие контейнеры. |
 | [#49](https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/49) | In review | Дерево/файлы/ZIP/tests и проверенный server file_context→GPT с сохранением истории; live ZIP+54/54 PASS. |
+| [#1](https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/1) | In review | Единые контракты используются всеми компонентами; общий набор 513 PASS. |

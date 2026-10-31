@@ -4,7 +4,7 @@ PR66 (основной UI и живой сценарий), PR67 (изображ�
 
 Основной create_app подключает источники и MCP к существующим сервисам. SQLite обновляется с 6 до 8 с сохранением версий и данных. Точный маршрут /mcp не перехватывает REST и статику. Общий тестовый набор больше не смешивает одноимённые conftest helpers изображений и MCP.
 
-Проверено в общей сборке: **513 passed, 0 skipped**, 75.12 s, REQUIRE_TLC=1 и REQUIRE_SANDBOX=1, настоящий Vite build в delivery-тесте. Frontend 36 passed + 1 opt-in HTTP skipped, extensions 108 passed, types/build PASS. Логи/JUnit и receipt лежат рядом. Новых provider calls при интеграции не выполнялось.
+Проверено в общей сборке: **513 passed, 0 skipped**, 75.12 s, REQUIRE_TLC=1 и REQUIRE_SANDBOX=1, настоящий Vite build в delivery-тесте. Frontend 38 passed + 1 opt-in HTTP skipped, extensions 108 passed, types/build PASS. Логи/JUnit и receipt лежат рядом. Новых provider calls при интеграции не выполнялось.
 
 Ручной сценарий и адрес единого стенда: `../final-demo/live-scenario.html`. База нового стенда получена SQLite backup из успешной live-сессии; исходный сервер и его данные не изменены. Предыдущий browser+GPT+TLC+Docker прогон описан в `../end-to-end-acceptance/receipt.md`.
 

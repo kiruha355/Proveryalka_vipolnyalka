@@ -65,7 +65,7 @@ f.path('M380 140V165H336V477',arrow=False)
 for y in (227,352,477):f.path(f'M336 {y}H350')
 f.path('M430 140V155H310V478H275');f.label(286,330,'сохранение',anchor='end')
 for y in (227,352,477):f.path(f'M680 {y}H750')
-f.path('M680 352H720V607H680');f.label(710,558,'артефакты',anchor='end')
+f.path('M680 352H720V607H680');f.label(710,570,'артефакты',anchor='end')
 f.label(490,55,'Общий язык обмена: BehavioralModel 1.0 + VerificationReport')
 figures.append(f)
 

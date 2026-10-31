@@ -1,0 +1,108 @@
+{
+  "issues_updated": 23,
+  "columns_updated": false,
+  "project_url": "https://github.com/users/kiruha355/projects/3",
+  "viewer": "Mput13",
+  "project_viewer_privileges": {
+    "role": "read",
+    "canCopy": true,
+    "canCopyAsTemplate": false,
+    "canChangeProjectVisibility": false
+  },
+  "cli_error": "missing required scopes [read:project]",
+  "remaining_action": "Project owner grants Write or uses owner browser; CLI additionally requires project OAuth scope",
+  "planned_statuses": {
+    "28": {
+      "status": "In review",
+      "note": "Ядро подключено к серверу; ошибочная/исправленная заявки, все статусы и эксплуатация проверены. Требуется review."
+    },
+    "29": {
+      "status": "In review",
+      "note": "Явная правка создаёт v2, старые v1/report сохранены; live violated→holds. Требуется review."
+    },
+    "30": {
+      "status": "Ready",
+      "note": "Один live-сценарий выполнен; корпус перефразирований/неоднозначностей с реальным LLM не прогонялся."
+    },
+    "31": {
+      "status": "In review",
+      "note": "CI workflows и отчёты подготовлены; общая локальная интеграция 513 PASS. Финальный GitHub CI результат проверяется отдельно."
+    },
+    "32": {
+      "status": "In review",
+      "note": "Рабочая область, API-клиент, адаптеры и UI-правки реализованы; визуальная приёмка пользователем pending."
+    },
+    "33": {
+      "status": "In review",
+      "note": "Настоящие public entries/SSE, multi-turn, refresh/retry/cancel; live-диалог пройден."
+    },
+    "34": {
+      "status": "In review",
+      "note": "Адресные ответы question_id, точные source_refs, исходные сообщения и требования сохраняются."
+    },
+    "35": {
+      "status": "In review",
+      "note": "Переменные/переходы/правила, версии, подтверждение модели и source_refs подключены."
+    },
+    "36": {
+      "status": "In review",
+      "note": "Ручная проверка выбранной версии по всем согласованным правилам; шесть статусов, без технических TLC-лимитов в UI."
+    },
+    "37": {
+      "status": "In review",
+      "note": "Фактическая трасса/значения/первое нарушение и объяснение сохранённого отчёта; discuss заполняет draft."
+    },
+    "38": {
+      "status": "In review",
+      "note": "Pending/retry/discard/cancel, SSE и refresh протестированы; StrictMode OpenAPI abort исправлен."
+    },
+    "39": {
+      "status": "In progress",
+      "note": "Настоящий browser→GPT→TLC→fix→generation→ZIP→file answer→Docker 54/54 выполнен. Пользовательская визуальная/клавиатурная приёмка ещё pending."
+    },
+    "40": {
+      "status": "In review",
+      "note": "React Flow, этапы/проекция, trace, guards/effects→новая версия, полноэкранный граф, wrap footer; UX-приёмка pending."
+    },
+    "41": {
+      "status": "In review",
+      "note": "Детерминированный Python/FastAPI/pytest, immutable generation/hash; ошибочные реализации и контрпример проверены."
+    },
+    "42": {
+      "status": "Backlog",
+      "note": "Исследование мультиагентного ревью/стоимости/задержки не выполнялось; зависит от корпусной оценки #30."
+    },
+    "43": {
+      "status": "In review",
+      "note": "Реализованный кэш ядра включён в общий TLC-набор; PR56 ранее merged. Закрытие issue оставлено владельцу."
+    },
+    "44": {
+      "status": "In progress",
+      "note": "Единый запуск и локальный итоговый прогон готовы; финальная UX-приёмка, корпус #30 и чистая установка не завершены."
+    },
+    "45": {
+      "status": "In review",
+      "note": "TXT/MD/DOCX в UI; images API/vision/crop/recovery подключены, real pixel smoke PASS. Image→BehavioralModel и image UI отсутствуют."
+    },
+    "46": {
+      "status": "In review",
+      "note": "HTTPS immutable snapshot/manifest/ranges/hash/context/analyze подключены к основному API; private-account/LLM/browser не прогонялись."
+    },
+    "47": {
+      "status": "In review",
+      "note": "MCP SDK /mcp и 4 инструмента, policy/shared services подключены; arbitrary-code comparison unsupported."
+    },
+    "48": {
+      "status": "In review",
+      "note": "Docker isolation/timeout/OOM/cancel/hostile tests PASS; owner cleanup не затрагивает чужие контейнеры."
+    },
+    "49": {
+      "status": "In review",
+      "note": "Дерево/файлы/ZIP/tests и проверенный server file_context→GPT с сохранением истории; live ZIP+54/54 PASS."
+    },
+    "1": {
+      "status": "In review",
+      "note": "Единые контракты DSL/результата используются всеми компонентами; общий набор513PASS."
+    }
+  }
+}

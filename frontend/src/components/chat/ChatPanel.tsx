@@ -9,8 +9,7 @@ import { ErrorNotice, QuietStatus } from "../Notice";
 import { Composer, type ComposerHandle } from "./Composer";
 import { AgentBlock, AnalysisEntry, CheckCard, clock, UserBubble, QuestionCard } from "./entries";
 import { Stop } from "../icons";
-
-const MODE_LABEL: Record<string, string> = { analyzer: "Анализатор", debugger: "Дебаггер", overview: "Обзор проекта", codegen: "Генератор кода" };
+import { MessageText } from "./MessageText";
 
 interface Props {
   context: WorkspaceContextValue;
@@ -109,7 +108,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
       });
     } else if (entry.kind === "reply") {
       items.push({at: entry.createdAt, key: entry.key, node: <AgentBlock key={entry.key} time={clock(entry.createdAt)}>
-        <p className="msg__text">{entry.text}</p>
+        <MessageText text={entry.text} />
         {fileLink(entry.fileContext)}
         {entry.questions.map(question => <QuestionCard key={question.id}
           question={history?.dialogue?.questions.find(q => q.id === question.id) ?? question}
@@ -117,7 +116,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
           onAnswer={answer}/>)}
       </AgentBlock>});
     } else if (entry.kind === "assistant_text") {
-      items.push({ at: entry.createdAt, key: entry.key, node: <AgentBlock key={entry.key} time={clock(entry.createdAt)}><p className="msg__text">{entry.text}</p></AgentBlock> });
+      items.push({ at: entry.createdAt, key: entry.key, node: <AgentBlock key={entry.key} time={clock(entry.createdAt)}><MessageText text={entry.text} /></AgentBlock> });
     } else if (entry.kind === "corrupt") {
       items.push({ at: entry.createdAt, key: entry.key, node: <AgentBlock key={entry.key}><p className="warn-text">Запись истории повреждена и не показана ({entry.wrapper}).</p></AgentBlock> });
     }
@@ -145,7 +144,6 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
     <section className="chat" aria-labelledby="chat-title">
       <header className="chat__header">
         <h1 id="chat-title" className="chat__title">{session.title}</h1>
-        <span className="chip chip--mode" title="Режим сессии; сейчас все режимы обрабатывает аналитик">{MODE_LABEL[session.mode] ?? session.mode}</span>
       </header>
 
       {session.recording_label && <p className="recording-caption">{session.recording_label} · новые вызовы не выполняются</p>}
