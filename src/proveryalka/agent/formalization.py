@@ -70,9 +70,13 @@ def formalize(draft, requirements, sources, blocked, previous=None, approvals=No
     unresolved = draft.assumptions or draft.contradictions
     if issues or unresolved or blocked:
         return data, None, issues
+    # Модель ссылается только на исходный текст и цитируемые ответы: вопрос без новых правил
+    # не меняет spec_hash и не создаёт новую версию.
+    cited = {ref.source_id for item in requirements for ref in item.source_refs}
+    cited.update(ref.source_id for ref in (approvals or {}).values())
     behavior = BehavioralModel.model_validate({
         "schema_version": "1.0", "name": draft.subject,
-        "sources": [source.model_dump() for source in sources],
+        "sources": [source.model_dump() for index, source in enumerate(sources) if index == 0 or source.id in cited],
         "requirements": [item.model_dump() for item in requirements],
         "variables": [item.model_dump(exclude={"quote"}) for item in elements["variables"]],
         "transitions": [item.model_dump(exclude={"quote"}) for item in elements["events"]],

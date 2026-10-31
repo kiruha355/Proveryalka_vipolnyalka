@@ -69,6 +69,11 @@ class VersionStore:
                 return self._version(connection, model_id, number)
             return self._idempotent(connection, f"version:create:{model_id}", key, body, action)
 
+    def latest_version(self, model_id):
+        with self.transaction() as connection:
+            row = connection.execute("SELECT number FROM model_versions WHERE model_id=? ORDER BY number DESC LIMIT 1", (model_id,)).fetchone()
+            return None if row is None else self._version(connection, model_id, row["number"])
+
     def get_version(self, model_id, number):
         with self.transaction() as connection:
             return self._version(connection, model_id, number)
