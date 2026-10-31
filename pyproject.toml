@@ -24,6 +24,7 @@ include = ["proveryalka*"]
 
 [tool.setuptools.package-data]
 "proveryalka.storage" = ["migrations/*.sql"]
+"proveryalka.codegen" = ["sandbox_image/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

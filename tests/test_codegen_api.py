@@ -14,7 +14,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from proveryalka.api.app import create_app
-from proveryalka.api.codegen import create_codegen_router
 from proveryalka.codegen.settings import CodegenSettings
 from proveryalka.config import Settings
 from proveryalka.services import ServiceError
@@ -67,10 +66,9 @@ class FakeSandbox:
 
 def build(tmp_path, sandbox=None, **codegen):
     settings = Settings(database_path=tmp_path / "db", artifacts_path=tmp_path / "artifacts", check_cache_path=None)
-    app = create_app(settings, checker=FakeChecker())
-    router = create_codegen_router(app.state.backend.store, CodegenSettings(image="img:test", **codegen), sandbox or FakeSandbox())
-    app.include_router(router)
-    return app, router.codegen
+    app = create_app(settings, checker=FakeChecker(),
+                     codegen_settings=CodegenSettings(image="img:test", **codegen), codegen_sandbox=sandbox or FakeSandbox())
+    return app, app.state.codegen
 
 
 def add_version(store, fixture="order_fixed", approve=True):

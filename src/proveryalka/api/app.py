@@ -29,6 +29,8 @@ def create_app(
     checker=None,
     analyst=None,
     explainer=None,
+    codegen_settings=None,
+    codegen_sandbox=None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
     store = SQLiteStore(settings.database_path) if backend is None else None
@@ -245,6 +247,13 @@ def create_app(
         return schema
 
     app.openapi = openapi
+    if store is not None:
+        # Генерация кода и песочница тестов (#41, #48); у router собственный lifespan после старта backend.
+        from .codegen import create_codegen_router
+        from ..codegen.settings import CodegenSettings
+        router = create_codegen_router(store, codegen_settings or CodegenSettings.from_env(), codegen_sandbox)
+        app.state.codegen = router.codegen
+        app.include_router(router)
     return app
 
 
