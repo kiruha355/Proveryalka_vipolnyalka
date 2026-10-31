@@ -1,0 +1,36 @@
+
+> @proveryalka/frontend-extensions@0.1.0 check
+> npm run typecheck && npm run test && npm run build
+
+
+> @proveryalka/frontend-extensions@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @proveryalka/frontend-extensions@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /Users/a/.t3/worktrees/Proveryalka_vipolnyalka/t3-884036f0/frontend-extensions
+
+
+ Test Files  6 passed (6)
+      Tests  104 passed (104)
+   Start at  11:34:43
+   Duration  1.97s (environment 44%, tests 37%, setup 9%, import 6%, transform 3%, worker 1%)
+
+
+> @proveryalka/frontend-extensions@0.1.0 build
+> vite build && tsc -p tsconfig.build.json
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 47 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/frontend-extensions.css   32.30 kB │ gzip:  6.58 kB
+dist/spec-hash-DwngP11X.js      5.93 kB │ gzip:  2.96 kB │ map:  17.68 kB
+dist/index.js                 151.23 kB │ gzip: 42.06 kB │ map: 427.54 kB
+dist/fixtures.js              210.74 kB │ gzip: 42.03 kB │ map: 255.55 kB
+
+✓ built in 86ms

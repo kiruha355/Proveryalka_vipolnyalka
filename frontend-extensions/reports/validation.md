@@ -4,9 +4,9 @@
 
 | Уровень | Результат | Доказательство |
 |---|---|---|
-| TypeScript | PASS | `npm run typecheck`, strict/noUncheckedIndexedAccess; `check.log` |
-| Компоненты/DSL/проекция/трасса/provider/ZIP | PASS | `npm test`: 104 tests, 6 files; `check.log` |
-| Библиотечная сборка и declarations | PASS | `npm run build`; `check.log` |
+| TypeScript | PASS | `npm run typecheck`, strict/noUncheckedIndexedAccess; `check.txt` |
+| Компоненты/DSL/проекция/трасса/provider/ZIP | PASS | `npm test`: 104 tests, 6 files; `check.txt` |
+| Библиотечная сборка и declarations | PASS | `npm run build`; `check.txt` |
 | Совместимость типов host | PASS | `scripts/check-host-types.sh /Users/a/.t3/worktrees/Proveryalka_vipolnyalka/t3-d2c2a8b5/frontend` |
 | Standalone demo build | PASS | `npm run demo:build`; `graph.html`, `files.html` |
 | Визуальный показ | PASS для inspected состояний | Нативные `html_preview` → `html_render`; ширина 728 и 1000; consoleMessages=[]; `graph-728.png`, `files-728.png` |
