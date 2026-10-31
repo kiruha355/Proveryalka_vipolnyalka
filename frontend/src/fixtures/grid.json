@@ -1,0 +1,218 @@
+{
+  "schema_version": "1.0",
+  "name": "Решётка 3000x3000",
+  "sources": [
+    {
+      "id": "source1",
+      "session_id": "fixtures",
+      "kind": "text",
+      "text": "Координаты x и y принимают значения от 0 до 2999, изначально 0.\nКаждую координату можно увеличить, пока она меньше максимума.\nСумма координат неотрицательна."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Координаты x и y принимают значения от 0 до 2999, изначально 0.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Координаты x и y принимают значения от 0 до 2999, изначально 0.",
+          "start": 0,
+          "end": 63
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "text": "Каждую координату можно увеличить, пока она меньше максимума.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Каждую координату можно увеличить, пока она меньше максимума.",
+          "start": 64,
+          "end": 125
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "text": "Сумма координат неотрицательна.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Сумма координат неотрицательна.",
+          "start": 126,
+          "end": 157
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "id": "x",
+      "name": "x",
+      "requirement_ids": [
+        "R1"
+      ],
+      "domain": {
+        "kind": "integer",
+        "minimum": 0,
+        "maximum": 2999
+      },
+      "initial_value": 0
+    },
+    {
+      "id": "y",
+      "name": "y",
+      "requirement_ids": [
+        "R1"
+      ],
+      "domain": {
+        "kind": "integer",
+        "minimum": 0,
+        "maximum": 2999
+      },
+      "initial_value": 0
+    }
+  ],
+  "transitions": [
+    {
+      "id": "IncX",
+      "name": "Увеличить x",
+      "requirement_ids": [
+        "R2"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "lt",
+        "left": {
+          "kind": "variable",
+          "name": "x"
+        },
+        "right": {
+          "kind": "literal",
+          "value": 2999
+        }
+      },
+      "effects": [
+        {
+          "variable": "x",
+          "value": {
+            "kind": "binary",
+            "op": "add",
+            "left": {
+              "kind": "variable",
+              "name": "x"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "IncY",
+      "name": "Увеличить y",
+      "requirement_ids": [
+        "R2"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "lt",
+        "left": {
+          "kind": "variable",
+          "name": "y"
+        },
+        "right": {
+          "kind": "literal",
+          "value": 2999
+        }
+      },
+      "effects": [
+        {
+          "variable": "y",
+          "value": {
+            "kind": "binary",
+            "op": "add",
+            "left": {
+              "kind": "variable",
+              "name": "y"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "Reset",
+      "name": "Сбросить",
+      "requirement_ids": [
+        "R2"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "eq",
+        "left": {
+          "kind": "variable",
+          "name": "x"
+        },
+        "right": {
+          "kind": "literal",
+          "value": 2999
+        }
+      },
+      "effects": [
+        {
+          "variable": "x",
+          "value": {
+            "kind": "literal",
+            "value": 0
+          }
+        },
+        {
+          "variable": "y",
+          "value": {
+            "kind": "literal",
+            "value": 0
+          }
+        }
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "id": "SumNonNegative",
+      "name": "Сумма неотрицательна",
+      "requirement_ids": [
+        "R3"
+      ],
+      "kind": "invariant",
+      "predicate": {
+        "kind": "binary",
+        "op": "ge",
+        "left": {
+          "kind": "binary",
+          "op": "add",
+          "left": {
+            "kind": "variable",
+            "name": "x"
+          },
+          "right": {
+            "kind": "variable",
+            "name": "y"
+          }
+        },
+        "right": {
+          "kind": "literal",
+          "value": 0
+        }
+      },
+      "explanation": "Сумма неотрицательна"
+    }
+  ]
+}
