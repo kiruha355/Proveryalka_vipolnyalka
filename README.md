@@ -148,14 +148,13 @@ Content-Type: application/json
 
 ### MCP (`/mcp`, Streamable HTTP)
 
-Инструменты для кодинг-агентов (Claude Code, Cursor):
-
-| Инструмент | Что возвращает |
-|---|---|
-| `get_model(model_id, version?)` | Утверждённую модель |
-| `check_behavior(model_id, version, property_ids?)` | Результаты проверки свойств |
-| `get_tests(model_id, version)` | Тесты, выведенные из модели |
-| `compare_with_code(model_id, version, files)` | Места, где код расходится с моделью |
+Опциональный [MCP сервер](src/proveryalka/mcp/README.md) предоставляет `get_model`,
+`check_behavior`, `get_tests` и `compare_with_code` через официальный SDK. Он использует
+те же backend/TLC/CodegenService и требует явной локальной политики доступа.
+`get_tests` читает существующую генерацию; `compare_with_code` запускает её тесты в Docker
+по точным model reference / code_hash. Проверка произвольного кода не поддерживается.
+Standalone доступен через `python -m proveryalka.mcp`; FastAPI mount/lifespan передаётся
+интегратору отдельным patch и не включён в основной app автоматически.
 
 ## Версии моделей (#22)
 
