@@ -132,6 +132,13 @@ def test_depth_limit_does_not_hide_shallow_violation(checker):
     assert result.status == "STATE_LIMIT_REACHED"
 
 
+def test_largest_accepted_limits_run_in_tlc(checker):
+    # Раньше max_states=2^31 и max_depth=2^31-1 проходили валидацию и давали ENGINE_ERROR в TLC.
+    limits = CheckLimits(max_states=2_147_483_647, max_depth=2_147_483_646)
+    result = asyncio.run(check_behavior(load("order_bug"), checker, ["NoCancelledExecution"], limits)).results[0]
+    assert result.status == "PROPERTY_VIOLATED" and result.engine.name == "TLC"
+
+
 def test_timeout_stops_engine(checker):
     started = time.monotonic()
     run = asyncio.run(checker.run(make_request(load("grid"), limits=CheckLimits(timeout_seconds=3.0, max_states=100_000_000))))

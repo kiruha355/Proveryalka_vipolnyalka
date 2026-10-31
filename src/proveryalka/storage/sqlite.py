@@ -46,9 +46,9 @@ class SQLiteStore(VersionStore, RunStore):
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("BEGIN IMMEDIATE")
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version > 4:
+            if version > 5:
                 raise RuntimeError("Database schema is newer than this application")
-            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql")]:
+            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql"), (5, "005_documents_explanations.sql")]:
                 if version >= target:
                     continue
                 migration = Path(__file__).with_name("migrations") / filename
@@ -144,6 +144,9 @@ class SQLiteStore(VersionStore, RunStore):
             session["requirements"] = [dict(row) for row in connection.execute(
                 "SELECT id,session_id,source_id,'R'||number AS code,text FROM requirements WHERE session_id=? ORDER BY number", (session_id,),
             )]
+            session["documents"] = [dict(row) for row in connection.execute(
+                "SELECT source_id,filename,format,media_type,size_bytes,sha256,characters FROM source_documents WHERE session_id=? ORDER BY created_at,source_id", (session_id,),
+            )]
             return session
 
     def create_source(self, session_id, body, key):
@@ -169,6 +172,27 @@ class SQLiteStore(VersionStore, RunStore):
                 return result
 
             return self._idempotent(connection, f"source:create:{session_id}", key, body, action)
+
+    def create_document(self, session_id, document, text, key):
+        """Источник из загруженного документа: текст в sources, происхождение в source_documents."""
+        with self.transaction(write=True) as connection:
+            self._session(connection, session_id)
+
+            def action():
+                result = {"id": identifier("src"), "session_id": session_id, "kind": "text", "text": text}
+                created = now()
+                connection.execute(
+                    "INSERT INTO sources(id,session_id,kind,text,created_at) VALUES (:id,:session_id,:kind,:text,:created_at)",
+                    {**result, "created_at": created},
+                )
+                info = {"source_id": result["id"], **document}
+                connection.execute(
+                    "INSERT INTO source_documents VALUES (:source_id,:session_id,:filename,:format,:media_type,:size_bytes,:sha256,:characters,:created_at)",
+                    {**info, "session_id": session_id, "created_at": created},
+                )
+                return {"source": result, "document": info}
+
+            return self._idempotent(connection, f"document:create:{session_id}", key, document, action)
 
     def get_source(self, session_id, source_id):
         with self.transaction() as connection:
