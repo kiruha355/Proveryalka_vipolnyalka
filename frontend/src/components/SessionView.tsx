@@ -57,7 +57,12 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   const [element, setElement] = useState<ElementRef | null>(null);
   const [fileContext, setFileContext] = useState<FileContextRef | null>(()=>loadLocal(api.id,sessionId).draftFileContext ?? null);
   const fileReply = (ref: FileContextRef | null) => {setFileContext(ref); updateLocal(api.id, sessionId, local=>({...local,draftFileContext:ref}));};
-  const [reply, setReply] = useState<string | null>(null);
+  const [reply, setReplyState] = useState<string | null>(()=>loadLocal(api.id,sessionId).draftQuestionId ?? null);
+  const setReply = (questionId: string | null) => {
+    setReplyState(questionId);
+    updateLocal(api.id,sessionId,local=>({...local,draftQuestionId:questionId}));
+    if (questionId) fileReply(null);
+  };
   const [selectedByVersion, setSelectedByVersion] = useState<Record<string, string[]>>({});
   const [limits, setLimits] = useState<CheckLimits>(DEFAULT_LIMITS);
   const composer = useRef<ComposerHandle>(null);

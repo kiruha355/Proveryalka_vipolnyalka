@@ -1,0 +1,45 @@
+{
+  "base_pr66": "e2e005ee1a8dd301f9dabb6d0661d8e00c08260c",
+  "module_heads": {
+    "images67": "face39f60e1ffaef1ab04d004ee5fb6d2aca871c",
+    "mcp68": "c6b6699b7387b1f8f8876da5a46dc9a1a0b5fbce",
+    "repositories69": "036a4eb454a495814811ab34b0529d4dab39ff00",
+    "delivery70": "abd3a0d44afa1b1d8e8cad43bbe4698fba6467f0"
+  },
+  "preserved_demos": [
+    4180,
+    4182,
+    4183,
+    4184,
+    4185,
+    5296,
+    5297,
+    5298
+  ],
+  "jar_sha256": "011267fca25d0752cf18894dd585cd28b96960c112ea8a20b823ea770e7e10cd",
+  "provider_calls_this_integration": 0,
+  "targeted": {
+    "application_sources_mcp_static": 24,
+    "storage_mcp": 39
+  },
+  "frontend": {
+    "passed": 38,
+    "opt_in_http_skipped": 1,
+    "types_build": "PASS"
+  },
+  "extensions": {
+    "passed": 108,
+    "types_build": "PASS"
+  },
+  "backend_full": {
+    "status": "PASS",
+    "passed": 513,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 75.12,
+    "require_tlc": true,
+    "require_sandbox": true
+  },
+  "own_environment": "/tmp/proveryalka-integrated-tests-20261031/venv",
+  "schema_version": 8
+}

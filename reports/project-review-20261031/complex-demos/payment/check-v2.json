@@ -1,0 +1,230 @@
+{
+  "run": {
+    "run_id": "chk_45e60e439feb466381276192b402f277",
+    "session_id": "s_336fa26bef034b72916bfcbb1ee117cc",
+    "state": "completed",
+    "version_id": "v_c5121f0e8fea4432aad69c10fff47607",
+    "error_code": null
+  },
+  "results": [
+    {
+      "schema_version": "1.0",
+      "spec_hash": "3c63553df8f7f5b8c7f0c9798e4e3d4bbb4c045f0f33850141ed0be9e0458f42",
+      "version_id": "v_c5121f0e8fea4432aad69c10fff47607",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "consents_after_execution",
+      "status": "PROPERTY_HOLDS",
+      "conclusive": true,
+      "message": "Свойство выполняется: полностью исследовано 11 различных состояний",
+      "trace": [],
+      "statistics": {
+        "states_generated": 24,
+        "distinct_states": 11,
+        "depth": 5,
+        "elapsed_seconds": 0.265
+      },
+      "related_requirements": [
+        "req_43ee6409a1065372a3dbf1b686ed9caa"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "spec_hash": "3c63553df8f7f5b8c7f0c9798e4e3d4bbb4c045f0f33850141ed0be9e0458f42",
+      "version_id": "v_c5121f0e8fea4432aad69c10fff47607",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "cancelled_not_executed",
+      "status": "PROPERTY_HOLDS",
+      "conclusive": true,
+      "message": "Свойство выполняется: полностью исследовано 11 различных состояний",
+      "trace": [],
+      "statistics": {
+        "states_generated": 24,
+        "distinct_states": 11,
+        "depth": 5,
+        "elapsed_seconds": 0.266
+      },
+      "related_requirements": [
+        "req_3fe7ae86fd8f554686b1bc436718900c"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "spec_hash": "3c63553df8f7f5b8c7f0c9798e4e3d4bbb4c045f0f33850141ed0be9e0458f42",
+      "version_id": "v_c5121f0e8fea4432aad69c10fff47607",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "payment_reachable",
+      "status": "PROPERTY_HOLDS",
+      "conclusive": true,
+      "message": "Цель достижима за 5 шаг(ов)",
+      "trace": [
+        {
+          "number": 0,
+          "transition_id": null,
+          "state": {
+            "status": "Draft",
+            "approved_a": false,
+            "approved_b": false,
+            "cancelled": false,
+            "executed": false
+          }
+        },
+        {
+          "number": 1,
+          "transition_id": "submit_for_review",
+          "state": {
+            "status": "Review",
+            "approved_a": false,
+            "approved_b": false,
+            "cancelled": false,
+            "executed": false
+          }
+        },
+        {
+          "number": 2,
+          "transition_id": "approve_a",
+          "state": {
+            "status": "Review",
+            "approved_a": true,
+            "approved_b": false,
+            "cancelled": false,
+            "executed": false
+          }
+        },
+        {
+          "number": 3,
+          "transition_id": "approve_b",
+          "state": {
+            "status": "Review",
+            "approved_a": true,
+            "approved_b": true,
+            "cancelled": false,
+            "executed": false
+          }
+        },
+        {
+          "number": 4,
+          "transition_id": "complete_review",
+          "state": {
+            "status": "Approved",
+            "approved_a": true,
+            "approved_b": true,
+            "cancelled": false,
+            "executed": false
+          }
+        },
+        {
+          "number": 5,
+          "transition_id": "pay",
+          "state": {
+            "status": "Paid",
+            "approved_a": true,
+            "approved_b": true,
+            "cancelled": false,
+            "executed": true
+          }
+        }
+      ],
+      "statistics": {
+        "states_generated": 23,
+        "distinct_states": 11,
+        "depth": 5,
+        "elapsed_seconds": 0.222
+      },
+      "related_requirements": [
+        "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+        "req_48e457bf3dbd570bb264a37b73c35990",
+        "req_793f2f80d2915efa9132baa76b4fb659",
+        "req_db5f379b58755e6b8a7ba3e22f315826",
+        "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+        "req_9e63696a936b5f52a85f4221aa19c03a",
+        "req_85e0cfb054105e959c4b9775aafa50b7",
+        "req_a6f0a511318e52ec9af24859ba5165e4",
+        "req_d95075df515d53209c12aefda8319544"
+      ]
+    }
+  ],
+  "explanation": {
+    "state": "ready",
+    "run_id": "exp_99a34903ebc546dbad636cfcc4727fda",
+    "error_code": null,
+    "narrative": {
+      "summary": "В переданной конечной модели оба ограничения выполняются, а оплата достижима.",
+      "properties": [
+        {
+          "property_id": "consents_after_execution",
+          "explanation": "После исполнения сохраняются оба согласия. Отзыв возвращает поручение на согласование, поэтому оплата недоступна до повторного завершения согласования с обеими отметками. После оплаты действий нет.",
+          "steps": [],
+          "hypotheses": []
+        },
+        {
+          "property_id": "cancelled_not_executed",
+          "explanation": "Состояние одновременной отмены и исполнения недостижимо: отменить можно только до исполнения, после отмены действий нет, а после оплаты отмена недоступна.",
+          "steps": [],
+          "hypotheses": []
+        },
+        {
+          "property_id": "payment_reachable",
+          "explanation": "Найден путь к исполненной оплате через независимые согласия А и Б и завершение согласования.",
+          "steps": [
+            {
+              "number": 0,
+              "explanation": "Изначально поручение — черновик, оба согласия отсутствуют, отмены и исполнения нет."
+            },
+            {
+              "number": 1,
+              "explanation": "Поручение подают на согласование: этап меняется с Draft на Review."
+            },
+            {
+              "number": 2,
+              "explanation": "А ставит свою отметку согласия; согласие Б пока отсутствует."
+            },
+            {
+              "number": 3,
+              "explanation": "Б ставит свою отметку: теперь получены оба согласия."
+            },
+            {
+              "number": 4,
+              "explanation": "При наличии обеих отметок завершают согласование: поручение переходит в Approved."
+            },
+            {
+              "number": 5,
+              "explanation": "Поручение оплачивают: этап становится Paid, исполнение отмечено, оба согласия сохранены."
+            }
+          ],
+          "hypotheses": []
+        }
+      ],
+      "question": null
+    }
+  }
+}

@@ -117,6 +117,8 @@ class RunStore:
             if row["state"] != "queued":
                 return None
             connection.execute("UPDATE runs SET state='running' WHERE run_id=?", (run_id,))
+            if row["kind"] == "agent":
+                self._append_event(connection, row, "activity", {"phase": "started"})
             return row
 
     def finish_check(self, run_id, report, artifacts=False):
@@ -166,16 +168,22 @@ class RunStore:
                     raise ServiceError(409, "SESSION_BUSY", "An agent run is already active in this session")
                 run = {"run_id": "agent_" + uuid4().hex, "session_id": session_id, "version_id": None, "state": "queued"}
                 connection.execute("INSERT INTO runs(run_id,session_id,kind,state,request_json) VALUES (?,?,'agent','queued',?)", (run["run_id"],session_id,json.dumps(body)))
+                self._append_event(connection, run, "activity", {"phase": "queued"})
                 return run
             return self._idempotent(connection, f"agent:{session_id}", key, body, action)
 
+    @staticmethod
+    def _append_event(connection, row, event_type, data):
+        from .sqlite import now
+        number = connection.execute("SELECT COALESCE(MAX(event_id),0)+1 FROM run_events WHERE run_id=?", (row["run_id"],)).fetchone()[0]
+        event = {"event_id": number, "run_id": row["run_id"], "session_id": row["session_id"],
+                 "type": event_type, "data": data, "created_at": now()}
+        connection.execute("INSERT INTO run_events VALUES (?,?,?)", (row["run_id"], number, json.dumps(event, ensure_ascii=False)))
+        return event
+
     def event(self, run_id, event_type, data):
         with self.transaction(write=True) as connection:
-            row = self._run(connection, run_id)
-            number = connection.execute("SELECT COALESCE(MAX(event_id),0)+1 FROM run_events WHERE run_id=?", (run_id,)).fetchone()[0]
-            event = {"event_id": number, "run_id": run_id, "session_id": row["session_id"], "type": event_type, "data": data}
-            connection.execute("INSERT INTO run_events VALUES (?,?,?)", (run_id,number,json.dumps(event,ensure_ascii=False)))
-            return event
+            return self._append_event(connection, self._run(connection, run_id), event_type, data)
 
     def events(self, run_id, after=0):
         with self.transaction() as connection:
@@ -230,11 +238,8 @@ class RunStore:
             if row["error_code"]:
                 events.append(("error", {"code":row["error_code"],"message":"Run stopped; saved history is available"}))
             events.append(("run_finished", {"state":row["state"]}))
-            number = connection.execute("SELECT COALESCE(MAX(event_id),0) FROM run_events WHERE run_id=?",(run_id,)).fetchone()[0]
             for kind,data in events:
-                number += 1
-                event = {"event_id":number,"run_id":run_id,"session_id":row["session_id"],"type":kind,"data":data}
-                connection.execute("INSERT INTO run_events VALUES (?,?,?)",(run_id,number,json.dumps(event)))
+                self._append_event(connection, row, kind, data)
 
     def terminal_event_id(self, run_id):
         with self.transaction() as connection:

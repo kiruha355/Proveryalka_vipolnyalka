@@ -1,7 +1,7 @@
 import type { ApiCapabilities, MessageBody, ProveryalkaApi } from "./api";
 import { ApiError } from "./errors";
 import {
-  expect, expectList, isDialogueView, isDocumentUpload, isArtifactEntry, isCheckRun, isModel, isModelVersion, isRun, isRunEvent, isSession, isSessionDetail,
+  expect, expectList, isAgentRunTracePage, isDialogueView, isDocumentUpload, isArtifactEntry, isCheckRun, isModel, isModelVersion, isRun, isRunEvent, isSession, isSessionDetail,
 } from "./guards";
 import { readSse } from "./sse";
 import type { CheckRequest, ReadyInfo, RunEvent } from "./types";
@@ -90,6 +90,12 @@ export class HttpApi implements ProveryalkaApi {
 
   async getRun(runId: string, signal?: AbortSignal) {
     return expect(await this.request("GET", `/api/runs/${segment(runId)}`, { signal }), isRun, "Запуск");
+  }
+
+  async listAgentRuns(sessionId: string, before?: number | null, signal?: AbortSignal) {
+    const query = new URLSearchParams({limit: "50"});
+    if (before !== undefined && before !== null) query.set("before", String(before));
+    return expect(await this.request("GET", `/api/sessions/${segment(sessionId)}/agent-runs?${query}`, {signal}), isAgentRunTracePage, "Ход работы агента");
   }
 
   async cancelRun(runId: string, signal?: AbortSignal) {
@@ -221,5 +227,6 @@ export function detectCapabilities(doc: unknown): ApiCapabilities {
     documents: "/api/sessions/{session_id}/documents" in paths,
     dialogue: "/api/sessions/{session_id}/dialogue" in paths,
     explanations: "/api/checks/{run_id}/explanation" in paths,
+    agentTrace: "/api/sessions/{session_id}/agent-runs" in paths,
   };
 }

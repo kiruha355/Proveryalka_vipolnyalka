@@ -10,6 +10,7 @@ from .agent import create_agent
 from .clarification import DialogueDraft, DialogueState, build_state
 from .llm_config import create_client
 from .errors import check_context, run_agent
+from .activity import activity
 
 
 def find_dialogue(items) -> DialogueState | None:
@@ -69,19 +70,26 @@ async def generate_state(payload, sources, previous, question_id, max_rounds, ma
         for attempt in range(1, max_attempts + 1):
             candidate = None
             data = {**payload, "validation_feedback": repair}
+            if attempt > 1:
+                await activity("retry", attempt=attempt, purpose="analysis")
             try:
+                await activity("model_request", attempt=attempt, purpose="analysis")
                 result = await run_agent(
                     agent, input=json.dumps(data, ensure_ascii=False), max_turns=1,
                     run_config=RunConfig(tracing_disabled=True, model_settings=ModelSettings(store=False)),
                 )
+                await activity("model_response", attempt=attempt, purpose="analysis")
                 candidate = result.final_output
             except (ModelBehaviorError, ValidationError) as error:
                 diagnostic = str(error)
             else:
                 try:
-                    return build_state(sources, candidate, previous, question_id, max_rounds)
+                    state = build_state(sources, candidate, previous, question_id, max_rounds)
+                    await activity("validation", attempt=attempt, outcome="passed")
+                    return state
                 except ValueError as error:
                     diagnostic = str(error)
+            await activity("validation", attempt=attempt, outcome="failed")
             repair = {"error": diagnostic, "rejected_draft": candidate.model_dump(mode="json") if candidate else None}
         raise GenerationError(attempt, diagnostic)
 
@@ -130,6 +138,7 @@ async def resume_pending(session: Session) -> DialogueState:
                 "explanation": checked.explanation.model_dump(mode="json", exclude={"question"}) if checked.explanation else None,
             }
     check_context(payload)
+    await activity("context_ready", source_id=source.id, sources_count=len(sources), purpose="analysis")
     state = await generate_state(payload, sources, previous, pending.question_id, pending.max_rounds)
     if await load_pending(session) != pending:
         raise asyncio.CancelledError()

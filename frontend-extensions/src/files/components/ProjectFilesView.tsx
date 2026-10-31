@@ -421,6 +421,7 @@ function GenerationFiles({
             Модель {generation.model_id}; версия {generation.version_id};
             генератор {generation.generator.name} {generation.generator.version}
           </p>
+          <p>Код и тесты собираются по шаблонам из согласованной модели. LLM не генерирует файлы проекта.</p>
           <code>
             {generation.spec_hash} / {generation.code_hash}
           </code>

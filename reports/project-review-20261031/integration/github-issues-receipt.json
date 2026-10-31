@@ -1,0 +1,213 @@
+{
+  "updated_at": "2026-10-31T10:28:45.774177+00:00",
+  "method": "gh api; native connector returned403",
+  "results": [
+    {
+      "issue": 28,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "fec164122856fb08cab59192bf9b39a3b1740bd9b6224ab8aa3ebfb86588b03a",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/28",
+      "checkboxes_done": 5,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 29,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "d8ade1b01100500ad557c4c890e4da9a8057a1c04a8a7fb0c3035b6d2681fbf1",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/29",
+      "checkboxes_done": 5,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 30,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "70ddcbdce84268ab862fd3918464af1fd1d32a53c73d896adc464f81286106c9",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/30",
+      "checkboxes_done": 2,
+      "checkboxes_remaining": 3
+    },
+    {
+      "issue": 31,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "d22412088e20f555c764350434712622086357b8eed2b2fb6d409ef2d9fcddd1",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/31",
+      "checkboxes_done": 5,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 32,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "7eeaffded25679c80a96188bd5ba124f228f87098bf0a47ae5c47a3ccf639225",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/32",
+      "checkboxes_done": 5,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 33,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "3a420c4c1e56a34ceb9b9b143a2f5a52dcb53d5f423e83b8457cfe843fb2b501",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/33",
+      "checkboxes_done": 5,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 34,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "8dfef9c56766f9d7534bffc7dc993ebbf7958197e4d84cdfe543af825dd900de",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/34",
+      "checkboxes_done": 5,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 35,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "8a854c266209fef3370eec45711b0a0df1d1b2aedaea6abdba6ad1addc8ced87",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/35",
+      "checkboxes_done": 5,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 36,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "33fc691e55410ce925ea43f6a89536c85ea567c421722e165acf16ff0d90c579",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/36",
+      "checkboxes_done": 5,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 37,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "bb3c85b7e7eb6b3d435ed03d7aa36dd11b11563fb83cc1e5f96dcf8ee3d884bb",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/37",
+      "checkboxes_done": 5,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 38,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "8589b1d4398de9ab9777f4695caf3b9ef09b70a654c6119d62de0f4a7e7ec53d",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/38",
+      "checkboxes_done": 4,
+      "checkboxes_remaining": 1
+    },
+    {
+      "issue": 39,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "8a1e6d887004e71f01ac4499f7f4c00a987c2bae1388a5b7405a22cc6d209ef2",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/39",
+      "checkboxes_done": 4,
+      "checkboxes_remaining": 1
+    },
+    {
+      "issue": 40,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "49f7a42230983bd2eacae3483f83008911a7ec202e8658d40efdae29c011ead7",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/40",
+      "checkboxes_done": 3,
+      "checkboxes_remaining": 1
+    },
+    {
+      "issue": 41,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "93232ea7c69393a887646b266d85f25f1d4920f8bbf8e3a17171cdae02a48056",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/41",
+      "checkboxes_done": 4,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 42,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "077378eabfac132d40a7c18c2b03162bebe104d6dbae1d62a458f97633253632",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/42",
+      "checkboxes_done": 0,
+      "checkboxes_remaining": 4
+    },
+    {
+      "issue": 43,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "39c3ddac5791425f3f90f036d4966aec8edc02837c9c5d402c2778cf60562be9",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/43",
+      "checkboxes_done": 4,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 44,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "3158d70b9f7483cc1f763221c4469c00f0fcf0170524f159b313876578495a92",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/44",
+      "checkboxes_done": 4,
+      "checkboxes_remaining": 1
+    },
+    {
+      "issue": 45,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "e5d41e735138afe19058ca3242ae28c8f3867042da395d3130213f0129d3f20c",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/45",
+      "checkboxes_done": 4,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 46,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "87eba317d64e776c8cb7873d76fc42b0c68f2617f24446e67a4aaa798ba34a7e",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/46",
+      "checkboxes_done": 4,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 47,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "57d87f2b500c58916c86ce105a98a71c20502ff3156b1aa728f2f475bca90d00",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/47",
+      "checkboxes_done": 4,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 48,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "70fe1cc1885481d88dec59bed84e2fa33ca9f82eb33575db90fbdc581a88073f",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/48",
+      "checkboxes_done": 4,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 49,
+      "status": "UPDATED",
+      "state": "open",
+      "body_sha256": "b746fb210604b820d736814f5e716d977b05d26ac01965a6fbbf60640799489f",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/49",
+      "checkboxes_done": 4,
+      "checkboxes_remaining": 0
+    },
+    {
+      "issue": 1,
+      "status": "UPDATED",
+      "state": "open",
+      "url": "https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/1",
+      "checkboxes_done": 6,
+      "checkboxes_remaining": 0,
+      "body_sha256": "20d41cefed9ea973d24d410c31ec404c8105804b690bb9aa50be0a70532be011"
+    }
+  ]
+}

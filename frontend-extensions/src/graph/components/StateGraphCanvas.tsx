@@ -25,7 +25,7 @@ import {
 import {useExpandedGraph} from "./useExpandedGraph";
 import type { Transition } from "../../contracts/model";
 import { cx } from "../../ui/cx";
-import { FitIcon, MinusIcon, PlusIcon } from "../../ui/icons";
+import { CloseIcon, ExpandIcon, MinusIcon, PlusIcon } from "../../ui/icons";
 import { buildFlowElements } from "../flow-elements";
 import type {
   EdgeChip,
@@ -113,11 +113,13 @@ function edgePath(props: EdgeProps<TransitionFlowEdge>): {
   } = props;
   const route = data?.route ?? "forward";
   if (route === "loop") {
-    const lift = 58;
+    const below = data?.loopSide === "bottom";
+    const apex = data?.arcY ?? (below ? Math.max(sourceY, targetY) + 38 : Math.min(sourceY, targetY) - 38);
+    const toControl = (from: number) => from + (apex - from) / 0.75;
     return {
-      path: `M ${sourceX} ${sourceY} C ${sourceX + 30} ${sourceY - lift}, ${targetX - 30} ${targetY - lift}, ${targetX} ${targetY}`,
+      path: `M ${sourceX} ${sourceY} C ${sourceX + 30} ${toControl(sourceY)}, ${targetX - 30} ${toControl(targetY)}, ${targetX} ${targetY}`,
       labelX: (sourceX + targetX) / 2,
-      labelY: Math.min(sourceY, targetY) - lift * 0.78,
+      labelY: apex + (below ? 8 : -8),
     };
   }
   if ((route === "back" || route === "skip") && data?.arcY != null) {
@@ -181,7 +183,8 @@ export const TransitionEdge = memo(function TransitionEdge(
             data.dimmed && "is-dimmed",
           )}
           style={{
-            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            maxWidth: data.labelMaxWidth,
+            transform: `translate(-50%, ${data.loopSide === "top" ? "-100%" : data.loopSide === "bottom" ? "0%" : "-50%"}) translate(${labelX}px, ${labelY}px)`,
           }}
         >
           {data.chips.map((chip) => (
@@ -207,7 +210,7 @@ export const TransitionEdge = memo(function TransitionEdge(
               {chip.violation && (
                 <span className="pv-chip__blocked" aria-hidden="true" />
               )}
-              <span>{chip.name}</span>
+              <span className="pv-chip__name">{chip.name}</span>
               {chip.traceSteps.length > 0 && (
                 <span className="pv-chip__step">
                   {chip.traceSteps.join(", ")}
@@ -247,7 +250,7 @@ const ARIA_LABELS = {
   "handle.ariaLabel": "Точка соединения",
 };
 
-function ZoomControls() {
+function ZoomControls({ expandControl }: { expandControl?: ReactNode }) {
   const flow = useReactFlow();
   const { zoom } = useViewport();
   return (
@@ -276,14 +279,7 @@ function ZoomControls() {
       >
         <PlusIcon />
       </button>
-      <button
-        type="button"
-        className="pv-icon-button"
-        onClick={() => flow.fitView({ duration: 160, padding: 0.2 })}
-        aria-label="Вписать граф"
-      >
-        <FitIcon />
-      </button>
+      {expandControl}
     </div>
   );
 }
@@ -320,7 +316,7 @@ export type StateGraphCanvasProps = {
   children?: ReactNode;
 };
 
-function CanvasInner(props: StateGraphCanvasProps) {
+function CanvasInner(props: StateGraphCanvasProps & { expandControl?: ReactNode }) {
   const {
     projection,
     layout,
@@ -333,7 +329,7 @@ function CanvasInner(props: StateGraphCanvasProps) {
     onPositionsChange,
     fitToken = "",
     ariaLabel = "Диаграмма этапов",
-    children, footer,
+    children, footer, expandControl,
   } = props;
   const markerPrefix = `pv-arrow-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const { nodes, edges } = useMemo(
@@ -444,7 +440,7 @@ function CanvasInner(props: StateGraphCanvasProps) {
       </ReactFlow>
       <div className="pv-canvas-controls" role="toolbar" aria-label="Управление диаграммой">
         {footer}
-        <ZoomControls />
+        <ZoomControls expandControl={expandControl} />
       </div>
       </div>
     </CanvasContext.Provider>
@@ -460,13 +456,17 @@ export function StateGraphCanvas(props: StateGraphCanvasProps) {
       role={full.expanded ? "dialog" : "region"} aria-modal={full.expanded ? true : undefined}
       aria-label={full.expanded ? undefined : "Область диаграммы"}
       aria-labelledby={full.expanded ? titleId : undefined} onKeyDownCapture={full.onKeyDownCapture}>
-      <div className="pv-canvas-heading">
-        {full.expanded && <h2 id={titleId}>{props.ariaLabel ?? "Диаграмма этапов"}</h2>}
-        {full.expanded ? <button ref={full.close} type="button" className="pv-button" onClick={() => full.setExpanded(false)}>Закрыть диаграмму</button>
-          : <button ref={full.trigger} type="button" className="pv-button" onClick={() => full.setExpanded(true)}>Развернуть диаграмму</button>}
-      </div>
+      {full.expanded && (
+        <div className="pv-canvas-heading">
+          <h2 id={titleId}>{props.ariaLabel ?? "Диаграмма этапов"}</h2>
+          <button ref={full.close} type="button" className="pv-icon-button" aria-label="Закрыть диаграмму" title="Закрыть диаграмму" onClick={() => full.setExpanded(false)}><CloseIcon /></button>
+        </div>
+      )}
       <ReactFlowProvider>
-        <CanvasInner {...props} fitToken={`${props.fitToken ?? ""}|${full.expanded}`} />
+        <CanvasInner {...props} fitToken={`${props.fitToken ?? ""}|${full.expanded}`}
+          expandControl={!full.expanded && (
+            <button ref={full.trigger} type="button" className="pv-icon-button" aria-label="Развернуть диаграмму" title="Развернуть диаграмму" onClick={full.open}><ExpandIcon /></button>
+          )} />
       </ReactFlowProvider>
     </div>
   );

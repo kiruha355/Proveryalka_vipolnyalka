@@ -1,0 +1,15 @@
+--- a/src/proveryalka/api/app.py
++++ b/src/proveryalka/api/app.py
+@@ -254,6 +254,12 @@
+         router = create_codegen_router(store, codegen_settings or CodegenSettings.from_env(), codegen_sandbox)
+         app.state.codegen = router.codegen
+         app.include_router(router)
++    # Explicit opt-in, after all HTTP routers and their lifespans are installed.
++    import os
++    if store is not None and os.getenv("PROVERYALKA_MCP_ENABLED") == "1":
++        from ..mcp import LocalAccessPolicy
++        from ..mcp.integration import install_mcp
++        install_mcp(app, adapter, app.state.codegen, LocalAccessPolicy.from_env())
+     return app
+
+
