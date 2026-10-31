@@ -4,46 +4,141 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
-  tests:
+  frontend:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            frontend-extensions/package-lock.json
+      - name: Locked dependencies
+        run: |
+          npm --prefix frontend ci
+          npm --prefix frontend-extensions ci
+      - name: Frontend types, components and build
+        run: |
+          mkdir -p evidence
+          set -o pipefail
+          npm --prefix frontend run typecheck 2>&1 | tee evidence/frontend-types.log
+          npm --prefix frontend test -- --reporter=default --reporter=junit --outputFile.junit=../evidence/frontend.xml 2>&1 | tee evidence/frontend-tests.log
+          npm --prefix frontend run build 2>&1 | tee evidence/frontend-build.log
+      - name: Extensions types, components and build
+        run: |
+          set -o pipefail
+          npm --prefix frontend-extensions run typecheck 2>&1 | tee evidence/extensions-types.log
+          npm --prefix frontend-extensions test -- --reporter=default --reporter=junit --outputFile.junit=../evidence/extensions.xml 2>&1 | tee evidence/extensions-tests.log
+          npm --prefix frontend-extensions run build 2>&1 | tee evidence/extensions-build.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-diagnostics
+          path: evidence/
+          if-no-files-found: ignore
 
+  backend-tlc:
+    needs: frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROVERYALKA_REQUIRE_TLC: "1"
+      PROVERYALKA_TEST_FRONTEND_DIST: frontend/dist
+      PROVERYALKA_LLM_PROVIDER: openai
+      OPENAI_AGENTS_DISABLE_TRACING: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-
+          cache-dependency-path: requirements-runtime.lock
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
-
       - uses: actions/cache@v4
         with:
           path: tools/tla2tools.jar
           key: tla2tools-${{ hashFiles('scripts/fetch_tla2tools.sh') }}
-
-      - name: TLC
-        run: sh scripts/fetch_tla2tools.sh
-
-      - name: Зависимости
-        run: pip install -e ".[test]"
-
-      - name: Тесты, включая интеграцию с настоящим TLC
-        env:
-          # Без движка интеграционный набор падает, а не пропускается.
-          PROVERYALKA_REQUIRE_TLC: "1"
+      - name: Locked dependencies and pinned TLC
         run: |
-          java -version
-          python -m pytest -q -rs --basetemp="$RUNNER_TEMP/pytest"
-
-      - name: Материалы прогонов TLC для разбора падения
-        if: failure()
-        uses: actions/upload-artifact@v4
+          pip install -r requirements-runtime.lock
+          pip install --no-deps -e .
+          sh scripts/fetch_tla2tools.sh
+      - name: Deterministic backend, real TLC and delivery process restart
+        run: |
+          mkdir -p evidence
+          set -o pipefail
+          python -m pytest -q -rs --basetemp="$RUNNER_TEMP/pytest" --junitxml=evidence/backend.xml --ignore=tests/test_codegen_sandbox.py --ignore=tests/test_delivery_sandbox.py --ignore=tests/test_sandbox_ownership_docker.py 2>&1 | tee evidence/backend.log
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: tlc-runs
-          path: ${{ runner.temp }}/pytest/**/artifacts/checks/
+          name: backend-tlc-diagnostics
+          path: |
+            evidence/
+            ${{ runner.temp }}/pytest/**/artifacts/checks/
+            ${{ runner.temp }}/pytest/**/delivery.log
+          if-no-files-found: ignore
+
+  sandbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PROVERYALKA_REQUIRE_TLC: "1"
+      PROVERYALKA_REQUIRE_SANDBOX: "1"
+      PROVERYALKA_LLM_PROVIDER: openai
+      OPENAI_AGENTS_DISABLE_TRACING: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-runtime.lock
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Dependencies and engine
+        run: |
+          pip install -r requirements-runtime.lock
+          pip install --no-deps -e .
+          sh scripts/fetch_tla2tools.sh
+      - name: Build sandbox without host auth or repository context
+        run: |
+          mkdir -p evidence
+          set -o pipefail
+          docker version > evidence/docker-version.log
+          python -m proveryalka.codegen sandbox-build 2>&1 | tee evidence/sandbox-build.log
+          python -m proveryalka.codegen sandbox-status > evidence/sandbox-status.json
+      - name: Hostile code, resource limits, cancellation and durable provenance
+        run: |
+          set -o pipefail
+          python -m pytest -q -rs tests/test_codegen_sandbox.py tests/test_delivery_sandbox.py tests/test_sandbox_ownership_docker.py --basetemp="$RUNNER_TEMP/sandbox" --junitxml=evidence/sandbox.xml 2>&1 | tee evidence/sandbox.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sandbox-diagnostics
+          path: |
+            evidence/
+            ${{ runner.temp }}/sandbox/**/delivery-receipt.json
+            ${{ runner.temp }}/sandbox/**/sandbox.log
+            ${{ runner.temp }}/sandbox/**/artifacts/checks/
           if-no-files-found: ignore
