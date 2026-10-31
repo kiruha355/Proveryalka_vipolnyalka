@@ -14,9 +14,7 @@ from fastapi.testclient import TestClient
 from proveryalka.agent import dialogue
 from proveryalka.agent.clarification import DialogueDraft, build_state
 from proveryalka.api.app import create_app
-from proveryalka.api.repositories import create_repository_router
 from proveryalka.config import Settings
-from proveryalka.sources.repositories import RepositoryService
 from test_repositories import GitFixture, REMOTE, selection
 
 
@@ -44,10 +42,8 @@ def web(tmp_path, monkeypatch):
     app = create_app(settings=Settings(database_path=tmp_path / "db", artifacts_path=tmp_path / "artifacts", check_cache_path=None),
                      codegen_sandbox=object())  # Этот сценарий не запускает Docker/cleanup вообще.
     backend = app.state.backend
-    backend.store.initialize()
-    service = RepositoryService(backend.store, transport=repo)
-    service.initialize()
-    app.include_router(create_repository_router(service, backend))
+    service = app.state.repositories
+    service.transport = repo
     with TestClient(app) as client:
         session = client.post("/api/sessions", json={"title": "Repository"}, headers={"Idempotency-Key": "session"}).json()["id"]
         yield client, session, service, captured

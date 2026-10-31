@@ -6,7 +6,7 @@ from mcp import Client, ClientSession
 from mcp.client.streamable_http import streamable_http_client
 import pytest
 
-from conftest import running
+from mcp_helpers import running
 from test_check_api import FakeChecker
 from test_codegen_api import FakeSandbox
 

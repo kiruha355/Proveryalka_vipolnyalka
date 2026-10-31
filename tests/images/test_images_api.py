@@ -11,7 +11,7 @@ from proveryalka.agent.errors import AgentError
 from proveryalka.images.dto import ImageAnalysisCreate
 from proveryalka.images.ingest import ImageLimits
 from proveryalka.services import ServiceError
-from conftest import analyze, image_bytes, testapp, upload
+from image_helpers import analyze, image_bytes, testapp, upload
 
 
 def test_upload_content_idempotency_and_session_boundary(client, store):

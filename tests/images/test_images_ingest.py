@@ -9,7 +9,7 @@ from PIL import Image, PngImagePlugin
 
 from proveryalka.images.ingest import ImageLimits, ingest_image
 from proveryalka.services import ServiceError
-from conftest import image_bytes
+from image_helpers import image_bytes
 
 
 def test_pixels_are_real_and_original_metadata_and_trailer_are_removed():

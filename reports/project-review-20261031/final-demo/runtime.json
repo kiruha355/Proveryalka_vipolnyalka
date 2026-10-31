@@ -1,0 +1,20 @@
+{
+  "port": 5300,
+  "pid": 29762,
+  "url": "http://127.0.0.1:5300/",
+  "database": "/tmp/proveryalka-final-demo-20261031/proveryalka.sqlite3",
+  "artifacts": "/tmp/proveryalka-final-demo-20261031/artifacts",
+  "frontend_dist": "/Users/a/Proveryalka_vipolnyalka/frontend/dist",
+  "python": "/tmp/proveryalka-integrated-tests-20261031/venv/bin/python",
+  "source_db_backup": "/tmp/prov-e2e-20261031/db.sqlite",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "xhigh",
+  "mcp_models": [
+    "m_796f0f6574b447849ac1c5c316dc78e0"
+  ],
+  "provider_calls_for_assembly": 0,
+  "reference_violation_url": "http://127.0.0.1:5300/#/s/s_ff90b8535d404f5fbb977e68feccaa8a?m=m_796f0f6574b447849ac1c5c316dc78e0&v=1&view=check&check=chk_31b776b8756a4a8da102d1475dfa53ea&p=no_cancelled_and_executed&step=3",
+  "reference_fixed_url": "http://127.0.0.1:5300/#/s/s_ff90b8535d404f5fbb977e68feccaa8a?m=m_796f0f6574b447849ac1c5c316dc78e0&v=2&view=check&check=chk_2d9f34b50857443bae914c9873628583&p=no_cancelled_and_executed",
+  "copied_at": "2026-10-31T10:22:24.477678+00:00"
+}

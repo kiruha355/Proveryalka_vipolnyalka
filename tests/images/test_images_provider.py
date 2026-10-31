@@ -10,7 +10,7 @@ from proveryalka.agent.errors import AgentError
 from proveryalka.images import provider as module
 from proveryalka.images.dto import ImageDraft
 from proveryalka.images.provider import ImageProvider
-from conftest import image_bytes
+from image_helpers import image_bytes
 
 
 DRAFT = {"description": "Красный прямоугольник", "requirements": [], "uncertainties": ["Нет правил продукта"]}

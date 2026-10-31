@@ -105,11 +105,13 @@ cancelling/cancelled; backend/sandbox завершает собственный 
 
 ## Подключение
 
-Интегратор монтирует `MCPIntegration(backend, codegen, policy).app` и входит в
-`integration.lifespan()` после старта существующих сервисов; при shutdown сначала выходит
-из MCP lifespan, затем закрывает codegen/backend. Mount сам по себе не запускает lifespan.
-Точный patch для текущего `api/app.py` лежит в integration-contract; автоматически он
-не применён, чтобы не менять активный wiring другого исполнителя.
+Основной `create_app` включает MCP при `PROVERYALKA_MCP_ENABLED=1`, используя
+`LocalAccessPolicy.from_env()`. `install_mcp` входит в `integration.lifespan()` после
+старта существующих сервисов; при shutdown сначала выходит из MCP, затем закрывает
+codegen/backend. Точный ASGI-маршрут `/mcp` сохраняет исходный path для SDK, принимает
+все HTTP-методы через LocalBoundary и не перехватывает `/` или `/assets` у delivery.
+Перенаправления на `/mcp/` нет. Для программной настройки можно передать `mcp_policy`
+в `create_app` или `create_deployment`; отдельные worker/SQLite при этом не создаются.
 
 Standalone: `PYTHONPATH=src python -m proveryalka.mcp`. Требуется явный
 `PROVERYALKA_DATABASE_PATH` с отдельной SQLite, не открытой работающим backend;

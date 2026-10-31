@@ -4,7 +4,7 @@
 
 ## Подключение
 
-Применить `007_images.sql` стандартным migration runner, добавить `Pillow==12.1.1` в зависимости и lock, включить `create_images_router(store)` после родительского lifespan. Точный additive patch — `reports/project-review-20261031/sokolov/images/integration.patch`. DTO находятся в `images.dto`, а не в общем `contracts.py`. Изолированное приложение в `tests/images/conftest.py` использует этот же production router, SQLiteStore и migration.
+Основной `create_app` подключает router и recovery изображений; migration registry применяет `007_images.sql`, Pillow закреплён в зависимостях. DTO находятся в `images.dto`. Изолированные API-тесты используют тот же production router и SQLiteStore; общий integration-тест проверяет обновление БД с версии 6 и сохранение изображения после restart. Исторический patch в `reports/project-review-20261031/sokolov/images/integration.patch` повторно применять не нужно.
 
 ## API
 

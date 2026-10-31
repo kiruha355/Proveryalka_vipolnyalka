@@ -156,8 +156,19 @@ Content-Type: application/json
 те же backend/TLC/CodegenService и требует явной локальной политики доступа.
 `get_tests` читает существующую генерацию; `compare_with_code` запускает её тесты в Docker
 по точным model reference / code_hash. Проверка произвольного кода не поддерживается.
-Standalone доступен через `python -m proveryalka.mcp`; FastAPI mount/lifespan передаётся
-интегратору отдельным patch и не включён в основной app автоматически.
+В основном приложении MCP включается через `PROVERYALKA_MCP_ENABLED=1`;
+модели задаются `PROVERYALKA_MCP_MODEL_IDS`, разрешённые инструменты —
+`PROVERYALKA_MCP_TOOLS`. Точный маршрут `/mcp` работает вместе с REST API
+и статикой клиента. Standalone доступен через `python -m proveryalka.mcp`.
+
+### Изображения и репозитории
+
+Основной `create_app` подключает [изображения](src/proveryalka/images/README.md)
+и [снимки репозиториев](src/proveryalka/sources/repositories/README.md), миграции 007 и 008.
+Изображения дают структурированный разбор со ссылками на пиксельную область;
+автоматическое построение BehavioralModel из них пока не реализовано. Выбранные
+строки репозитория создают текстовый Source для нового аналитического диалога.
+Новые источники доступны через API; общий клиент пока поддерживает текст и TXT/MD/DOCX.
 
 ## Версии моделей (#22)
 

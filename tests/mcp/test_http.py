@@ -8,7 +8,7 @@ from mcp import Client, ClientSession
 from mcp.client.streamable_http import streamable_http_client
 import pytest
 
-from conftest import running
+from mcp_helpers import running
 from proveryalka.mcp.policy import TOOLS, LocalAccessPolicy
 from proveryalka.mcp.server import LocalBoundary
 from test_codegen_api import FakeSandbox

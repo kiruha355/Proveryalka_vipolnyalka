@@ -11,7 +11,7 @@ shell или инструменты из репозитория. Архив ра
 credential_provider=None)` использует существующий `SQLiteStore`.
 После `store.initialize()` вызвать `service.initialize()`; migration
 `008_repository_snapshots.sql` идемпотентна и добавляет отдельные таблицы.
-Функция не меняет `PRAGMA user_version`; единый registry миграций подключает интегратор.
+Функция не меняет `PRAGMA user_version`; основной registry включает `008_repository_snapshots.sql` после миграции изображений 007.
 Новые DTO находятся в `dto.py`, общий `Source.kind="text"` сохраняется.
 
 ```python
@@ -147,7 +147,8 @@ PYTHONPATH=src /private/tmp/prov-review/.venv/bin/python -m pytest -q \
 
 Fixtures используют реальные git commit/tree/blob через фиксированные plumbing команды,
 без checkout и smudge filters. Local transport определён исключительно в tests;
-production API не принимает host path. HTTP testapp подключает роутер отдельно, настоящий
-SQLite/ApplicationBackend/run_analyst и scripted `generate_state`; Docker для этих тестов отключён.
-Production wiring patch и точные результаты находятся в
-`reports/project-review-20261031/sokolov/repositories/`.
+production API не принимает host path. HTTP-тесты используют основной `create_app`, настоящий SQLite/ApplicationBackend/run_analyst
+и scripted `generate_state`; Docker для этих тестов отключён. Production router и recovery
+подключены в основном приложении. Исторический wiring patch повторно применять не нужно.
+Точные результаты модульной проверки находятся в `reports/project-review-20261031/sokolov/repositories/`,
+общей интеграции — в `reports/project-review-20261031/integration/`.

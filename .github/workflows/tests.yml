@@ -86,7 +86,7 @@ jobs:
         run: |
           mkdir -p evidence
           set -o pipefail
-          python -m pytest -q -rs --basetemp="$RUNNER_TEMP/pytest" --junitxml=evidence/backend.xml --ignore=tests/test_codegen_sandbox.py --ignore=tests/test_delivery_sandbox.py --ignore=tests/test_sandbox_ownership_docker.py 2>&1 | tee evidence/backend.log
+          python -m pytest -q -rs --basetemp="$RUNNER_TEMP/pytest" --junitxml=evidence/backend.xml --ignore=tests/test_codegen_sandbox.py --ignore=tests/test_delivery_sandbox.py --ignore=tests/test_sandbox_ownership_docker.py -k 'not test_real_tlc_and_docker_through_official_http_client' 2>&1 | tee evidence/backend.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -131,7 +131,7 @@ jobs:
       - name: Hostile code, resource limits, cancellation and durable provenance
         run: |
           set -o pipefail
-          python -m pytest -q -rs tests/test_codegen_sandbox.py tests/test_delivery_sandbox.py tests/test_sandbox_ownership_docker.py --basetemp="$RUNNER_TEMP/sandbox" --junitxml=evidence/sandbox.xml 2>&1 | tee evidence/sandbox.log
+          python -m pytest -q -rs tests/test_codegen_sandbox.py tests/test_delivery_sandbox.py tests/test_sandbox_ownership_docker.py tests/mcp/test_execution.py --basetemp="$RUNNER_TEMP/sandbox" --junitxml=evidence/sandbox.xml 2>&1 | tee evidence/sandbox.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
