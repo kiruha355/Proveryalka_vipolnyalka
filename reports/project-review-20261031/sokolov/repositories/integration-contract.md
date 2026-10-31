@@ -92,7 +92,9 @@ Private provider реального аккаунта, реальный LLM и б
 
 ## Доказательства
 
-`evidence.md`, `public-smoke.json`, `targeted-tests.txt`; full suite результат будет
-добавлен после согласованного слота repositories. Live demos4180/4182/4183/4184/4185
+`evidence.md`, `public-smoke.json`, `targeted-tests.txt`, `backend-full.xml/txt`:
+targeted72 PASS и один full suite419 PASS с обязательными TLC/sandbox, exit0.
+Полный suite выполнен в согласованном слоте после #45, слот освобождён для delivery.
+Live demos4180/4182/4183/4184/4185
 не изменялись и не останавливались. Временный runtime/dependencies не создавались;
 read-only venv/JAR использованы из `/private/tmp/prov-review`.
