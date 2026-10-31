@@ -45,3 +45,5 @@
 | #48 логи/версия/код/persistence/CI | новая real TLC→Docker→restart receipt; обязательный sandbox job |
 
 Не выполнены GitHub merge/закрытие issues, запросы к отложенному МАИ endpoint, перенос секретов, смена глобальной конфигурации, перезапуски T3/browser host/чужих demo-серверов. Новые субагенты не запускались.
+
+Итог локального выделенного слота: **355 PASS за 53.72 с**, REQUIRE_TLC=1, REQUIRE_SANDBOX=1, настоящий frontend/dist в process restart. GitHub checks/reviews не проверены; provider/corpus/browser уровни не подменяются этим результатом. Подробности и первая неуспешная попытка: [delivery evidence](delivery-evidence.md).
