@@ -1,0 +1,407 @@
+{
+  "contract_version": "1.0",
+  "inputs": {
+    "get_model": {
+      "$defs": {
+        "ModelSelector": {
+          "additionalProperties": false,
+          "properties": {
+            "model_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Model Id",
+              "type": "string"
+            },
+            "version_number": {
+              "minimum": 1,
+              "title": "Version Number",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "model_id",
+            "version_number"
+          ],
+          "title": "ModelSelector",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelSelector"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "GetModel",
+      "type": "object"
+    },
+    "check_behavior": {
+      "$defs": {
+        "MCPLimits": {
+          "additionalProperties": false,
+          "properties": {
+            "timeout_seconds": {
+              "default": 30.0,
+              "exclusiveMinimum": 0,
+              "maximum": 60,
+              "title": "Timeout Seconds",
+              "type": "number"
+            },
+            "max_states": {
+              "default": 100000,
+              "exclusiveMinimum": 0,
+              "maximum": 100000,
+              "title": "Max States",
+              "type": "integer"
+            },
+            "max_depth": {
+              "anyOf": [
+                {
+                  "maximum": 10000,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Max Depth"
+            }
+          },
+          "title": "MCPLimits",
+          "type": "object"
+        },
+        "ModelRef": {
+          "additionalProperties": false,
+          "properties": {
+            "model_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Model Id",
+              "type": "string"
+            },
+            "version_number": {
+              "minimum": 1,
+              "title": "Version Number",
+              "type": "integer"
+            },
+            "version_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Version Id",
+              "type": "string"
+            },
+            "spec_hash": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Spec Hash",
+              "type": "string"
+            }
+          },
+          "required": [
+            "model_id",
+            "version_number",
+            "version_id",
+            "spec_hash"
+          ],
+          "title": "ModelRef",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelRef"
+        },
+        "property_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 32,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Property Ids"
+        },
+        "limits": {
+          "$ref": "#/$defs/MCPLimits"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "CheckBehavior",
+      "type": "object"
+    },
+    "get_tests": {
+      "$defs": {
+        "ModelRef": {
+          "additionalProperties": false,
+          "properties": {
+            "model_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Model Id",
+              "type": "string"
+            },
+            "version_number": {
+              "minimum": 1,
+              "title": "Version Number",
+              "type": "integer"
+            },
+            "version_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Version Id",
+              "type": "string"
+            },
+            "spec_hash": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Spec Hash",
+              "type": "string"
+            }
+          },
+          "required": [
+            "model_id",
+            "version_number",
+            "version_id",
+            "spec_hash"
+          ],
+          "title": "ModelRef",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelRef"
+        },
+        "generation_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Generation Id",
+          "type": "string"
+        },
+        "code_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Code Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "generation_id",
+        "code_hash"
+      ],
+      "title": "GetTests",
+      "type": "object"
+    },
+    "compare_with_code": {
+      "$defs": {
+        "ModelRef": {
+          "additionalProperties": false,
+          "properties": {
+            "model_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Model Id",
+              "type": "string"
+            },
+            "version_number": {
+              "minimum": 1,
+              "title": "Version Number",
+              "type": "integer"
+            },
+            "version_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Version Id",
+              "type": "string"
+            },
+            "spec_hash": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Spec Hash",
+              "type": "string"
+            }
+          },
+          "required": [
+            "model_id",
+            "version_number",
+            "version_id",
+            "spec_hash"
+          ],
+          "title": "ModelRef",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelRef"
+        },
+        "generation_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Generation Id",
+          "type": "string"
+        },
+        "code_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Code Hash",
+          "type": "string"
+        },
+        "mode": {
+          "default": "stored_generation",
+          "maxLength": 64,
+          "title": "Mode",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "default": 120.0,
+          "exclusiveMinimum": 0,
+          "maximum": 120,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "model",
+        "generation_id",
+        "code_hash"
+      ],
+      "title": "CompareWithCode",
+      "type": "object"
+    }
+  },
+  "output": {
+    "$defs": {
+      "ModelRef": {
+        "additionalProperties": false,
+        "properties": {
+          "model_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Model Id",
+            "type": "string"
+          },
+          "version_number": {
+            "minimum": 1,
+            "title": "Version Number",
+            "type": "integer"
+          },
+          "version_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Version Id",
+            "type": "string"
+          },
+          "spec_hash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Spec Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_id",
+          "version_number",
+          "version_id",
+          "spec_hash"
+        ],
+        "title": "ModelRef",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "contract_version": {
+        "const": "1.0",
+        "default": "1.0",
+        "title": "Contract Version",
+        "type": "string"
+      },
+      "model_ref": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ModelRef"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "status": {
+        "enum": [
+          "completed",
+          "unsupported",
+          "error"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "data": {
+        "additionalProperties": true,
+        "title": "Data",
+        "type": "object"
+      },
+      "error": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Error"
+      },
+      "limits": {
+        "additionalProperties": true,
+        "title": "Limits",
+        "type": "object"
+      }
+    },
+    "required": [
+      "model_ref",
+      "status",
+      "limits"
+    ],
+    "title": "ToolResult",
+    "type": "object"
+  }
+}

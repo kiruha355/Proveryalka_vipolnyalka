@@ -1,0 +1,660 @@
+{
+  "contract_version": "1.0",
+  "model_ref": {
+    "model_id": "m_2fbfe5f9f60843dcaa4e1d4224c7822c",
+    "version_number": 1,
+    "version_id": "v_2907500f6b2841f9a94682edae220d56",
+    "spec_hash": "dbf4cbc8b79567a5567d91bd1db5a2733ce2480186c2ec240bd5fcf3594240de"
+  },
+  "status": "completed",
+  "data": {
+    "test_run": {
+      "test_run_id": "trun_05353f6fe9eb4b598a3cd92bb4b5620f",
+      "generation_id": "gen_bb0a62b45c0c4b31847c9fd21cc3f498",
+      "session_id": "s_f0db9b7d02b54e17b914b744b68d7386",
+      "version_id": "v_2907500f6b2841f9a94682edae220d56",
+      "spec_hash": "dbf4cbc8b79567a5567d91bd1db5a2733ce2480186c2ec240bd5fcf3594240de",
+      "code_hash": "45b7586008dc0052922707daabbe9fca68c0d4733e5e77fec46f918e0e51d87b",
+      "status": "passed",
+      "error_code": null,
+      "message": "Пройдено 79 из 79",
+      "cancel_requested": false,
+      "timeout_seconds": 120.0,
+      "created_at": "2026-10-31T09:36:56.056159+00:00",
+      "started_at": "2026-10-31T09:36:56.058494+00:00",
+      "finished_at": "2026-10-31T09:36:56.954955+00:00",
+      "duration_seconds": 0.895,
+      "exit_code": 0,
+      "counts": {
+        "errors": 0,
+        "failed": 0,
+        "passed": 79,
+        "skipped": 0,
+        "total": 79
+      },
+      "cases": [
+        {
+          "classname": "tests.test_api",
+          "duration_seconds": 0.004,
+          "message": null,
+          "name": "test_model_endpoint_links_version_and_requirements",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_api",
+          "duration_seconds": 0.002,
+          "message": null,
+          "name": "test_initial_state",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_api",
+          "duration_seconds": 0.004,
+          "message": null,
+          "name": "test_event_sequence_over_http",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_api",
+          "duration_seconds": 0.003,
+          "message": null,
+          "name": "test_reset_returns_initial_state",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_api",
+          "duration_seconds": 0.003,
+          "message": null,
+          "name": "test_disabled_event_is_rejected_and_state_kept",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_api",
+          "duration_seconds": 0.002,
+          "message": null,
+          "name": "test_unknown_transition_returns_404",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_api",
+          "duration_seconds": 0.002,
+          "message": null,
+          "name": "test_revision_conflict_returns_409",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_api",
+          "duration_seconds": 0.003,
+          "message": null,
+          "name": "test_request_body_is_validated",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_api",
+          "duration_seconds": 0.002,
+          "message": null,
+          "name": "test_evaluate_rejects_invalid_state",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_domain",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_initial_state_matches_model",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_domain",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_invalid_state_is_rejected[status-integer_instead_of_enum]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_domain",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_invalid_state_is_rejected[status-value_outside_enum]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_domain",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_invalid_state_is_rejected[approved-integer_instead_of_boolean]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_domain",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_invalid_state_is_rejected[approved-string_instead_of_boolean]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_domain",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_invalid_state_is_rejected[cancelled-integer_instead_of_boolean]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_domain",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_invalid_state_is_rejected[cancelled-string_instead_of_boolean]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_domain",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_invalid_state_is_rejected[missing_variable]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_domain",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_invalid_state_is_rejected[unknown_variable]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_domain",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_state_must_be_an_object",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_provenance",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_model_file_matches_spec_hash",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_provenance",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_rules_follow_model_transitions",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_provenance",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_variables_follow_model",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_provenance",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_requirement_references_exist",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_traces",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_tlc_trace_is_reproduced[CanExecute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_Approve_applies_effects_and_keeps_other_variables",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_Approve_rejected_when_guard_is_false",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_Cancel_applies_effects_and_keeps_other_variables",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_Cancel_rejected_when_guard_is_false",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_Execute_applies_effects_and_keeps_other_variables",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_Execute_rejected_when_guard_is_false",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r0-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r0-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r0-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r1-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r1-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r1-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r2-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r2-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r2-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r3-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r3-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[r3-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b0-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b0-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b0-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b1-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b1-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b1-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b2-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b2-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b2-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b3-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b3-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b3-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b4-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b4-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b4-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b5-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b5-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b5-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b6-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b6-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b6-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b7-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b7-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b7-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b8-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b8-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b8-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b9-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b9-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b9-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b10-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b10-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b10-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b11-Approve]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b11-Cancel]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_conformance_table[b11-Execute]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_transitions",
+          "duration_seconds": 0.0,
+          "message": null,
+          "name": "test_unknown_transition_is_rejected",
+          "outcome": "passed"
+        }
+      ],
+      "sandbox": {
+        "capabilities": [],
+        "container_exit_code": 0,
+        "cpus": 1.0,
+        "engine": "docker",
+        "engine_version": "29.1.3",
+        "image": "proveryalka-codegen-sandbox:4d76b97118d8df7e",
+        "image_id": "sha256:e052badb7925dc75a36c07a7f952c038946f277f7dd96970baf3a3b74dbcd1d6",
+        "memory_mb": 512,
+        "network": "none",
+        "no_new_privileges": true,
+        "oom_killed": false,
+        "pids_limit": 128,
+        "project_mount": "read-only",
+        "read_only_root": true,
+        "swap_mb": 0,
+        "tmpfs_mb": 64,
+        "user": "10001:10001"
+      },
+      "log_available": true,
+      "log_truncated": false
+    },
+    "tlc_at_generation": {
+      "acknowledged": false,
+      "properties": [
+        {
+          "check_run_id": "chk_c30da7122f1546b8bee4b42f917ef3d7",
+          "property_id": "NoCancelledExecution",
+          "status": "PROPERTY_HOLDS"
+        },
+        {
+          "check_run_id": "chk_c30da7122f1546b8bee4b42f917ef3d7",
+          "property_id": "CanExecute",
+          "status": "PROPERTY_HOLDS"
+        },
+        {
+          "check_run_id": "chk_c30da7122f1546b8bee4b42f917ef3d7",
+          "property_id": "EndsProperly",
+          "status": "PROPERTY_HOLDS"
+        }
+      ],
+      "state": "holds"
+    },
+    "coverage": {
+      "boundary_states": 12,
+      "conformance_cases": 48,
+      "exhaustive": true,
+      "invalid_state_cases": 8,
+      "reachable_states": 4,
+      "trace_replays": 1
+    },
+    "limitations": [
+      "Only the immutable stored generation identified by generation_id and code_hash is supported.",
+      "Tests cover the generated finite model, transition/API cases and saved traces; they are not a proof for arbitrary code.",
+      "A passed test run is not a TLC result or a proof of production behavior."
+    ],
+    "arbitrary_code_equivalence": "unsupported"
+  },
+  "error": null,
+  "limits": {
+    "request_bytes": 65536,
+    "result_bytes": 524288,
+    "parallel_tools": 2,
+    "body_seconds": 10.0,
+    "request_seconds": 180.0,
+    "check_timeout_seconds": 60,
+    "test_timeout_seconds": 120,
+    "max_states": 100000,
+    "max_properties": 32
+  }
+}
