@@ -1,0 +1,53 @@
+--- a/src/proveryalka/api/app.py
++++ b/src/proveryalka/api/app.py
+@@ -31,15 +31,25 @@
+     explainer=None,
+     codegen_settings=None,
+     codegen_sandbox=None,
++    repository_limits=None,
++    repository_host_policy=None,
++    repository_credential_provider=None,
+ ) -> FastAPI:
+     settings = settings or Settings.from_env()
+     store = SQLiteStore(settings.database_path) if backend is None else None
+     adapter = backend if backend is not None else ApplicationBackend(store, settings, checker, analyst, explainer)
+
++    from ..sources.repositories import RepositoryService
++    repositories = RepositoryService(
++        store, limits=repository_limits, host_policy=repository_host_policy,
++        credential_provider=repository_credential_provider,
++    ) if store is not None else None
++
+     @asynccontextmanager
+     async def lifespan(app):
+         if store is not None:
+             store.initialize()
++            repositories.initialize()
+             await adapter.start()
+         try:
+             yield
+@@ -50,6 +60,10 @@
+     app = FastAPI(title="Проверялка API", version="0.1.0", lifespan=lifespan)
+     app.state.settings = settings
+     app.state.backend = adapter
++    app.state.repositories = repositories
++    if repositories is not None:
++        from .repositories import create_repository_router
++        app.include_router(create_repository_router(repositories, adapter))
+     Spec = behavioral_model
+     Result = verification_result
+     VersionCreate = create_model("VersionCreate", __base__=Contract, spec=(Spec, ...), parent_id=(Optional[str], None))
+--- a/src/proveryalka/storage/sqlite.py
++++ b/src/proveryalka/storage/sqlite.py
+@@ -46,9 +46,9 @@
+             connection.execute("PRAGMA journal_mode=WAL")
+             connection.execute("BEGIN IMMEDIATE")
+             version = connection.execute("PRAGMA user_version").fetchone()[0]
+-            if version > 6:
++            if version > 8:
+                 raise RuntimeError("Database schema is newer than this application")
+-            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql"), (5, "005_documents_explanations.sql"), (6, "006_codegen.sql")]:
++            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql"), (5, "005_documents_explanations.sql"), (6, "006_codegen.sql"), (8, "008_repository_snapshots.sql")]:
+                 if version >= target:
+                     continue
+                 migration = Path(__file__).with_name("migrations") / filename
