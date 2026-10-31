@@ -124,3 +124,20 @@ def test_document_source_starts_the_dialogue(tmp_path, monkeypatch):
         assert client.get(f"/api/sessions/{sid}/dialogue").json()["requirements"][0]["source_refs"][0]["source_id"] == source["id"]
         again = client.post(f"/api/sessions/{sid}/messages", json={"source_id": source["id"]}, headers={"Idempotency-Key": "m2"})
         assert again.status_code == 409 and again.json()["error"]["code"] == "DIALOGUE_STARTED"
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", "utf-16", "utf-16-le", "utf-16-be"])
+def test_docx_dtd_rejected_after_encoding_detection(client, encoding):
+    declaration = "UTF-8" if encoding == "utf-8" else "UTF-16"
+    xml = f'<?xml version="1.0" encoding="{declaration}"?><!DOCTYPE w:document [<!ENTITY x "ENTITY_EXPANDED">]><w:document {WORD}><w:body><w:p><w:r><w:t>&x;</w:t></w:r></w:p></w:body></w:document>'
+    response = upload(client, "entity.docx", docx("", xml=xml.encode(encoding)))
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "DOCUMENT_INVALID"
+    assert client.get(f"/api/sessions/{client.sid}").json()["sources"] == []
+
+
+def test_normal_utf16_docx_remains_readable(client):
+    xml = f'<?xml version="1.0" encoding="UTF-16"?><w:document {WORD}><w:body><w:p><w:r><w:t>Отмена заявки</w:t></w:r></w:p></w:body></w:document>'
+    response = upload(client, "normal.docx", docx("", xml=xml.encode("utf-16")))
+    assert response.status_code == 201, response.text
+    assert response.json()["source"]["text"] == "Отмена заявки"
