@@ -24,7 +24,72 @@ class RunStore:
             if row["kind"] != "check":
                 raise ServiceError(404, "NOT_FOUND", "Check not found")
             return {"run": {k: row[k] for k in ("run_id", "session_id", "version_id", "state", "error_code")},
-                    "results": json.loads(row["result_json"])["results"] if row["result_json"] else []}
+                    "results": json.loads(row["result_json"])["results"] if row["result_json"] else [],
+                    "explanation": self._explanation(connection, run_id)}
+
+    @staticmethod
+    def _explanation(connection, check_run_id):
+        row = connection.execute(
+            "SELECT run_id,state,error_code,result_json FROM runs WHERE parent_run_id=? AND kind='explain' ORDER BY rowid DESC LIMIT 1",
+            (check_run_id,),
+        ).fetchone()
+        if row is None:
+            return {"state": "not_requested", "run_id": None, "error_code": None, "narrative": None}
+        state = {"queued": "queued", "running": "running", "cancelling": "running", "completed": "ready"}.get(row["state"], row["state"])
+        return {"state": state, "run_id": row["run_id"], "error_code": row["error_code"],
+                "narrative": json.loads(row["result_json"]) if row["state"] == "completed" and row["result_json"] else None}
+
+    def check_record(self, run_id):
+        with self.transaction() as connection:
+            row = self._run(connection, run_id)
+            if row["kind"] != "check":
+                raise ServiceError(404, "NOT_FOUND", "Check not found")
+            return row
+
+    def create_explanation(self, check_run_id, key):
+        """Объяснение сохранённого отчёта отдельным запуском: TLC не повторяется."""
+        with self.transaction(write=True) as connection:
+            check = self._run(connection, check_run_id)
+            if check["kind"] != "check":
+                raise ServiceError(404, "NOT_FOUND", "Check not found")
+            body = {"check_run_id": check_run_id}
+
+            def action():
+                if check["state"] != "completed" or not check["result_json"]:
+                    raise ServiceError(409, "CHECK_PENDING", "Check has no saved report")
+                if not VerificationReport.model_validate_json(check["result_json"]).executed:
+                    raise ServiceError(409, "NOT_EXPLAINABLE", "The engine did not run; there is nothing to explain")
+                current = self._explanation(connection, check_run_id)["state"]
+                if current in ("queued", "running"):
+                    raise ServiceError(409, "EXPLANATION_ACTIVE", "Explanation is already running")
+                if current == "ready":
+                    raise ServiceError(409, "EXPLANATION_READY", "Explanation is already saved")
+                self.check_capacity(connection)
+                run = {"run_id": "exp_" + uuid4().hex, "session_id": check["session_id"],
+                       "version_id": check["version_id"], "state": "queued"}
+                connection.execute(
+                    "INSERT INTO runs(run_id,session_id,version_id,kind,state,request_json,parent_run_id) VALUES (?,?,?,'explain','queued',?,?)",
+                    (run["run_id"], run["session_id"], run["version_id"], json.dumps(body), check_run_id),
+                )
+                return run
+            return self._idempotent(connection, f"explain:{check_run_id}", key, body, action)
+
+    def finish_explanation(self, run_id, narrative):
+        with self.transaction(write=True) as connection:
+            return connection.execute("UPDATE runs SET state='completed',result_json=? WHERE run_id=? AND state='running'", (narrative, run_id)).rowcount == 1
+
+    def active_agent_run(self, session_id):
+        with self.transaction() as connection:
+            row = connection.execute("SELECT run_id FROM runs WHERE session_id=? AND kind='agent' AND state IN ('queued','running','cancelling')", (session_id,)).fetchone()
+            return row["run_id"] if row else None
+
+    def analyst_version(self, session_id, model_hash):
+        with self.transaction() as connection:
+            row = connection.execute(
+                "SELECT v.id,v.model_id,v.number,v.spec_hash FROM model_versions v JOIN models m ON m.id=v.model_id "
+                "WHERE m.session_id=? AND v.spec_hash=? ORDER BY v.rowid DESC LIMIT 1", (session_id, model_hash),
+            ).fetchone()
+            return None if row is None else {"model_id": row["model_id"], "version_id": row["id"], "number": row["number"], "spec_hash": row["spec_hash"]}
 
     def create_check(self, model_id, number, body, key):
         with self.transaction(write=True) as connection:
@@ -41,8 +106,8 @@ class RunStore:
                 self.check_capacity(connection)
                 run = {"run_id": "chk_" + uuid4().hex, "session_id": version["session_id"],
                        "version_id": version["id"], "state": "queued"}
-                connection.execute("INSERT INTO runs(run_id,session_id,version_id,kind,state,request_json) VALUES (?,?,?,'check','queued',?)",
-                                   (run["run_id"],run["session_id"],run["version_id"],request.model_dump_json()))
+                connection.execute("INSERT INTO runs(run_id,session_id,version_id,kind,state,request_json,explain) VALUES (?,?,?,'check','queued',?,?)",
+                                   (run["run_id"],run["session_id"],run["version_id"],request.model_dump_json(),int(bool(body.get("explain")))))
                 return run
             return self._idempotent(connection, f"check:{model_id}:{number}", key, body, action)
 
@@ -71,12 +136,26 @@ class RunStore:
                                (state,report.model_dump_json(),int(artifacts),run_id))
 
     def fail_run(self, run_id, code):
+        # Код отмены, записанный request_cancel, сохраняется: по нему клиент отличает отмену от остановки сервера.
         with self.transaction(write=True) as connection:
-            connection.execute("UPDATE runs SET state=CASE WHEN state='cancelling' THEN 'cancelled' ELSE 'failed' END,error_code=? WHERE run_id=? AND state IN ('queued','running','cancelling')", (code,run_id))
+            connection.execute("UPDATE runs SET state=CASE WHEN state='cancelling' THEN 'cancelled' ELSE 'failed' END,"
+                               "error_code=CASE WHEN state='cancelling' AND error_code IS NOT NULL THEN error_code ELSE ? END "
+                               "WHERE run_id=? AND state IN ('queued','running','cancelling')", (code,run_id))
 
     def recover_runs(self):
         with self.transaction(write=True) as connection:
             connection.execute("UPDATE runs SET state='failed',error_code='SERVER_RESTARTED' WHERE state IN ('queued','running','cancelling')")
+
+    def idempotent_response(self, scope, key, body):
+        """Сохранённый ответ на повтор ключа, чтобы проверки состояния не мешали повтору."""
+        from .sqlite import encode
+        with self.transaction() as connection:
+            row = connection.execute("SELECT request_json,response_json FROM idempotency WHERE scope=? AND key=?", (scope, key)).fetchone()
+        if row is None:
+            return None
+        if row["request_json"] != encode(body):
+            raise ServiceError(409, "IDEMPOTENCY_CONFLICT", "Key already used with a different request")
+        return json.loads(row["response_json"])
 
     def create_agent_run(self, session_id, body, key):
         with self.transaction(write=True) as connection:
@@ -128,11 +207,12 @@ class RunStore:
         if count >= getattr(self, "max_pending_runs", 32):
             raise ServiceError(429, "QUEUE_FULL", "Run queue is full; retry later")
 
-    def request_cancel(self, run_id):
+    def request_cancel(self, run_id, code="CANCELLED"):
+        # CANCELLED — явная отмена пользователем; SERVER_SHUTDOWN — остановка сервера, ход можно повторить.
         with self.transaction(write=True) as connection:
             row = self._run(connection, run_id)
             if row["state"] in ("queued", "running"):
-                connection.execute("UPDATE runs SET state='cancelling',error_code='CANCELLED' WHERE run_id=?", (run_id,))
+                connection.execute("UPDATE runs SET state='cancelling',error_code=? WHERE run_id=?", (code, run_id))
         return self.get_run(run_id)
 
     def finalize_events(self, run_id):
@@ -156,7 +236,7 @@ class RunStore:
                 event = {"event_id":number,"run_id":run_id,"session_id":row["session_id"],"type":kind,"data":data}
                 connection.execute("INSERT INTO run_events VALUES (?,?,?)",(run_id,number,json.dumps(event)))
 
-    def terminal_event_saved(self, run_id):
+    def terminal_event_id(self, run_id):
         with self.transaction() as connection:
-            row = connection.execute("SELECT event_json FROM run_events WHERE run_id=? ORDER BY event_id DESC LIMIT 1",(run_id,)).fetchone()
-            return row is not None and json.loads(row[0])["type"] == "run_finished"
+            row = connection.execute("SELECT event_id,event_json FROM run_events WHERE run_id=? ORDER BY event_id DESC LIMIT 1",(run_id,)).fetchone()
+            return row[0] if row is not None and json.loads(row[1])["type"] == "run_finished" else None

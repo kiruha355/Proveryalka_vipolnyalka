@@ -84,3 +84,21 @@ def test_large_event_replay_finishes_with_cursor_at_end(prepared):
         url = f'/api/runs/{run["run_id"]}/events'
         assert client.get(url).text.count('data: ') == 122
         assert client.get(url,headers={"Last-Event-ID":"122"}).text == ""
+
+
+def test_stream_waits_for_terminal_event_saved_after_empty_read(prepared):
+    settings, store, model, _ = prepared
+    with TestClient(create_app(settings,checker=FakeChecker())) as client:
+        run = store.create_check(model["id"],1,{},"race")
+        store.fail_run(run["run_id"],"FAILED")
+        backend = client.app.state.backend
+        original = backend.store.get_run
+
+        def racing(run_id):
+            # Терминальные события сохраняются сразу после пустого чтения потока.
+            store.finalize_events(run_id)
+            return original(run_id)
+
+        backend.store.get_run = racing
+        stream = client.get(f'/api/runs/{run["run_id"]}/events').text
+        assert 'event: error' in stream and 'event: run_finished' in stream
