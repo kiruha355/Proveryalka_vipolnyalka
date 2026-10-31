@@ -46,9 +46,9 @@ class SQLiteStore(VersionStore, RunStore):
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("BEGIN IMMEDIATE")
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version > 5:
+            if version > 6:
                 raise RuntimeError("Database schema is newer than this application")
-            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql"), (5, "005_documents_explanations.sql")]:
+            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql"), (5, "005_documents_explanations.sql"), (6, "006_codegen.sql")]:
                 if version >= target:
                     continue
                 migration = Path(__file__).with_name("migrations") / filename
@@ -218,6 +218,12 @@ class SQLiteStore(VersionStore, RunStore):
                 ))
                 number += 1
             connection.execute("UPDATE sessions SET next_message=? WHERE id=?", (number, session_id))
+
+    def history_rows(self, session_id):
+        """Persisted identity/order for public history projections; no raw mutation."""
+        with self.transaction() as connection:
+            self._session(connection, session_id)
+            return self._messages(connection, session_id)
 
     def history(self, session_id, limit=None):
         with self.transaction() as connection:

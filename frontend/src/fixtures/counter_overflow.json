@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0",
+  "name": "Счётчик без ограничения роста",
+  "sources": [
+    {
+      "id": "source1",
+      "session_id": "fixtures",
+      "kind": "text",
+      "text": "Счётчик принимает значения от 0 до 2, изначально 0.\nСчётчик можно увеличить на единицу.\nСчётчик не бывает отрицательным."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Счётчик принимает значения от 0 до 2, изначально 0.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Счётчик принимает значения от 0 до 2, изначально 0.",
+          "start": 0,
+          "end": 51
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "text": "Счётчик можно увеличить на единицу.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Счётчик можно увеличить на единицу.",
+          "start": 52,
+          "end": 87
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "text": "Счётчик не бывает отрицательным.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Счётчик не бывает отрицательным.",
+          "start": 88,
+          "end": 120
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "id": "n",
+      "name": "Счётчик",
+      "requirement_ids": [
+        "R1"
+      ],
+      "domain": {
+        "kind": "integer",
+        "minimum": 0,
+        "maximum": 2
+      },
+      "initial_value": 0
+    }
+  ],
+  "transitions": [
+    {
+      "id": "Inc",
+      "name": "Увеличить",
+      "requirement_ids": [
+        "R2"
+      ],
+      "guard": {
+        "kind": "literal",
+        "value": true
+      },
+      "effects": [
+        {
+          "variable": "n",
+          "value": {
+            "kind": "binary",
+            "op": "add",
+            "left": {
+              "kind": "variable",
+              "name": "n"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 1
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "id": "NonNegative",
+      "name": "Неотрицательность",
+      "requirement_ids": [
+        "R3"
+      ],
+      "kind": "invariant",
+      "predicate": {
+        "kind": "binary",
+        "op": "ge",
+        "left": {
+          "kind": "variable",
+          "name": "n"
+        },
+        "right": {
+          "kind": "literal",
+          "value": 0
+        }
+      },
+      "explanation": "Неотрицательность"
+    }
+  ]
+}

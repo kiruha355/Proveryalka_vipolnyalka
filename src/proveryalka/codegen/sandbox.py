@@ -16,6 +16,7 @@ import stat
 import tempfile
 import time
 from pathlib import Path
+from uuid import uuid4
 
 from .paths import safe_path
 from .settings import IMAGE_DIR, CodegenSettings
@@ -23,6 +24,7 @@ from .settings import IMAGE_DIR, CodegenSettings
 
 PROTOCOL = "proveryalka-sandbox/1"
 LABEL = "proveryalka.codegen.test_run"
+OWNER_LABEL = "proveryalka.codegen.owner"
 USER = "10001:10001"
 NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,100}$")
 UNKNOWN_COUNTS = {"total": None, "passed": None, "failed": None, "errors": None, "skipped": None}
@@ -154,6 +156,10 @@ def classify(summary, stopped, container, timeout_seconds):
 class DockerSandbox:
     def __init__(self, settings=None):
         self.settings = settings or CodegenSettings.from_env()
+        # A service instance has no authority over another instance, even on the
+        # same host/daemon. Unknown/legacy owners require manual reconciliation.
+        self.owner_id = uuid4().hex
+        self._active_names = set()
 
     def policy(self):
         s = self.settings
@@ -168,6 +174,7 @@ class DockerSandbox:
             raise ValueError("Unsafe container name or job directory")
         return [
             s.docker, "run", "--name", name, "--label", f"{LABEL}={run_label}",
+            "--label", f"{OWNER_LABEL}={self.owner_id}",
             "--network", "none", "--read-only", "--user", USER,
             "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true",
             "--memory", f"{s.memory_mb}m", "--memory-swap", f"{s.memory_mb}m",
@@ -196,28 +203,63 @@ class DockerSandbox:
         except (SandboxUnavailable, ValueError, asyncio.TimeoutError):
             return {}
 
+    async def owned_container(self, name):
+        """Resolve an immutable container ID after checking this instance's label."""
+        try:
+            code, out, _ = await run_tool([self.settings.docker, "inspect", "--format", "{{json .}}", name], timeout=20)
+            data = json.loads(out) if code == 0 else {}
+            labels = (data.get("Config") or {}).get("Labels") or {}
+            if labels.get(OWNER_LABEL) == self.owner_id and labels.get(LABEL) and re.fullmatch(r"[0-9a-f]{64}", data.get("Id", "")):
+                return data
+        except (SandboxUnavailable, ValueError, asyncio.TimeoutError):
+            pass
+        return None
+
     async def remove(self, name):
         try:
-            await run_tool([self.settings.docker, "rm", "-f", name], timeout=30)
+            container = await self.owned_container(name)
+            if container:
+                await run_tool([self.settings.docker, "rm", "-f", container["Id"]], timeout=30)
         except (SandboxUnavailable, asyncio.TimeoutError):
             pass
 
     async def stop_container(self, name):
         try:
-            await run_tool([self.settings.docker, "kill", name], timeout=20)
+            container = await self.owned_container(name)
+            if container:
+                await run_tool([self.settings.docker, "kill", container["Id"]], timeout=20)
         except (SandboxUnavailable, asyncio.TimeoutError):
             pass
 
     async def cleanup_orphans(self):
-        """Удаляет только контейнеры с меткой песочницы Проверялки, оставшиеся после остановки сервера."""
+        """Remove only stopped, inactive containers proven to belong to this instance.
+
+        A label shared by the application is not proof of an orphan. In particular,
+        never infer another host/process is dead from a local PID or missing lock.
+        """
         try:
-            code, out, _ = await run_tool([self.settings.docker, "ps", "-aq", "--filter", f"label={LABEL}"], timeout=20)
+            code, out, _ = await run_tool([self.settings.docker, "ps", "-aq", "--filter", f"label={LABEL}",
+                                         "--filter", f"label={OWNER_LABEL}={self.owner_id}", "--filter", "status=exited"], timeout=20)
         except (SandboxUnavailable, asyncio.TimeoutError):
             return 0
+        if code != 0:
+            return 0
         ids = [line for line in out.split() if re.fullmatch(r"[0-9a-f]{12,64}", line)]
-        if code == 0 and ids:
-            await run_tool([self.settings.docker, "rm", "-f", *ids], timeout=60)
-        return len(ids)
+        removed = 0
+        for identifier in ids:
+            container = await self.owned_container(identifier)
+            if not container or container.get("Name", "").lstrip("/") in self._active_names:
+                continue
+            if (container.get("State") or {}).get("Status") != "exited":
+                continue
+            # No force: a concurrent restart must turn this into a failed rm,
+            # never a kill. Use the checked ID, not a reusable container name.
+            try:
+                code, _, _ = await run_tool([self.settings.docker, "rm", container["Id"]], timeout=30)
+                removed += code == 0
+            except (SandboxUnavailable, asyncio.TimeoutError):
+                pass
+        return removed
 
     async def run(self, files, *, run_id, timeout_seconds, stop=None):
         """files: [(path, bytes)] уже сверенные с SHA-256 генерации. Возвращает (result, log)."""
@@ -228,9 +270,10 @@ class DockerSandbox:
         except (SandboxUnavailable, asyncio.TimeoutError) as error:
             message = str(error) or "Docker did not answer"
             return self.result("engine_unavailable", "ENGINE_UNAVAILABLE", message, None, None, sandbox, started, None), None
-        name = f"pv-codegen-{run_id}"
+        name = f"pv-codegen-{run_id}-{uuid4().hex[:12]}"
         job = tempfile.mkdtemp(prefix="pv-codegen-job-")
         stopped, stopper, container = None, None, {}
+        self._active_names.add(name)
         try:
             write_job(job, files)
             try:
@@ -267,6 +310,7 @@ class DockerSandbox:
             if stopper is not None:
                 stopper.cancel()
             await self.remove(name)
+            self._active_names.discard(name)
             remove_job(job)
         summary = None if stopped else parse_summary(stdout)
         status, code, message = classify(summary, stopped, container, timeout_seconds)

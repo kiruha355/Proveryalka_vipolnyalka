@@ -1,4 +1,4 @@
-"""Текст источника из загруженного TXT, MD или DOCX. Файл не сохраняется на диск и не открывается по пути."""
+"""Текст источника из загруженного TXT, MD или DOCX. Приложение не хранит файл после извлечения текста и не открывает его по пользовательскому пути."""
 import hashlib
 import io
 import zipfile
@@ -86,11 +86,13 @@ def docx_text(data):
             xml = read_limited(archive, entry)
         except (zipfile.BadZipFile, NotImplementedError, OSError, EOFError) as error:
             raise invalid("DOCX text part cannot be read") from error
-    # В DOCX нет DTD; любые объявления сущностей отклоняются до разбора.
-    if b"<!DOCTYPE" in xml or b"<!ENTITY" in xml:
-        raise invalid("DOCX with DTD or entities is not supported")
+    # Parser callback rejects DTDs after XML encoding detection, before entity expansion.
+    class DocumentTreeBuilder(ElementTree.TreeBuilder):
+        def doctype(self, name, pubid, system):
+            raise invalid("DOCX with DTD or entities is not supported")
+
     try:
-        root = ElementTree.fromstring(xml)
+        root = ElementTree.fromstring(xml, parser=ElementTree.XMLParser(target=DocumentTreeBuilder()))
         body = root.find(WORD + "body")
         if body is None:
             raise invalid("DOCX has no document body")

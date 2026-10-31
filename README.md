@@ -10,7 +10,7 @@ LLM формализует и объясняет. Перебор состоян�
 требований. Инструкции запуска и контракты: [docs/api.md](docs/api.md).
 Транзакции, миграции и единая история для SDK: [docs/storage.md](docs/storage.md).
 Снимок OpenAPI: [docs/openapi.json](docs/openapi.json).
-Агент находится в `src/proveryalka/agent/`: Responses API, DeepSeek V4.1 Flash,
+Агент находится в `src/proveryalka/agent/`: Responses API и настраиваемый GPT/Codex subscription provider,
 инструкции аналитика и запуск через `run_message(message, session)`.
 Для истории используется `StoredSession` из серверного компонента.
 Извлечение требований и формат аналитического результата: [docs/agent.md](docs/agent.md).
@@ -29,8 +29,10 @@ JSON Schema и полные примеры находятся в `docs/schemas/`
 HTTP-контракт основного сценария (текст или документ → уточнения → модель →
 ручной запуск TLC → объяснение отчёта → правка и повторная проверка):
 [src/proveryalka/api/README.md](src/proveryalka/api/README.md).
-Разделы «Схема БД», «API» и «MCP» ниже описывают целевую архитектуру; MCP,
-генерация кода и прогон тестов пока не реализованы.
+Разделы «Схема БД», «API» и «MCP» ниже частично описывают целевую архитектуру.
+MCP остаётся целевой архитектурой; генератор Python/FastAPI/pytest и Docker-песочница подключены в `src/proveryalka/codegen/`.
+
+Веб-клиент, запуск live/demo и границы проверок: [frontend/README.md](frontend/README.md).
 
 ## Структура проекта
 

@@ -1,0 +1,1872 @@
+{
+  "_meta": {
+    "label": "Запись GPT subscription + TLC · 31.10.2026; без новых вызовов",
+    "source": "backend-acceptance/receipt.md",
+    "source_sha256": {
+      "01-turn.json": "4b53505207003d9d22526fd8a2aa51e559f5d8c903e622faeb9aeb78ea04e34c",
+      "02-turn.json": "299c830bde0051e48f5da6fdc93ba15b16ef256f234563f2f8feb7e1aac4d6e7",
+      "03-turn.json": "3fff20ffffda4233756e0da322d29a1df6274177f5438291966a3cc56721a4de",
+      "04-turn.json": "3e11687540a70c3bbe136fffc0a2b6b1b56a19e3860ee33ca35dd065b1041549",
+      "05-turn.json": "8fdfcd107d0ba013dd2b8eec6423a7cef4036987bd9bab65e9b89a2070ac5259",
+      "check.json": "224aa9341d8812453a77ce475d038d0eb42d5ddbe1805757d01245469e21a1f8",
+      "check-v2.json": "30ace7205ab13f47d32db7f67c3b1ebb63ba0cd4f8f7c81ebc18e238c2ac8261"
+    },
+    "entry_identity": "Recorded run_id + role are local transport IDs; original message IDs/timestamps were not captured. sequence follows recorded turns. All text, questions, specs, report IDs and hashes are original."
+  },
+  "session": {
+    "id": "s_2150ab13b0204f7c859631a3fae33150",
+    "title": "Живой диалог: запись прогона",
+    "mode": "analyzer",
+    "created_at": "",
+    "recording_label": "Запись GPT subscription + TLC · 31.10.2026",
+    "messages": [],
+    "sources": [
+      {
+        "id": "src_247e882781de4164a518683f4057ca97",
+        "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+        "kind": "text",
+        "text": "Заявка после согласования может быть исполнена. Пользователь может отменить заявку до исполнения."
+      },
+      {
+        "id": "answer_b33748a5671d44f1adb3f937862652a0",
+        "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+        "kind": "text",
+        "text": "Новая заявка не согласована, не исполнена и не отменена. Согласование ставит признак approved=true. Отмена ставит cancelled=true и не меняет approved. Исполнение разрешено, если approved=true, и ставит executed=true. Нужно проверить, что отменённая заявка не может быть исполнена."
+      },
+      {
+        "id": "answer_58b2a868b01047e19e6060abdde2246f",
+        "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+        "kind": "text",
+        "text": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена."
+      },
+      {
+        "id": "answer_ecfdacaca8fa42cc90b9c3a2afff42b1",
+        "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+        "kind": "text",
+        "text": "Исправляю правило исполнения: исполнение разрешено, только если approved=true и cancelled=false."
+      }
+    ],
+    "requirements": [],
+    "documents": []
+  },
+  "dialogue": {
+    "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+    "status": "ready",
+    "round": 4,
+    "max_rounds": 5,
+    "reply": "Условие исполнения обновлено: заявка должна быть согласована и не отменена. Изменённую модель ещё нужно проверить.",
+    "requirements": [
+      {
+        "code": "R1",
+        "id": "req_16effb30bf4b5d988fb7f51a8a7debb2",
+        "text": "Заявка после согласования может быть исполнена.",
+        "source_refs": [
+          {
+            "source_id": "src_247e882781de4164a518683f4057ca97",
+            "quote": "Заявка после согласования может быть исполнена.",
+            "start": 0,
+            "end": 47
+          }
+        ]
+      },
+      {
+        "code": "R2",
+        "id": "req_9480c52e89c853dbbaaae00d602d2778",
+        "text": "Пользователь может отменить заявку до исполнения.",
+        "source_refs": [
+          {
+            "source_id": "src_247e882781de4164a518683f4057ca97",
+            "quote": "Пользователь может отменить заявку до исполнения.",
+            "start": 48,
+            "end": 97
+          }
+        ]
+      },
+      {
+        "code": "R3",
+        "id": "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+        "text": "Новая заявка не согласована, не исполнена и не отменена.",
+        "source_refs": [
+          {
+            "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+            "quote": "Новая заявка не согласована, не исполнена и не отменена.",
+            "start": 0,
+            "end": 56
+          }
+        ]
+      },
+      {
+        "code": "R4",
+        "id": "req_8b6406e04cd0599a8fa8929c9d463690",
+        "text": "Согласование ставит признак approved=true.",
+        "source_refs": [
+          {
+            "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+            "quote": "Согласование ставит признак approved=true.",
+            "start": 57,
+            "end": 99
+          }
+        ]
+      },
+      {
+        "code": "R5",
+        "id": "req_9ed80b9077e958618a6dc242ec892363",
+        "text": "Отмена ставит cancelled=true и не меняет approved.",
+        "source_refs": [
+          {
+            "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+            "quote": "Отмена ставит cancelled=true и не меняет approved.",
+            "start": 100,
+            "end": 150
+          }
+        ]
+      },
+      {
+        "code": "R6",
+        "id": "req_2577827fa41e5329974d39a154034a16",
+        "text": "Исполнение разрешено, только если approved=true и cancelled=false, и ставит executed=true.",
+        "source_refs": [
+          {
+            "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+            "quote": "Исполнение разрешено, если approved=true, и ставит executed=true.",
+            "start": 151,
+            "end": 216
+          },
+          {
+            "source_id": "answer_ecfdacaca8fa42cc90b9c3a2afff42b1",
+            "quote": "Исправляю правило исполнения: исполнение разрешено, только если approved=true и cancelled=false.",
+            "start": 0,
+            "end": 96
+          }
+        ]
+      },
+      {
+        "code": "R7",
+        "id": "req_85c1252acab25959a5ef1adc704cddcb",
+        "text": "Нужно проверить, что отменённая заявка не может быть исполнена.",
+        "source_refs": [
+          {
+            "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+            "quote": "Нужно проверить, что отменённая заявка не может быть исполнена.",
+            "start": 217,
+            "end": 280
+          }
+        ]
+      },
+      {
+        "code": "R8",
+        "id": "req_ebcd0ab52bd25c58bb7adca2699617dd",
+        "text": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена.",
+        "source_refs": [
+          {
+            "source_id": "answer_58b2a868b01047e19e6060abdde2246f",
+            "quote": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена.",
+            "start": 0,
+            "end": 81
+          }
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "text": "В каком состоянии заявка в начале процесса: она уже согласована, исполнена или отменена?",
+        "reason": "Начальное состояние заявки не указано, поэтому модель пока нельзя определить.",
+        "kind": "missing",
+        "assumption": null,
+        "id": "q_65a3a359f5865c4ab1afa217b2274145",
+        "status": "answered",
+        "answer_source_id": "answer_b33748a5671d44f1adb3f937862652a0"
+      },
+      {
+        "text": "При каких условиях можно согласовать заявку?",
+        "reason": "Условие доступности согласования не указано; оно необходимо для модели.",
+        "kind": "missing",
+        "assumption": null,
+        "id": "q_4a75745a7aca5ccc9a3fd3c8e866c5cf",
+        "status": "answered",
+        "answer_source_id": "answer_58b2a868b01047e19e6060abdde2246f"
+      }
+    ],
+    "open_question_ids": [],
+    "corrections": [
+      {
+        "requirement_id": "req_30e84f315f7751b2b1afc41ac9a24ff9",
+        "reason": "Условие исполнения дополнено требованием, чтобы заявка не была отменена; эффект исполнения сохранён.",
+        "quote": "Исправляю правило исполнения: исполнение разрешено, только если approved=true и cancelled=false.",
+        "answer_source_id": "answer_ecfdacaca8fa42cc90b9c3a2afff42b1"
+      }
+    ],
+    "analysis": {
+      "subject": "Заявка",
+      "requirements": [
+        {
+          "id": "req_16effb30bf4b5d988fb7f51a8a7debb2",
+          "text": "Заявка после согласования может быть исполнена.",
+          "source_refs": [
+            {
+              "source_id": "src_247e882781de4164a518683f4057ca97",
+              "quote": "Заявка после согласования может быть исполнена.",
+              "start": 0,
+              "end": 47
+            }
+          ]
+        },
+        {
+          "id": "req_9480c52e89c853dbbaaae00d602d2778",
+          "text": "Пользователь может отменить заявку до исполнения.",
+          "source_refs": [
+            {
+              "source_id": "src_247e882781de4164a518683f4057ca97",
+              "quote": "Пользователь может отменить заявку до исполнения.",
+              "start": 48,
+              "end": 97
+            }
+          ]
+        },
+        {
+          "id": "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+          "text": "Новая заявка не согласована, не исполнена и не отменена.",
+          "source_refs": [
+            {
+              "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+              "quote": "Новая заявка не согласована, не исполнена и не отменена.",
+              "start": 0,
+              "end": 56
+            }
+          ]
+        },
+        {
+          "id": "req_8b6406e04cd0599a8fa8929c9d463690",
+          "text": "Согласование ставит признак approved=true.",
+          "source_refs": [
+            {
+              "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+              "quote": "Согласование ставит признак approved=true.",
+              "start": 57,
+              "end": 99
+            }
+          ]
+        },
+        {
+          "id": "req_9ed80b9077e958618a6dc242ec892363",
+          "text": "Отмена ставит cancelled=true и не меняет approved.",
+          "source_refs": [
+            {
+              "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+              "quote": "Отмена ставит cancelled=true и не меняет approved.",
+              "start": 100,
+              "end": 150
+            }
+          ]
+        },
+        {
+          "id": "req_2577827fa41e5329974d39a154034a16",
+          "text": "Исполнение разрешено, только если approved=true и cancelled=false, и ставит executed=true.",
+          "source_refs": [
+            {
+              "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+              "quote": "Исполнение разрешено, если approved=true, и ставит executed=true.",
+              "start": 151,
+              "end": 216
+            },
+            {
+              "source_id": "answer_ecfdacaca8fa42cc90b9c3a2afff42b1",
+              "quote": "Исправляю правило исполнения: исполнение разрешено, только если approved=true и cancelled=false.",
+              "start": 0,
+              "end": 96
+            }
+          ]
+        },
+        {
+          "id": "req_85c1252acab25959a5ef1adc704cddcb",
+          "text": "Нужно проверить, что отменённая заявка не может быть исполнена.",
+          "source_refs": [
+            {
+              "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+              "quote": "Нужно проверить, что отменённая заявка не может быть исполнена.",
+              "start": 217,
+              "end": 280
+            }
+          ]
+        },
+        {
+          "id": "req_ebcd0ab52bd25c58bb7adca2699617dd",
+          "text": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена.",
+          "source_refs": [
+            {
+              "source_id": "answer_58b2a868b01047e19e6060abdde2246f",
+              "quote": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена.",
+              "start": 0,
+              "end": 81
+            }
+          ]
+        }
+      ],
+      "entities": [
+        {
+          "text": "Заявка",
+          "quote": "Заявка после согласования может быть исполнена."
+        }
+      ],
+      "participants": [
+        {
+          "text": "Пользователь",
+          "quote": "Пользователь может отменить заявку до исполнения."
+        }
+      ],
+      "variables": [
+        {
+          "id": "approved",
+          "name": "Заявка согласована",
+          "requirement_ids": [
+            "req_16effb30bf4b5d988fb7f51a8a7debb2",
+            "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+            "req_8b6406e04cd0599a8fa8929c9d463690",
+            "req_9ed80b9077e958618a6dc242ec892363",
+            "req_2577827fa41e5329974d39a154034a16",
+            "req_ebcd0ab52bd25c58bb7adca2699617dd"
+          ],
+          "domain": {
+            "kind": "boolean"
+          },
+          "initial_value": false,
+          "quote": "Новая заявка не согласована, не исполнена и не отменена."
+        },
+        {
+          "id": "executed",
+          "name": "Заявка исполнена",
+          "requirement_ids": [
+            "req_16effb30bf4b5d988fb7f51a8a7debb2",
+            "req_9480c52e89c853dbbaaae00d602d2778",
+            "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+            "req_2577827fa41e5329974d39a154034a16",
+            "req_85c1252acab25959a5ef1adc704cddcb",
+            "req_ebcd0ab52bd25c58bb7adca2699617dd"
+          ],
+          "domain": {
+            "kind": "boolean"
+          },
+          "initial_value": false,
+          "quote": "Новая заявка не согласована, не исполнена и не отменена."
+        },
+        {
+          "id": "cancelled",
+          "name": "Заявка отменена",
+          "requirement_ids": [
+            "req_9480c52e89c853dbbaaae00d602d2778",
+            "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+            "req_9ed80b9077e958618a6dc242ec892363",
+            "req_2577827fa41e5329974d39a154034a16",
+            "req_85c1252acab25959a5ef1adc704cddcb",
+            "req_ebcd0ab52bd25c58bb7adca2699617dd"
+          ],
+          "domain": {
+            "kind": "boolean"
+          },
+          "initial_value": false,
+          "quote": "Новая заявка не согласована, не исполнена и не отменена."
+        }
+      ],
+      "initial_state": [
+        {
+          "text": "Новая заявка не согласована, не исполнена и не отменена.",
+          "quote": "Новая заявка не согласована, не исполнена и не отменена."
+        }
+      ],
+      "events": [
+        {
+          "id": "execute",
+          "name": "Исполнить заявку",
+          "requirement_ids": [
+            "req_16effb30bf4b5d988fb7f51a8a7debb2",
+            "req_2577827fa41e5329974d39a154034a16"
+          ],
+          "guard": {
+            "kind": "binary",
+            "op": "and",
+            "left": {
+              "kind": "variable",
+              "name": "approved"
+            },
+            "right": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "variable",
+                "name": "cancelled"
+              }
+            }
+          },
+          "effects": [
+            {
+              "variable": "executed",
+              "value": {
+                "kind": "literal",
+                "value": true
+              }
+            }
+          ],
+          "quote": "Исправляю правило исполнения: исполнение разрешено, только если approved=true и cancelled=false."
+        },
+        {
+          "id": "cancel",
+          "name": "Пользователь отменяет заявку",
+          "requirement_ids": [
+            "req_9480c52e89c853dbbaaae00d602d2778",
+            "req_9ed80b9077e958618a6dc242ec892363"
+          ],
+          "guard": {
+            "kind": "unary",
+            "op": "not",
+            "operand": {
+              "kind": "variable",
+              "name": "executed"
+            }
+          },
+          "effects": [
+            {
+              "variable": "cancelled",
+              "value": {
+                "kind": "literal",
+                "value": true
+              }
+            }
+          ],
+          "quote": "Пользователь может отменить заявку до исполнения."
+        },
+        {
+          "id": "approve",
+          "name": "Согласовать заявку",
+          "requirement_ids": [
+            "req_8b6406e04cd0599a8fa8929c9d463690",
+            "req_ebcd0ab52bd25c58bb7adca2699617dd"
+          ],
+          "guard": {
+            "kind": "binary",
+            "op": "and",
+            "left": {
+              "kind": "binary",
+              "op": "and",
+              "left": {
+                "kind": "unary",
+                "op": "not",
+                "operand": {
+                  "kind": "variable",
+                  "name": "approved"
+                }
+              },
+              "right": {
+                "kind": "unary",
+                "op": "not",
+                "operand": {
+                  "kind": "variable",
+                  "name": "cancelled"
+                }
+              }
+            },
+            "right": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "variable",
+                "name": "executed"
+              }
+            }
+          },
+          "effects": [
+            {
+              "variable": "approved",
+              "value": {
+                "kind": "literal",
+                "value": true
+              }
+            }
+          ],
+          "quote": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена."
+        }
+      ],
+      "properties": [
+        {
+          "id": "cancelled_not_executed",
+          "name": "Отменённая заявка не исполнена",
+          "requirement_ids": [
+            "req_85c1252acab25959a5ef1adc704cddcb"
+          ],
+          "kind": "invariant",
+          "predicate": {
+            "kind": "unary",
+            "op": "not",
+            "operand": {
+              "kind": "binary",
+              "op": "and",
+              "left": {
+                "kind": "variable",
+                "name": "cancelled"
+              },
+              "right": {
+                "kind": "variable",
+                "name": "executed"
+              }
+            }
+          },
+          "quote": "Нужно проверить, что отменённая заявка не может быть исполнена.",
+          "explanation": "Отменённая заявка не должна оказаться исполненной.",
+          "origin": "requirement",
+          "assumption": null
+        }
+      ],
+      "assumptions": [],
+      "contradictions": [],
+      "source": {
+        "id": "src_247e882781de4164a518683f4057ca97",
+        "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+        "kind": "text",
+        "text": "Заявка после согласования может быть исполнена. Пользователь может отменить заявку до исполнения."
+      },
+      "missing_information": [],
+      "behavior": {
+        "schema_version": "1.0",
+        "name": "Заявка",
+        "sources": [
+          {
+            "id": "src_247e882781de4164a518683f4057ca97",
+            "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+            "kind": "text",
+            "text": "Заявка после согласования может быть исполнена. Пользователь может отменить заявку до исполнения."
+          },
+          {
+            "id": "answer_b33748a5671d44f1adb3f937862652a0",
+            "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+            "kind": "text",
+            "text": "Новая заявка не согласована, не исполнена и не отменена. Согласование ставит признак approved=true. Отмена ставит cancelled=true и не меняет approved. Исполнение разрешено, если approved=true, и ставит executed=true. Нужно проверить, что отменённая заявка не может быть исполнена."
+          },
+          {
+            "id": "answer_58b2a868b01047e19e6060abdde2246f",
+            "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+            "kind": "text",
+            "text": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена."
+          },
+          {
+            "id": "answer_ecfdacaca8fa42cc90b9c3a2afff42b1",
+            "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+            "kind": "text",
+            "text": "Исправляю правило исполнения: исполнение разрешено, только если approved=true и cancelled=false."
+          }
+        ],
+        "requirements": [
+          {
+            "id": "req_16effb30bf4b5d988fb7f51a8a7debb2",
+            "text": "Заявка после согласования может быть исполнена.",
+            "source_refs": [
+              {
+                "source_id": "src_247e882781de4164a518683f4057ca97",
+                "quote": "Заявка после согласования может быть исполнена.",
+                "start": 0,
+                "end": 47
+              }
+            ]
+          },
+          {
+            "id": "req_9480c52e89c853dbbaaae00d602d2778",
+            "text": "Пользователь может отменить заявку до исполнения.",
+            "source_refs": [
+              {
+                "source_id": "src_247e882781de4164a518683f4057ca97",
+                "quote": "Пользователь может отменить заявку до исполнения.",
+                "start": 48,
+                "end": 97
+              }
+            ]
+          },
+          {
+            "id": "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+            "text": "Новая заявка не согласована, не исполнена и не отменена.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Новая заявка не согласована, не исполнена и не отменена.",
+                "start": 0,
+                "end": 56
+              }
+            ]
+          },
+          {
+            "id": "req_8b6406e04cd0599a8fa8929c9d463690",
+            "text": "Согласование ставит признак approved=true.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Согласование ставит признак approved=true.",
+                "start": 57,
+                "end": 99
+              }
+            ]
+          },
+          {
+            "id": "req_9ed80b9077e958618a6dc242ec892363",
+            "text": "Отмена ставит cancelled=true и не меняет approved.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Отмена ставит cancelled=true и не меняет approved.",
+                "start": 100,
+                "end": 150
+              }
+            ]
+          },
+          {
+            "id": "req_2577827fa41e5329974d39a154034a16",
+            "text": "Исполнение разрешено, только если approved=true и cancelled=false, и ставит executed=true.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Исполнение разрешено, если approved=true, и ставит executed=true.",
+                "start": 151,
+                "end": 216
+              },
+              {
+                "source_id": "answer_ecfdacaca8fa42cc90b9c3a2afff42b1",
+                "quote": "Исправляю правило исполнения: исполнение разрешено, только если approved=true и cancelled=false.",
+                "start": 0,
+                "end": 96
+              }
+            ]
+          },
+          {
+            "id": "req_85c1252acab25959a5ef1adc704cddcb",
+            "text": "Нужно проверить, что отменённая заявка не может быть исполнена.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Нужно проверить, что отменённая заявка не может быть исполнена.",
+                "start": 217,
+                "end": 280
+              }
+            ]
+          },
+          {
+            "id": "req_ebcd0ab52bd25c58bb7adca2699617dd",
+            "text": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена.",
+            "source_refs": [
+              {
+                "source_id": "answer_58b2a868b01047e19e6060abdde2246f",
+                "quote": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена.",
+                "start": 0,
+                "end": 81
+              }
+            ]
+          }
+        ],
+        "variables": [
+          {
+            "id": "approved",
+            "name": "Заявка согласована",
+            "requirement_ids": [
+              "req_16effb30bf4b5d988fb7f51a8a7debb2",
+              "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+              "req_8b6406e04cd0599a8fa8929c9d463690",
+              "req_9ed80b9077e958618a6dc242ec892363",
+              "req_2577827fa41e5329974d39a154034a16",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "domain": {
+              "kind": "boolean"
+            },
+            "initial_value": false
+          },
+          {
+            "id": "executed",
+            "name": "Заявка исполнена",
+            "requirement_ids": [
+              "req_16effb30bf4b5d988fb7f51a8a7debb2",
+              "req_9480c52e89c853dbbaaae00d602d2778",
+              "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+              "req_2577827fa41e5329974d39a154034a16",
+              "req_85c1252acab25959a5ef1adc704cddcb",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "domain": {
+              "kind": "boolean"
+            },
+            "initial_value": false
+          },
+          {
+            "id": "cancelled",
+            "name": "Заявка отменена",
+            "requirement_ids": [
+              "req_9480c52e89c853dbbaaae00d602d2778",
+              "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+              "req_9ed80b9077e958618a6dc242ec892363",
+              "req_2577827fa41e5329974d39a154034a16",
+              "req_85c1252acab25959a5ef1adc704cddcb",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "domain": {
+              "kind": "boolean"
+            },
+            "initial_value": false
+          }
+        ],
+        "transitions": [
+          {
+            "id": "execute",
+            "name": "Исполнить заявку",
+            "requirement_ids": [
+              "req_16effb30bf4b5d988fb7f51a8a7debb2",
+              "req_2577827fa41e5329974d39a154034a16"
+            ],
+            "guard": {
+              "kind": "binary",
+              "op": "and",
+              "left": {
+                "kind": "variable",
+                "name": "approved"
+              },
+              "right": {
+                "kind": "unary",
+                "op": "not",
+                "operand": {
+                  "kind": "variable",
+                  "name": "cancelled"
+                }
+              }
+            },
+            "effects": [
+              {
+                "variable": "executed",
+                "value": {
+                  "kind": "literal",
+                  "value": true
+                }
+              }
+            ]
+          },
+          {
+            "id": "cancel",
+            "name": "Пользователь отменяет заявку",
+            "requirement_ids": [
+              "req_9480c52e89c853dbbaaae00d602d2778",
+              "req_9ed80b9077e958618a6dc242ec892363"
+            ],
+            "guard": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "variable",
+                "name": "executed"
+              }
+            },
+            "effects": [
+              {
+                "variable": "cancelled",
+                "value": {
+                  "kind": "literal",
+                  "value": true
+                }
+              }
+            ]
+          },
+          {
+            "id": "approve",
+            "name": "Согласовать заявку",
+            "requirement_ids": [
+              "req_8b6406e04cd0599a8fa8929c9d463690",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "guard": {
+              "kind": "binary",
+              "op": "and",
+              "left": {
+                "kind": "binary",
+                "op": "and",
+                "left": {
+                  "kind": "unary",
+                  "op": "not",
+                  "operand": {
+                    "kind": "variable",
+                    "name": "approved"
+                  }
+                },
+                "right": {
+                  "kind": "unary",
+                  "op": "not",
+                  "operand": {
+                    "kind": "variable",
+                    "name": "cancelled"
+                  }
+                }
+              },
+              "right": {
+                "kind": "unary",
+                "op": "not",
+                "operand": {
+                  "kind": "variable",
+                  "name": "executed"
+                }
+              }
+            },
+            "effects": [
+              {
+                "variable": "approved",
+                "value": {
+                  "kind": "literal",
+                  "value": true
+                }
+              }
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "id": "cancelled_not_executed",
+            "name": "Отменённая заявка не исполнена",
+            "requirement_ids": [
+              "req_85c1252acab25959a5ef1adc704cddcb"
+            ],
+            "kind": "invariant",
+            "predicate": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "binary",
+                "op": "and",
+                "left": {
+                  "kind": "variable",
+                  "name": "cancelled"
+                },
+                "right": {
+                  "kind": "variable",
+                  "name": "executed"
+                }
+              }
+            },
+            "explanation": "Отменённая заявка не должна оказаться исполненной.",
+            "origin": "requirement",
+            "approved_by": null
+          }
+        ]
+      },
+      "model_issues": []
+    },
+    "model": {
+      "model_id": "m_c3f4c3f52f02428da7aa5062bf8cedb2",
+      "version_id": "v_cc17d5df03724e3a9b7fc12408551160",
+      "number": 2,
+      "spec_hash": "da862ef07f9780fc32e817b8dc141033c6dd2dde92eaf355092b5874de58a5b9"
+    },
+    "pending": null,
+    "entries": [
+      {
+        "id": "recorded:agent_37317ac52abb4a20b7e21e27051b8fcc:user",
+        "sequence": 0,
+        "created_at": "",
+        "kind": "user",
+        "text": "Заявка после согласования может быть исполнена. Пользователь может отменить заявку до исполнения.",
+        "source_id": "src_247e882781de4164a518683f4057ca97",
+        "question_id": null,
+        "status": "processed"
+      },
+      {
+        "id": "recorded:agent_37317ac52abb4a20b7e21e27051b8fcc:assistant",
+        "sequence": 1,
+        "created_at": "",
+        "kind": "assistant",
+        "text": "Понял: заявку можно исполнить после согласования, а пользователь может отменить её до исполнения. Для продолжения нужно уточнить начальное состояние заявки.",
+        "questions": [
+          {
+            "text": "В каком состоянии заявка в начале процесса: она уже согласована, исполнена или отменена?",
+            "reason": "Начальное состояние заявки не указано, поэтому модель пока нельзя определить.",
+            "kind": "missing",
+            "assumption": null,
+            "id": "q_65a3a359f5865c4ab1afa217b2274145",
+            "status": "open",
+            "answer_source_id": null
+          }
+        ]
+      },
+      {
+        "id": "recorded:agent_b03240f62887411ca48f7eb4dad8b222:user",
+        "sequence": 2,
+        "created_at": "",
+        "kind": "user",
+        "text": "Новая заявка не согласована, не исполнена и не отменена. Согласование ставит признак approved=true. Отмена ставит cancelled=true и не меняет approved. Исполнение разрешено, если approved=true, и ставит executed=true. Нужно проверить, что отменённая заявка не может быть исполнена.",
+        "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+        "question_id": "q_65a3a359f5865c4ab1afa217b2274145",
+        "status": "processed"
+      },
+      {
+        "id": "recorded:agent_b03240f62887411ca48f7eb4dad8b222:assistant",
+        "sequence": 3,
+        "created_at": "",
+        "kind": "assistant",
+        "text": "Начальное состояние и действия добавлены; правило об отменённой заявке выделено для проверки. Осталось уточнить условия согласования.",
+        "questions": [
+          {
+            "text": "При каких условиях можно согласовать заявку?",
+            "reason": "Условие доступности согласования не указано; оно необходимо для модели.",
+            "kind": "missing",
+            "assumption": null,
+            "id": "q_4a75745a7aca5ccc9a3fd3c8e866c5cf",
+            "status": "open",
+            "answer_source_id": null
+          }
+        ]
+      },
+      {
+        "id": "recorded:agent_282ad75ac41f42358f75e183c144ede2:user",
+        "sequence": 4,
+        "created_at": "",
+        "kind": "user",
+        "text": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена.",
+        "source_id": "answer_58b2a868b01047e19e6060abdde2246f",
+        "question_id": "q_4a75745a7aca5ccc9a3fd3c8e866c5cf",
+        "status": "processed"
+      },
+      {
+        "id": "recorded:agent_282ad75ac41f42358f75e183c144ede2:assistant",
+        "sequence": 5,
+        "created_at": "",
+        "kind": "assistant",
+        "text": "Условие согласования добавлено: заявка ещё не согласована, не отменена и не исполнена. Открытых вопросов не осталось; модель можно подготовить к проверке.",
+        "questions": []
+      },
+      {
+        "id": "recorded:agent_d07fbd9442664e4abaa4167690db26c5:user",
+        "sequence": 6,
+        "created_at": "",
+        "kind": "user",
+        "text": "Объясни найденный контрпример.",
+        "source_id": null,
+        "question_id": null,
+        "status": "processed"
+      },
+      {
+        "id": "recorded:agent_d07fbd9442664e4abaa4167690db26c5:assistant",
+        "sequence": 7,
+        "created_at": "",
+        "kind": "assistant",
+        "text": "Проверка нашла такую последовательность: новую заявку согласовали, затем отменили и после этого исполнили. Отмена сохраняет признак согласования, а для исполнения в модели достаточно этого признака. Поэтому отменённая заявка оказалась исполненной, что нарушает заданное правило. Уточнение правила исполнения остаётся открытым.",
+        "questions": []
+      },
+      {
+        "id": "recorded:agent_4c2f97879d174c5d9873a68c642387e1:user",
+        "sequence": 8,
+        "created_at": "",
+        "kind": "user",
+        "text": "Исправляю правило исполнения: исполнение разрешено, только если approved=true и cancelled=false.",
+        "source_id": "answer_ecfdacaca8fa42cc90b9c3a2afff42b1",
+        "question_id": null,
+        "status": "processed"
+      },
+      {
+        "id": "recorded:agent_4c2f97879d174c5d9873a68c642387e1:assistant",
+        "sequence": 9,
+        "created_at": "",
+        "kind": "assistant",
+        "text": "Условие исполнения обновлено: заявка должна быть согласована и не отменена. Изменённую модель ещё нужно проверить.",
+        "questions": []
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "m_c3f4c3f52f02428da7aa5062bf8cedb2",
+      "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+      "name": "Заявка"
+    }
+  ],
+  "versions": [
+    {
+      "id": "v_3c5fb8bd5d2f43abb648983d59cf956c",
+      "model_id": "m_c3f4c3f52f02428da7aa5062bf8cedb2",
+      "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+      "number": 1,
+      "parent_id": null,
+      "spec": {
+        "schema_version": "1.0",
+        "name": "Заявка",
+        "sources": [
+          {
+            "id": "src_247e882781de4164a518683f4057ca97",
+            "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+            "kind": "text",
+            "text": "Заявка после согласования может быть исполнена. Пользователь может отменить заявку до исполнения."
+          },
+          {
+            "id": "answer_b33748a5671d44f1adb3f937862652a0",
+            "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+            "kind": "text",
+            "text": "Новая заявка не согласована, не исполнена и не отменена. Согласование ставит признак approved=true. Отмена ставит cancelled=true и не меняет approved. Исполнение разрешено, если approved=true, и ставит executed=true. Нужно проверить, что отменённая заявка не может быть исполнена."
+          },
+          {
+            "id": "answer_58b2a868b01047e19e6060abdde2246f",
+            "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+            "kind": "text",
+            "text": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена."
+          }
+        ],
+        "requirements": [
+          {
+            "id": "req_16effb30bf4b5d988fb7f51a8a7debb2",
+            "text": "Заявка после согласования может быть исполнена.",
+            "source_refs": [
+              {
+                "source_id": "src_247e882781de4164a518683f4057ca97",
+                "quote": "Заявка после согласования может быть исполнена.",
+                "start": 0,
+                "end": 47
+              }
+            ]
+          },
+          {
+            "id": "req_9480c52e89c853dbbaaae00d602d2778",
+            "text": "Пользователь может отменить заявку до исполнения.",
+            "source_refs": [
+              {
+                "source_id": "src_247e882781de4164a518683f4057ca97",
+                "quote": "Пользователь может отменить заявку до исполнения.",
+                "start": 48,
+                "end": 97
+              }
+            ]
+          },
+          {
+            "id": "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+            "text": "Новая заявка не согласована, не исполнена и не отменена.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Новая заявка не согласована, не исполнена и не отменена.",
+                "start": 0,
+                "end": 56
+              }
+            ]
+          },
+          {
+            "id": "req_8b6406e04cd0599a8fa8929c9d463690",
+            "text": "Согласование ставит признак approved=true.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Согласование ставит признак approved=true.",
+                "start": 57,
+                "end": 99
+              }
+            ]
+          },
+          {
+            "id": "req_9ed80b9077e958618a6dc242ec892363",
+            "text": "Отмена ставит cancelled=true и не меняет approved.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Отмена ставит cancelled=true и не меняет approved.",
+                "start": 100,
+                "end": 150
+              }
+            ]
+          },
+          {
+            "id": "req_30e84f315f7751b2b1afc41ac9a24ff9",
+            "text": "Исполнение разрешено, если approved=true, и ставит executed=true.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Исполнение разрешено, если approved=true, и ставит executed=true.",
+                "start": 151,
+                "end": 216
+              }
+            ]
+          },
+          {
+            "id": "req_85c1252acab25959a5ef1adc704cddcb",
+            "text": "Нужно проверить, что отменённая заявка не может быть исполнена.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Нужно проверить, что отменённая заявка не может быть исполнена.",
+                "start": 217,
+                "end": 280
+              }
+            ]
+          },
+          {
+            "id": "req_ebcd0ab52bd25c58bb7adca2699617dd",
+            "text": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена.",
+            "source_refs": [
+              {
+                "source_id": "answer_58b2a868b01047e19e6060abdde2246f",
+                "quote": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена.",
+                "start": 0,
+                "end": 81
+              }
+            ]
+          }
+        ],
+        "variables": [
+          {
+            "id": "approved",
+            "name": "Заявка согласована",
+            "requirement_ids": [
+              "req_16effb30bf4b5d988fb7f51a8a7debb2",
+              "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+              "req_8b6406e04cd0599a8fa8929c9d463690",
+              "req_9ed80b9077e958618a6dc242ec892363",
+              "req_30e84f315f7751b2b1afc41ac9a24ff9",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "domain": {
+              "kind": "boolean"
+            },
+            "initial_value": false
+          },
+          {
+            "id": "executed",
+            "name": "Заявка исполнена",
+            "requirement_ids": [
+              "req_16effb30bf4b5d988fb7f51a8a7debb2",
+              "req_9480c52e89c853dbbaaae00d602d2778",
+              "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+              "req_30e84f315f7751b2b1afc41ac9a24ff9",
+              "req_85c1252acab25959a5ef1adc704cddcb",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "domain": {
+              "kind": "boolean"
+            },
+            "initial_value": false
+          },
+          {
+            "id": "cancelled",
+            "name": "Заявка отменена",
+            "requirement_ids": [
+              "req_9480c52e89c853dbbaaae00d602d2778",
+              "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+              "req_9ed80b9077e958618a6dc242ec892363",
+              "req_85c1252acab25959a5ef1adc704cddcb",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "domain": {
+              "kind": "boolean"
+            },
+            "initial_value": false
+          }
+        ],
+        "transitions": [
+          {
+            "id": "execute",
+            "name": "Исполнить заявку",
+            "requirement_ids": [
+              "req_16effb30bf4b5d988fb7f51a8a7debb2",
+              "req_30e84f315f7751b2b1afc41ac9a24ff9"
+            ],
+            "guard": {
+              "kind": "variable",
+              "name": "approved"
+            },
+            "effects": [
+              {
+                "variable": "executed",
+                "value": {
+                  "kind": "literal",
+                  "value": true
+                }
+              }
+            ]
+          },
+          {
+            "id": "cancel",
+            "name": "Пользователь отменяет заявку",
+            "requirement_ids": [
+              "req_9480c52e89c853dbbaaae00d602d2778",
+              "req_9ed80b9077e958618a6dc242ec892363"
+            ],
+            "guard": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "variable",
+                "name": "executed"
+              }
+            },
+            "effects": [
+              {
+                "variable": "cancelled",
+                "value": {
+                  "kind": "literal",
+                  "value": true
+                }
+              }
+            ]
+          },
+          {
+            "id": "approve",
+            "name": "Согласовать заявку",
+            "requirement_ids": [
+              "req_8b6406e04cd0599a8fa8929c9d463690",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "guard": {
+              "kind": "binary",
+              "op": "and",
+              "left": {
+                "kind": "binary",
+                "op": "and",
+                "left": {
+                  "kind": "unary",
+                  "op": "not",
+                  "operand": {
+                    "kind": "variable",
+                    "name": "approved"
+                  }
+                },
+                "right": {
+                  "kind": "unary",
+                  "op": "not",
+                  "operand": {
+                    "kind": "variable",
+                    "name": "cancelled"
+                  }
+                }
+              },
+              "right": {
+                "kind": "unary",
+                "op": "not",
+                "operand": {
+                  "kind": "variable",
+                  "name": "executed"
+                }
+              }
+            },
+            "effects": [
+              {
+                "variable": "approved",
+                "value": {
+                  "kind": "literal",
+                  "value": true
+                }
+              }
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "id": "cancelled_not_executed",
+            "name": "Отменённая заявка не исполнена",
+            "requirement_ids": [
+              "req_85c1252acab25959a5ef1adc704cddcb"
+            ],
+            "kind": "invariant",
+            "predicate": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "binary",
+                "op": "and",
+                "left": {
+                  "kind": "variable",
+                  "name": "cancelled"
+                },
+                "right": {
+                  "kind": "variable",
+                  "name": "executed"
+                }
+              }
+            },
+            "explanation": "Отменённая заявка не должна оказаться исполненной.",
+            "origin": "requirement",
+            "approved_by": null
+          }
+        ]
+      },
+      "spec_hash": "a1d78eb4082ad877afa29f7e6c257e3545eafc6ae9a34de4b8fea4395260c384",
+      "approved": false
+    },
+    {
+      "id": "v_cc17d5df03724e3a9b7fc12408551160",
+      "model_id": "m_c3f4c3f52f02428da7aa5062bf8cedb2",
+      "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+      "number": 2,
+      "parent_id": "v_3c5fb8bd5d2f43abb648983d59cf956c",
+      "spec": {
+        "schema_version": "1.0",
+        "name": "Заявка",
+        "sources": [
+          {
+            "id": "src_247e882781de4164a518683f4057ca97",
+            "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+            "kind": "text",
+            "text": "Заявка после согласования может быть исполнена. Пользователь может отменить заявку до исполнения."
+          },
+          {
+            "id": "answer_b33748a5671d44f1adb3f937862652a0",
+            "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+            "kind": "text",
+            "text": "Новая заявка не согласована, не исполнена и не отменена. Согласование ставит признак approved=true. Отмена ставит cancelled=true и не меняет approved. Исполнение разрешено, если approved=true, и ставит executed=true. Нужно проверить, что отменённая заявка не может быть исполнена."
+          },
+          {
+            "id": "answer_58b2a868b01047e19e6060abdde2246f",
+            "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+            "kind": "text",
+            "text": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена."
+          },
+          {
+            "id": "answer_ecfdacaca8fa42cc90b9c3a2afff42b1",
+            "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+            "kind": "text",
+            "text": "Исправляю правило исполнения: исполнение разрешено, только если approved=true и cancelled=false."
+          }
+        ],
+        "requirements": [
+          {
+            "id": "req_16effb30bf4b5d988fb7f51a8a7debb2",
+            "text": "Заявка после согласования может быть исполнена.",
+            "source_refs": [
+              {
+                "source_id": "src_247e882781de4164a518683f4057ca97",
+                "quote": "Заявка после согласования может быть исполнена.",
+                "start": 0,
+                "end": 47
+              }
+            ]
+          },
+          {
+            "id": "req_9480c52e89c853dbbaaae00d602d2778",
+            "text": "Пользователь может отменить заявку до исполнения.",
+            "source_refs": [
+              {
+                "source_id": "src_247e882781de4164a518683f4057ca97",
+                "quote": "Пользователь может отменить заявку до исполнения.",
+                "start": 48,
+                "end": 97
+              }
+            ]
+          },
+          {
+            "id": "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+            "text": "Новая заявка не согласована, не исполнена и не отменена.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Новая заявка не согласована, не исполнена и не отменена.",
+                "start": 0,
+                "end": 56
+              }
+            ]
+          },
+          {
+            "id": "req_8b6406e04cd0599a8fa8929c9d463690",
+            "text": "Согласование ставит признак approved=true.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Согласование ставит признак approved=true.",
+                "start": 57,
+                "end": 99
+              }
+            ]
+          },
+          {
+            "id": "req_9ed80b9077e958618a6dc242ec892363",
+            "text": "Отмена ставит cancelled=true и не меняет approved.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Отмена ставит cancelled=true и не меняет approved.",
+                "start": 100,
+                "end": 150
+              }
+            ]
+          },
+          {
+            "id": "req_2577827fa41e5329974d39a154034a16",
+            "text": "Исполнение разрешено, только если approved=true и cancelled=false, и ставит executed=true.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Исполнение разрешено, если approved=true, и ставит executed=true.",
+                "start": 151,
+                "end": 216
+              },
+              {
+                "source_id": "answer_ecfdacaca8fa42cc90b9c3a2afff42b1",
+                "quote": "Исправляю правило исполнения: исполнение разрешено, только если approved=true и cancelled=false.",
+                "start": 0,
+                "end": 96
+              }
+            ]
+          },
+          {
+            "id": "req_85c1252acab25959a5ef1adc704cddcb",
+            "text": "Нужно проверить, что отменённая заявка не может быть исполнена.",
+            "source_refs": [
+              {
+                "source_id": "answer_b33748a5671d44f1adb3f937862652a0",
+                "quote": "Нужно проверить, что отменённая заявка не может быть исполнена.",
+                "start": 217,
+                "end": 280
+              }
+            ]
+          },
+          {
+            "id": "req_ebcd0ab52bd25c58bb7adca2699617dd",
+            "text": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена.",
+            "source_refs": [
+              {
+                "source_id": "answer_58b2a868b01047e19e6060abdde2246f",
+                "quote": "Согласовать можно заявку, которая ещё не согласована, не отменена и не исполнена.",
+                "start": 0,
+                "end": 81
+              }
+            ]
+          }
+        ],
+        "variables": [
+          {
+            "id": "approved",
+            "name": "Заявка согласована",
+            "requirement_ids": [
+              "req_16effb30bf4b5d988fb7f51a8a7debb2",
+              "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+              "req_8b6406e04cd0599a8fa8929c9d463690",
+              "req_9ed80b9077e958618a6dc242ec892363",
+              "req_2577827fa41e5329974d39a154034a16",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "domain": {
+              "kind": "boolean"
+            },
+            "initial_value": false
+          },
+          {
+            "id": "executed",
+            "name": "Заявка исполнена",
+            "requirement_ids": [
+              "req_16effb30bf4b5d988fb7f51a8a7debb2",
+              "req_9480c52e89c853dbbaaae00d602d2778",
+              "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+              "req_2577827fa41e5329974d39a154034a16",
+              "req_85c1252acab25959a5ef1adc704cddcb",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "domain": {
+              "kind": "boolean"
+            },
+            "initial_value": false
+          },
+          {
+            "id": "cancelled",
+            "name": "Заявка отменена",
+            "requirement_ids": [
+              "req_9480c52e89c853dbbaaae00d602d2778",
+              "req_a4a2138b584b5f2bb1a4601d7af7ef19",
+              "req_9ed80b9077e958618a6dc242ec892363",
+              "req_2577827fa41e5329974d39a154034a16",
+              "req_85c1252acab25959a5ef1adc704cddcb",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "domain": {
+              "kind": "boolean"
+            },
+            "initial_value": false
+          }
+        ],
+        "transitions": [
+          {
+            "id": "execute",
+            "name": "Исполнить заявку",
+            "requirement_ids": [
+              "req_16effb30bf4b5d988fb7f51a8a7debb2",
+              "req_2577827fa41e5329974d39a154034a16"
+            ],
+            "guard": {
+              "kind": "binary",
+              "op": "and",
+              "left": {
+                "kind": "variable",
+                "name": "approved"
+              },
+              "right": {
+                "kind": "unary",
+                "op": "not",
+                "operand": {
+                  "kind": "variable",
+                  "name": "cancelled"
+                }
+              }
+            },
+            "effects": [
+              {
+                "variable": "executed",
+                "value": {
+                  "kind": "literal",
+                  "value": true
+                }
+              }
+            ]
+          },
+          {
+            "id": "cancel",
+            "name": "Пользователь отменяет заявку",
+            "requirement_ids": [
+              "req_9480c52e89c853dbbaaae00d602d2778",
+              "req_9ed80b9077e958618a6dc242ec892363"
+            ],
+            "guard": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "variable",
+                "name": "executed"
+              }
+            },
+            "effects": [
+              {
+                "variable": "cancelled",
+                "value": {
+                  "kind": "literal",
+                  "value": true
+                }
+              }
+            ]
+          },
+          {
+            "id": "approve",
+            "name": "Согласовать заявку",
+            "requirement_ids": [
+              "req_8b6406e04cd0599a8fa8929c9d463690",
+              "req_ebcd0ab52bd25c58bb7adca2699617dd"
+            ],
+            "guard": {
+              "kind": "binary",
+              "op": "and",
+              "left": {
+                "kind": "binary",
+                "op": "and",
+                "left": {
+                  "kind": "unary",
+                  "op": "not",
+                  "operand": {
+                    "kind": "variable",
+                    "name": "approved"
+                  }
+                },
+                "right": {
+                  "kind": "unary",
+                  "op": "not",
+                  "operand": {
+                    "kind": "variable",
+                    "name": "cancelled"
+                  }
+                }
+              },
+              "right": {
+                "kind": "unary",
+                "op": "not",
+                "operand": {
+                  "kind": "variable",
+                  "name": "executed"
+                }
+              }
+            },
+            "effects": [
+              {
+                "variable": "approved",
+                "value": {
+                  "kind": "literal",
+                  "value": true
+                }
+              }
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "id": "cancelled_not_executed",
+            "name": "Отменённая заявка не исполнена",
+            "requirement_ids": [
+              "req_85c1252acab25959a5ef1adc704cddcb"
+            ],
+            "kind": "invariant",
+            "predicate": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "binary",
+                "op": "and",
+                "left": {
+                  "kind": "variable",
+                  "name": "cancelled"
+                },
+                "right": {
+                  "kind": "variable",
+                  "name": "executed"
+                }
+              }
+            },
+            "explanation": "Отменённая заявка не должна оказаться исполненной.",
+            "origin": "requirement",
+            "approved_by": null
+          }
+        ]
+      },
+      "spec_hash": "da862ef07f9780fc32e817b8dc141033c6dd2dde92eaf355092b5874de58a5b9",
+      "approved": false
+    }
+  ],
+  "checks": [
+    {
+      "run": {
+        "run_id": "chk_3bbc64c191334c66a7345905d82edeba",
+        "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+        "state": "completed",
+        "version_id": "v_3c5fb8bd5d2f43abb648983d59cf956c",
+        "error_code": null
+      },
+      "results": [
+        {
+          "schema_version": "1.0",
+          "spec_hash": "a1d78eb4082ad877afa29f7e6c257e3545eafc6ae9a34de4b8fea4395260c384",
+          "version_id": "v_3c5fb8bd5d2f43abb648983d59cf956c",
+          "mode": "engine",
+          "executed": true,
+          "engine": {
+            "name": "TLC",
+            "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+          },
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "cancelled_not_executed",
+          "status": "PROPERTY_VIOLATED",
+          "conclusive": true,
+          "message": "Найдено нарушение за 3 шаг(ов)",
+          "trace": [
+            {
+              "number": 0,
+              "transition_id": null,
+              "state": {
+                "approved": false,
+                "executed": false,
+                "cancelled": false
+              }
+            },
+            {
+              "number": 1,
+              "transition_id": "approve",
+              "state": {
+                "approved": true,
+                "executed": false,
+                "cancelled": false
+              }
+            },
+            {
+              "number": 2,
+              "transition_id": "cancel",
+              "state": {
+                "approved": true,
+                "executed": false,
+                "cancelled": true
+              }
+            },
+            {
+              "number": 3,
+              "transition_id": "execute",
+              "state": {
+                "approved": true,
+                "executed": true,
+                "cancelled": true
+              }
+            }
+          ],
+          "statistics": {
+            "states_generated": 8,
+            "distinct_states": 6,
+            "depth": 3,
+            "elapsed_seconds": 0.277
+          },
+          "related_requirements": [
+            "req_16effb30bf4b5d988fb7f51a8a7debb2",
+            "req_9480c52e89c853dbbaaae00d602d2778",
+            "req_8b6406e04cd0599a8fa8929c9d463690",
+            "req_9ed80b9077e958618a6dc242ec892363",
+            "req_30e84f315f7751b2b1afc41ac9a24ff9",
+            "req_85c1252acab25959a5ef1adc704cddcb",
+            "req_ebcd0ab52bd25c58bb7adca2699617dd"
+          ]
+        }
+      ],
+      "explanation": {
+        "state": "ready",
+        "run_id": "exp_bd11ea02b15c4eb2bb6b437f6d7e506a",
+        "error_code": null,
+        "narrative": {
+          "summary": "Проверка нашла нарушение: отменённая заявка может оказаться исполненной.",
+          "properties": [
+            {
+              "property_id": "cancelled_not_executed",
+              "explanation": "Отмена сохраняет признак согласования, а исполнение в модели разрешено по этому признаку без проверки отмены. Поэтому после согласования и отмены заявку всё ещё можно исполнить.",
+              "steps": [
+                {
+                  "number": 0,
+                  "explanation": "Новая заявка не согласована, не исполнена и не отменена."
+                },
+                {
+                  "number": 1,
+                  "explanation": "Заявку согласовали."
+                },
+                {
+                  "number": 2,
+                  "explanation": "Пользователь отменил заявку; признак согласования сохранился."
+                },
+                {
+                  "number": 3,
+                  "explanation": "Заявку исполнили, хотя она отменена."
+                }
+              ],
+              "hypotheses": []
+            }
+          ],
+          "question": "Как вы хотите уточнить правило исполнения отменённой заявки?"
+        }
+      },
+      "events": [
+        {
+          "event_id": 1,
+          "run_id": "chk_3bbc64c191334c66a7345905d82edeba",
+          "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+          "type": "check_started",
+          "data": {
+            "check_run_id": "chk_3bbc64c191334c66a7345905d82edeba",
+            "version_id": "v_3c5fb8bd5d2f43abb648983d59cf956c"
+          }
+        },
+        {
+          "event_id": 2,
+          "run_id": "chk_3bbc64c191334c66a7345905d82edeba",
+          "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+          "type": "check_finished",
+          "data": {
+            "check_run_id": "chk_3bbc64c191334c66a7345905d82edeba",
+            "version_id": "v_3c5fb8bd5d2f43abb648983d59cf956c",
+            "results": [
+              {
+                "property_id": "cancelled_not_executed",
+                "status": "PROPERTY_VIOLATED",
+                "conclusive": true
+              }
+            ]
+          }
+        },
+        {
+          "event_id": 3,
+          "run_id": "chk_3bbc64c191334c66a7345905d82edeba",
+          "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+          "type": "explanation_queued",
+          "data": {
+            "check_run_id": "chk_3bbc64c191334c66a7345905d82edeba",
+            "explanation_run_id": "exp_bd11ea02b15c4eb2bb6b437f6d7e506a"
+          }
+        },
+        {
+          "event_id": 4,
+          "run_id": "chk_3bbc64c191334c66a7345905d82edeba",
+          "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+          "type": "run_finished",
+          "data": {
+            "state": "completed"
+          }
+        }
+      ],
+      "after_entry_id": "recorded:agent_282ad75ac41f42358f75e183c144ede2:assistant"
+    },
+    {
+      "run": {
+        "run_id": "chk_bb3859b00a4c4a41a6007cc591c94133",
+        "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+        "state": "completed",
+        "version_id": "v_cc17d5df03724e3a9b7fc12408551160",
+        "error_code": null
+      },
+      "results": [
+        {
+          "schema_version": "1.0",
+          "spec_hash": "da862ef07f9780fc32e817b8dc141033c6dd2dde92eaf355092b5874de58a5b9",
+          "version_id": "v_cc17d5df03724e3a9b7fc12408551160",
+          "mode": "engine",
+          "executed": true,
+          "engine": {
+            "name": "TLC",
+            "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+          },
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "cancelled_not_executed",
+          "status": "PROPERTY_HOLDS",
+          "conclusive": true,
+          "message": "Свойство выполняется: полностью исследовано 5 различных состояний",
+          "trace": [],
+          "statistics": {
+            "states_generated": 8,
+            "distinct_states": 5,
+            "depth": 2,
+            "elapsed_seconds": 0.251
+          },
+          "related_requirements": [
+            "req_85c1252acab25959a5ef1adc704cddcb"
+          ]
+        }
+      ],
+      "explanation": {
+        "state": "not_requested",
+        "run_id": null,
+        "error_code": null,
+        "narrative": null
+      },
+      "events": [
+        {
+          "event_id": 1,
+          "run_id": "chk_bb3859b00a4c4a41a6007cc591c94133",
+          "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+          "type": "check_started",
+          "data": {
+            "check_run_id": "chk_bb3859b00a4c4a41a6007cc591c94133",
+            "version_id": "v_cc17d5df03724e3a9b7fc12408551160"
+          }
+        },
+        {
+          "event_id": 2,
+          "run_id": "chk_bb3859b00a4c4a41a6007cc591c94133",
+          "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+          "type": "check_finished",
+          "data": {
+            "check_run_id": "chk_bb3859b00a4c4a41a6007cc591c94133",
+            "version_id": "v_cc17d5df03724e3a9b7fc12408551160",
+            "results": [
+              {
+                "property_id": "cancelled_not_executed",
+                "status": "PROPERTY_HOLDS",
+                "conclusive": true
+              }
+            ]
+          }
+        },
+        {
+          "event_id": 3,
+          "run_id": "chk_bb3859b00a4c4a41a6007cc591c94133",
+          "session_id": "s_2150ab13b0204f7c859631a3fae33150",
+          "type": "run_finished",
+          "data": {
+            "state": "completed"
+          }
+        }
+      ],
+      "after_entry_id": "recorded:agent_4c2f97879d174c5d9873a68c642387e1:assistant"
+    }
+  ]
+}
