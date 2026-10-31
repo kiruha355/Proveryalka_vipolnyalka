@@ -12,6 +12,7 @@ dependencies = [
     "uvicorn==0.34.2",
     "openai-agents==0.24.0",
     "python-dotenv==1.2.4",
+    "python-multipart==0.0.32",
 ]
 
 [project.optional-dependencies]
