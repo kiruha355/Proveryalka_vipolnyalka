@@ -29,7 +29,9 @@ def send(client,sid,ref,key='question'):
 
 def test_exact_old_file_context_is_saved_and_never_becomes_requirements(world):
     client,store,session,model,version,generation,ref,calls=world
-    before=store.get_session(session['id']);store.create_version(model['id'],{'spec':version['spec']},'newer')
+    before=store.get_session(session['id'])
+    newer=json.loads(json.dumps(version['spec']));newer['variables'][1]['initial_value']=True
+    store.create_version(model['id'],{'spec':newer},'newer')
     response=send(client,session['id'],ref);assert response.status_code==202,response.text
     run=response.json();assert wait_run(client,run['run_id'])['state']=='completed'
     assert send(client,session['id'],ref).json()['run_id']==run['run_id'] and len(calls)==1
@@ -37,6 +39,7 @@ def test_exact_old_file_context_is_saved_and_never_becomes_requirements(world):
     assert payload['selected_file']['generation_id']==generation['generation_id']
     assert hashlib.sha256(payload['untrusted_file']['content'].encode()).hexdigest()==ref['sha256']
     assert payload['selected_verification']['state']=='holds' and 'latest' not in payload
+    assert payload['selected_model']==version['spec'] and payload['selected_model']!=store.latest_version(model['id'])['spec']
     view=client.get(f"/api/sessions/{session['id']}/dialogue").json()
     assert view['status']=='not_started' and view['model'] is None and view['pending'] is None
     assert [e['kind'] for e in view['entries']]==['user','assistant']

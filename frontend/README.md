@@ -35,6 +35,7 @@ VITE_PROVERYALKA_ADAPTER=demo npm --prefix frontend run dev
 - Границы списка чатов и рабочей области перемещаются указателем или клавишами ←/→, Shift ускоряет, Home/End выбирают границы. Доли сохраняются; на узком экране работают переключатели панелей.
 - Граф можно развернуть отдельной кнопкой. Escape/«Закрыть диаграмму» возвращает прежний фокус; выбор и шаг трассы сохраняются. «Вписать граф» меняет масштаб.
 - Действия обсуждения контрпримера дополняют draft и переводят фокус в чат, без отправки или правки модели. Старый выбранный отчёт явно отделён в тексте от server latest; draft не затирается.
+- «Спросить агента о файле» сохраняет draft и контекст generation/version/path/SHA-256. После отдельной отправки сервер проверяет сохранённые байты и передаёт их агенту как недоверенные данные. Ответ и ссылка на точный файл сохраняются в `/dialogue.entries`; новые требования или версии ради объяснения не создаются. Доступны UTF-8 файлы до64КиБ. Контракт: `../reports/file-discussion-contract.md`.
 - Разрешение `allow_unverified` — существующая возможность генератора и отдельное продуктовое решение, ещё не принятое пользователем.
 
 ## Проверки
@@ -49,6 +50,6 @@ frontend-extensions/scripts/check-host-types.sh frontend
 PROVERYALKA_HTTP_TEST_URL=http://127.0.0.1:5294 npm --prefix frontend test -- src/api/live-http.test.ts
 ```
 
-На 31.10.2026: frontend 33 PASS; ранее отдельный live HTTP adapter scenario PASS (TLC bug→fixed, подтверждение, генерация, файлы/ZIP, Docker pytest 79 PASS). Extensions 107 PASS, typecheck/library/host types PASS. Backend 344 PASS с `PROVERYALKA_REQUIRE_TLC=1` и `PROVERYALKA_REQUIRE_SANDBOX=1`. Live test пропускается без `PROVERYALKA_HTTP_TEST_URL`; обычный unit/component набор не выдаётся за его результат.
+На 31.10.2026: frontend36PASS +1 opt-in HTTP test skipped; extensions108PASS, typecheck/library/host types/live+demo build PASS. Итоговый backend355PASS /48.38s с `PROVERYALKA_REQUIRE_TLC=1` и `PROVERYALKA_REQUIRE_SANDBOX=1`. Live adapter test пропускается без `PROVERYALKA_HTTP_TEST_URL`; его прежний отдельный прогон (TLC и Docker79PASS) остаётся отдельным evidence.
 
-Это разные уровни доказательств: jsdom/components, настоящий HTTP/TLC/Docker и автономные HTML-снимки. Полный browser + GPT + TLC + генерация пользовательский E2E в этом прогоне NOT_RUN. Серверный GPT-сценарий предыдущего исполнителя — отдельное supplied evidence. Визуальная приёмка пользователем pending.
+Main39 выполнил функциональный путь настоящим T3 Browser: исходный текст → адресные уточнения → v1 → ручной TLC counterexample+GPT explanation → явная правка → v2/HOLDS → подтверждение → codegen → файл/ZIP → вопрос GPT о файле → refresh → Docker54/54PASS. Receipt с ID/hash/запросами: `/Users/a/Proveryalka_vipolnyalka/reports/project-review-20261031/end-to-end-acceptance/receipt.md`. Native act/evaluate и durable backend receipts подтверждены; native screenshot/AX завершались timeout и не заменены автономным HTML-render. Визуальная приёмка пользователем pending. Предыдущая запись backend-acceptance и enum fixtures с текущей сессией не смешиваются.

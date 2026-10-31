@@ -20,3 +20,13 @@ DOCX UTF-16 DTD bypass воспроизведён и закрыт отдельн
 В demo добавлен отдельный настоящий пятиходовый GPT subscription transcript из supplied backend-acceptance; статусы, модели и отчёты принадлежат ему, fixture status-enum с ним не смешивается. Reimport: `python3 frontend/scripts/import-recorded-dialogue.py /path/to/backend-acceptance`. Provenance hashes сохранены в `recorded-dialogue.json`; backend timestamps отсутствуют и не выдуманы. Read-only checkcards размещены в порядке записанного сценария.
 
 Frontend33PASS, extensions107PASS, types/build/hosttypesPASS. Новых provider/TLC/Docker calls нет; прежние344backendPASS не являются новым запуском. before/after/expanded/recorded HTML/PNG и отдельный stable demo-dir — root reports/.../frontend-integration/revision-2/. Old demo-dist и4182/4183 сохранены. Browser walkthrough и пользовательская приёмка pending у root.
+
+## Вопрос о файле и main39
+
+`6648917` добавляет реальный read-only вопрос о сгенерированном файле через existing messages/run protocol. Backend проверяет generation/session/version/path/size/hash и сохранённые байты, передаёт точную immutable модель и её verification snapshot. Публичные entries содержат связь с файлом; retry/discard/cancel не дублируют реплику. Sources/версии при объяснении не меняются. Миграции не нужны; подробности в `file-discussion-contract.md`. Исправлен общий read-only OpenAPI capability probe при StrictMode abort/remount; regression покрывает этот случай.
+
+Ownership fix `fe3e5ca` перенесён как`8925ca6` до следующего startup своего idle API и финального full suite. Итоговый backend355PASS /48.38s, обязательные TLC+Docker; frontend36PASS (+1 opt-in skipped), extensions108PASS, types/build/host-types PASS. Предыдущие349PASS/3sandboxFAIL до ownership fix сохранены отдельно; targeted повтор3PASS и чистый итоговый full не суммируются.
+
+В настоящем T3 Browser main39 создан отдельный живой диалог, пройдены адресные уточнения, ручной counterexample→явная правка→новая модель/HOLDS→confirm→генерация16файлов→native ZIP→вопрос GPT по app/rules.py→refresh→Docker54/54PASS. Native act/evaluate и durable receipts сохранены в root `end-to-end-acceptance/`. Snapshot/AX timeout диагностирован read-only отдельно; новых попыток после диагностики нет, T3 не перезапускался. Функциональный результат не означает screenshot/UX acceptance. Визуальная приёмка pending.
+
+Новая immutable сборка `frontend-integration/revision-3/demo-dist`, отдельно HTTP snapshot `http-dist`. Старые4180/4182/4183/4184/4185 и revision-2 не изменены. Текущие реальные main39 данные не подмешаны в fixture или прежнюю пятиходовую запись. API5296/UI5298 оставлены для root/delivery handoff с той же изолированной DB. Images67/MCP68/repos69/delivery70 patches в этот прогон не включались.
