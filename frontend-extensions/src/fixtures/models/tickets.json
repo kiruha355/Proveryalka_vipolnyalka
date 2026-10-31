@@ -1,0 +1,589 @@
+{
+  "schema_version": "1.0",
+  "name": "Продажа билетов",
+  "sources": [
+    {
+      "id": "source1",
+      "session_id": "fixtures",
+      "kind": "text",
+      "text": "Продажа открыта или закрыта; продано от 0 до 3 билетов; vip-продажа выполнялась или нет. Изначально продажа открыта, продано 0, vip не было.\nПока продажа открыта и продано меньше 3, можно продать один билет.\nПока продажа открыта, продано меньше 2 и vip-продажи не было, можно продать vip-пару из двух билетов.\nОткрытую продажу можно закрыть.\nЗакрытую продажу можно открыть снова, если билеты остались.\nПродано не больше 3 билетов.\nПосле vip-продажи зал не заполняется полностью.\nДолжна быть возможность закрыть полностью распроданную продажу.\nVip-продажа без проданных билетов невозможна.\nПроцесс останавливается только закрытием распроданной продажи.\nПроцесс не должен останавливаться никогда.\nХотя бы один билет продан всегда."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Продажа открыта или закрыта; продано от 0 до 3 билетов; vip-продажа выполнялась или нет. Изначально продажа открыта, продано 0, vip не было.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Продажа открыта или закрыта; продано от 0 до 3 билетов; vip-продажа выполнялась или нет. Изначально продажа открыта, продано 0, vip не было.",
+          "start": 0,
+          "end": 140
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "text": "Пока продажа открыта и продано меньше 3, можно продать один билет.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Пока продажа открыта и продано меньше 3, можно продать один билет.",
+          "start": 141,
+          "end": 207
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "text": "Пока продажа открыта, продано меньше 2 и vip-продажи не было, можно продать vip-пару из двух билетов.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Пока продажа открыта, продано меньше 2 и vip-продажи не было, можно продать vip-пару из двух билетов.",
+          "start": 208,
+          "end": 309
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "text": "Открытую продажу можно закрыть.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Открытую продажу можно закрыть.",
+          "start": 310,
+          "end": 341
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "text": "Закрытую продажу можно открыть снова, если билеты остались.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Закрытую продажу можно открыть снова, если билеты остались.",
+          "start": 342,
+          "end": 401
+        }
+      ]
+    },
+    {
+      "id": "R6",
+      "text": "Продано не больше 3 билетов.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Продано не больше 3 билетов.",
+          "start": 402,
+          "end": 430
+        }
+      ]
+    },
+    {
+      "id": "R7",
+      "text": "После vip-продажи зал не заполняется полностью.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "После vip-продажи зал не заполняется полностью.",
+          "start": 431,
+          "end": 478
+        }
+      ]
+    },
+    {
+      "id": "R8",
+      "text": "Должна быть возможность закрыть полностью распроданную продажу.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Должна быть возможность закрыть полностью распроданную продажу.",
+          "start": 479,
+          "end": 542
+        }
+      ]
+    },
+    {
+      "id": "R9",
+      "text": "Vip-продажа без проданных билетов невозможна.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Vip-продажа без проданных билетов невозможна.",
+          "start": 543,
+          "end": 588
+        }
+      ]
+    },
+    {
+      "id": "R10",
+      "text": "Процесс останавливается только закрытием распроданной продажи.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Процесс останавливается только закрытием распроданной продажи.",
+          "start": 589,
+          "end": 651
+        }
+      ]
+    },
+    {
+      "id": "R11",
+      "text": "Процесс не должен останавливаться никогда.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Процесс не должен останавливаться никогда.",
+          "start": 652,
+          "end": 694
+        }
+      ]
+    },
+    {
+      "id": "R12",
+      "text": "Хотя бы один билет продан всегда.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Хотя бы один билет продан всегда.",
+          "start": 695,
+          "end": 728
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "id": "phase",
+      "name": "Состояние продажи",
+      "requirement_ids": [
+        "R1"
+      ],
+      "domain": {
+        "kind": "enum",
+        "values": [
+          "Open",
+          "Closed"
+        ]
+      },
+      "initial_value": "Open"
+    },
+    {
+      "id": "sold",
+      "name": "Продано билетов",
+      "requirement_ids": [
+        "R1"
+      ],
+      "domain": {
+        "kind": "integer",
+        "minimum": 0,
+        "maximum": 3
+      },
+      "initial_value": 0
+    },
+    {
+      "id": "vip",
+      "name": "Была vip-продажа",
+      "requirement_ids": [
+        "R1"
+      ],
+      "domain": {
+        "kind": "boolean"
+      },
+      "initial_value": false
+    }
+  ],
+  "transitions": [
+    {
+      "id": "Sell",
+      "name": "Продать билет",
+      "requirement_ids": [
+        "R2"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "and",
+        "left": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "phase"
+          },
+          "right": {
+            "kind": "literal",
+            "value": "Open"
+          }
+        },
+        "right": {
+          "kind": "binary",
+          "op": "lt",
+          "left": {
+            "kind": "variable",
+            "name": "sold"
+          },
+          "right": {
+            "kind": "literal",
+            "value": 3
+          }
+        }
+      },
+      "effects": [
+        {
+          "variable": "sold",
+          "value": {
+            "kind": "binary",
+            "op": "add",
+            "left": {
+              "kind": "variable",
+              "name": "sold"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "SellVip",
+      "name": "Продать vip-пару",
+      "requirement_ids": [
+        "R3"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "and",
+        "left": {
+          "kind": "binary",
+          "op": "and",
+          "left": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "phase"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Open"
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "op": "lt",
+            "left": {
+              "kind": "variable",
+              "name": "sold"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 2
+            }
+          }
+        },
+        "right": {
+          "kind": "unary",
+          "op": "not",
+          "operand": {
+            "kind": "variable",
+            "name": "vip"
+          }
+        }
+      },
+      "effects": [
+        {
+          "variable": "sold",
+          "value": {
+            "kind": "binary",
+            "op": "add",
+            "left": {
+              "kind": "variable",
+              "name": "sold"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 2
+            }
+          }
+        },
+        {
+          "variable": "vip",
+          "value": {
+            "kind": "literal",
+            "value": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "Close",
+      "name": "Закрыть продажу",
+      "requirement_ids": [
+        "R4"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "eq",
+        "left": {
+          "kind": "variable",
+          "name": "phase"
+        },
+        "right": {
+          "kind": "literal",
+          "value": "Open"
+        }
+      },
+      "effects": [
+        {
+          "variable": "phase",
+          "value": {
+            "kind": "literal",
+            "value": "Closed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Reopen",
+      "name": "Открыть снова",
+      "requirement_ids": [
+        "R5"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "and",
+        "left": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "phase"
+          },
+          "right": {
+            "kind": "literal",
+            "value": "Closed"
+          }
+        },
+        "right": {
+          "kind": "binary",
+          "op": "lt",
+          "left": {
+            "kind": "variable",
+            "name": "sold"
+          },
+          "right": {
+            "kind": "literal",
+            "value": 3
+          }
+        }
+      },
+      "effects": [
+        {
+          "variable": "phase",
+          "value": {
+            "kind": "literal",
+            "value": "Open"
+          }
+        }
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "id": "Capacity",
+      "name": "Не больше трёх билетов",
+      "requirement_ids": [
+        "R6"
+      ],
+      "kind": "invariant",
+      "predicate": {
+        "kind": "binary",
+        "op": "le",
+        "left": {
+          "kind": "variable",
+          "name": "sold"
+        },
+        "right": {
+          "kind": "literal",
+          "value": 3
+        }
+      },
+      "explanation": "Не больше трёх билетов"
+    },
+    {
+      "id": "VipNotFull",
+      "name": "После vip зал не полон",
+      "requirement_ids": [
+        "R7"
+      ],
+      "kind": "invariant",
+      "predicate": {
+        "kind": "unary",
+        "op": "not",
+        "operand": {
+          "kind": "binary",
+          "op": "and",
+          "left": {
+            "kind": "variable",
+            "name": "vip"
+          },
+          "right": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "sold"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 3
+            }
+          }
+        }
+      },
+      "explanation": "После vip зал не полон"
+    },
+    {
+      "id": "ClosedSoldOut",
+      "name": "Можно закрыть распроданную продажу",
+      "requirement_ids": [
+        "R8"
+      ],
+      "kind": "reachable",
+      "predicate": {
+        "kind": "binary",
+        "op": "and",
+        "left": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "phase"
+          },
+          "right": {
+            "kind": "literal",
+            "value": "Closed"
+          }
+        },
+        "right": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "sold"
+          },
+          "right": {
+            "kind": "literal",
+            "value": 3
+          }
+        }
+      },
+      "explanation": "Можно закрыть распроданную продажу"
+    },
+    {
+      "id": "VipWithoutSales",
+      "name": "Vip без продаж",
+      "requirement_ids": [
+        "R9"
+      ],
+      "kind": "reachable",
+      "predicate": {
+        "kind": "binary",
+        "op": "and",
+        "left": {
+          "kind": "variable",
+          "name": "vip"
+        },
+        "right": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "sold"
+          },
+          "right": {
+            "kind": "literal",
+            "value": 0
+          }
+        }
+      },
+      "explanation": "Vip без продаж"
+    },
+    {
+      "id": "StopsOnlySoldOut",
+      "name": "Остановка только у распроданной закрытой продажи",
+      "requirement_ids": [
+        "R10"
+      ],
+      "kind": "deadlock_free",
+      "predicate": {
+        "kind": "binary",
+        "op": "and",
+        "left": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "phase"
+          },
+          "right": {
+            "kind": "literal",
+            "value": "Closed"
+          }
+        },
+        "right": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "sold"
+          },
+          "right": {
+            "kind": "literal",
+            "value": 3
+          }
+        }
+      },
+      "explanation": "Остановка только у распроданной закрытой продажи"
+    },
+    {
+      "id": "NeverStops",
+      "name": "Без остановок",
+      "requirement_ids": [
+        "R11"
+      ],
+      "kind": "deadlock_free",
+      "predicate": {
+        "kind": "literal",
+        "value": false
+      },
+      "explanation": "Без остановок"
+    },
+    {
+      "id": "SomethingSold",
+      "name": "Хотя бы один билет продан",
+      "requirement_ids": [
+        "R12"
+      ],
+      "kind": "invariant",
+      "predicate": {
+        "kind": "binary",
+        "op": "gt",
+        "left": {
+          "kind": "variable",
+          "name": "sold"
+        },
+        "right": {
+          "kind": "literal",
+          "value": 0
+        }
+      },
+      "explanation": "Хотя бы один билет продан"
+    }
+  ]
+}
