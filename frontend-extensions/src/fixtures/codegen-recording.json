@@ -1,0 +1,3107 @@
+{
+ "_provenance": {
+  "source": "reports/project-review-20261031/codegen (receipt.json, order_fixed-project, ZIP, *.log)",
+  "generator_head": "dbbf7579db0a15e413ea5f6b089574e95c49c4ef",
+  "worktree_dirty": false,
+  "recorded_at": "2026-10-31T08:12:14.944470+00:00",
+  "status_note": "GET /api/codegen/status не записан evidence.py; ответ собран из receipt.sandbox и значений по умолчанию контракта",
+  "order_bug_files": "содержимое файлов order_bug не экспортировано; доступны метаданные генерации, ответ 409 и прогон тестов"
+ },
+ "status": {
+  "target": "python-fastapi",
+  "generator": {
+   "name": "proveryalka-codegen",
+   "version": "1.0.0"
+  },
+  "technical_conditions": {
+   "dependencies": "requirements.txt (все версии зафиксированы)",
+   "framework": "fastapi==0.162.0",
+   "language": "python",
+   "python": ">=3.11",
+   "state": "одно состояние в памяти процесса",
+   "test_runner": "pytest==8.3.5",
+   "validation": "pydantic==2.14.1"
+  },
+  "limits": {},
+  "sandbox_status": "ready",
+  "sandbox_reason": null,
+  "sandbox": {
+   "engine": "docker",
+   "image": "proveryalka-codegen-sandbox:4d76b97118d8df7e",
+   "network": "none",
+   "read_only_root": true,
+   "user": "10001:10001",
+   "capabilities": [],
+   "no_new_privileges": true,
+   "memory_mb": 512,
+   "swap_mb": 0,
+   "cpus": 1.0,
+   "pids_limit": 128,
+   "tmpfs_mb": 64,
+   "project_mount": "read-only",
+   "engine_version": "29.1.3",
+   "image_id": "sha256:e052badb7925dc75a36c07a7f952c038946f277f7dd96970baf3a3b74dbcd1d6"
+  },
+  "default_timeout_seconds": 120.0,
+  "max_timeout_seconds": 600.0
+ },
+ "versions": [
+  {
+   "id": "v_a7d7984214e34ef3a301816025de5bde",
+   "model_id": "m_3e1087f20e6f45359b6dd82d5e94e2cc",
+   "session_id": "s_5dc02705790541648591bbf567d352af",
+   "number": 1,
+   "parent_id": null,
+   "spec": {
+    "schema_version": "1.0",
+    "name": "Заявка (исправлено)",
+    "sources": [
+     {
+      "id": "src_783895a7160041268b64f9dca9f88bb2",
+      "session_id": "s_5dc02705790541648591bbf567d352af",
+      "kind": "text",
+      "text": "Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.\nЗаявку в статусе Created можно согласовать: статус Approved, approved=true.\nЗаявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true, согласование снимается: approved=false.\nИсполнить можно только согласованную заявку: статус Executed.\nОтменённая заявка не должна быть исполнена.\nПроцесс может завершиться только отменой или исполнением."
+     }
+    ],
+    "requirements": [
+     {
+      "id": "R1",
+      "text": "Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.",
+      "source_refs": [
+       {
+        "source_id": "src_783895a7160041268b64f9dca9f88bb2",
+        "quote": "Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.",
+        "start": 0,
+        "end": 157
+       }
+      ]
+     },
+     {
+      "id": "R2",
+      "text": "Заявку в статусе Created можно согласовать: статус Approved, approved=true.",
+      "source_refs": [
+       {
+        "source_id": "src_783895a7160041268b64f9dca9f88bb2",
+        "quote": "Заявку в статусе Created можно согласовать: статус Approved, approved=true.",
+        "start": 158,
+        "end": 233
+       }
+      ]
+     },
+     {
+      "id": "R3",
+      "text": "Заявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true, согласование снимается: approved=false.",
+      "source_refs": [
+       {
+        "source_id": "src_783895a7160041268b64f9dca9f88bb2",
+        "quote": "Заявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true, согласование снимается: approved=false.",
+        "start": 234,
+        "end": 361
+       }
+      ]
+     },
+     {
+      "id": "R4",
+      "text": "Исполнить можно только согласованную заявку: статус Executed.",
+      "source_refs": [
+       {
+        "source_id": "src_783895a7160041268b64f9dca9f88bb2",
+        "quote": "Исполнить можно только согласованную заявку: статус Executed.",
+        "start": 362,
+        "end": 423
+       }
+      ]
+     },
+     {
+      "id": "R5",
+      "text": "Отменённая заявка не должна быть исполнена.",
+      "source_refs": [
+       {
+        "source_id": "src_783895a7160041268b64f9dca9f88bb2",
+        "quote": "Отменённая заявка не должна быть исполнена.",
+        "start": 424,
+        "end": 467
+       }
+      ]
+     },
+     {
+      "id": "R6",
+      "text": "Процесс может завершиться только отменой или исполнением.",
+      "source_refs": [
+       {
+        "source_id": "src_783895a7160041268b64f9dca9f88bb2",
+        "quote": "Процесс может завершиться только отменой или исполнением.",
+        "start": 468,
+        "end": 525
+       }
+      ]
+     }
+    ],
+    "variables": [
+     {
+      "id": "status",
+      "name": "Статус заявки",
+      "requirement_ids": [
+       "R1"
+      ],
+      "domain": {
+       "kind": "enum",
+       "values": [
+        "Created",
+        "Approved",
+        "Cancelled",
+        "Executed"
+       ]
+      },
+      "initial_value": "Created"
+     },
+     {
+      "id": "approved",
+      "name": "Согласована",
+      "requirement_ids": [
+       "R1"
+      ],
+      "domain": {
+       "kind": "boolean"
+      },
+      "initial_value": false
+     },
+     {
+      "id": "cancelled",
+      "name": "Отменена",
+      "requirement_ids": [
+       "R1"
+      ],
+      "domain": {
+       "kind": "boolean"
+      },
+      "initial_value": false
+     }
+    ],
+    "transitions": [
+     {
+      "id": "Approve",
+      "name": "Согласовать",
+      "requirement_ids": [
+       "R2"
+      ],
+      "guard": {
+       "kind": "binary",
+       "op": "eq",
+       "left": {
+        "kind": "variable",
+        "name": "status"
+       },
+       "right": {
+        "kind": "literal",
+        "value": "Created"
+       }
+      },
+      "effects": [
+       {
+        "variable": "status",
+        "value": {
+         "kind": "literal",
+         "value": "Approved"
+        }
+       },
+       {
+        "variable": "approved",
+        "value": {
+         "kind": "literal",
+         "value": true
+        }
+       }
+      ]
+     },
+     {
+      "id": "Cancel",
+      "name": "Отменить",
+      "requirement_ids": [
+       "R3"
+      ],
+      "guard": {
+       "kind": "binary",
+       "op": "or",
+       "left": {
+        "kind": "binary",
+        "op": "eq",
+        "left": {
+         "kind": "variable",
+         "name": "status"
+        },
+        "right": {
+         "kind": "literal",
+         "value": "Created"
+        }
+       },
+       "right": {
+        "kind": "binary",
+        "op": "eq",
+        "left": {
+         "kind": "variable",
+         "name": "status"
+        },
+        "right": {
+         "kind": "literal",
+         "value": "Approved"
+        }
+       }
+      },
+      "effects": [
+       {
+        "variable": "status",
+        "value": {
+         "kind": "literal",
+         "value": "Cancelled"
+        }
+       },
+       {
+        "variable": "cancelled",
+        "value": {
+         "kind": "literal",
+         "value": true
+        }
+       },
+       {
+        "variable": "approved",
+        "value": {
+         "kind": "literal",
+         "value": false
+        }
+       }
+      ]
+     },
+     {
+      "id": "Execute",
+      "name": "Исполнить",
+      "requirement_ids": [
+       "R4"
+      ],
+      "guard": {
+       "kind": "binary",
+       "op": "eq",
+       "left": {
+        "kind": "variable",
+        "name": "approved"
+       },
+       "right": {
+        "kind": "literal",
+        "value": true
+       }
+      },
+      "effects": [
+       {
+        "variable": "status",
+        "value": {
+         "kind": "literal",
+         "value": "Executed"
+        }
+       }
+      ]
+     }
+    ],
+    "properties": [
+     {
+      "id": "NoCancelledExecution",
+      "name": "Отменённая заявка не исполняется",
+      "requirement_ids": [
+       "R5"
+      ],
+      "kind": "forbidden_state",
+      "predicate": {
+       "kind": "binary",
+       "op": "and",
+       "left": {
+        "kind": "variable",
+        "name": "cancelled"
+       },
+       "right": {
+        "kind": "binary",
+        "op": "eq",
+        "left": {
+         "kind": "variable",
+         "name": "status"
+        },
+        "right": {
+         "kind": "literal",
+         "value": "Executed"
+        }
+       }
+      },
+      "explanation": "Отменённая заявка не исполняется",
+      "origin": "requirement",
+      "approved_by": null
+     },
+     {
+      "id": "CanExecute",
+      "name": "Заявку можно исполнить",
+      "requirement_ids": [
+       "R4"
+      ],
+      "kind": "reachable",
+      "predicate": {
+       "kind": "binary",
+       "op": "eq",
+       "left": {
+        "kind": "variable",
+        "name": "status"
+       },
+       "right": {
+        "kind": "literal",
+        "value": "Executed"
+       }
+      },
+      "explanation": "Заявку можно исполнить",
+      "origin": "requirement",
+      "approved_by": null
+     },
+     {
+      "id": "EndsProperly",
+      "name": "Завершение только отменой или исполнением",
+      "requirement_ids": [
+       "R6"
+      ],
+      "kind": "deadlock_free",
+      "predicate": {
+       "kind": "binary",
+       "op": "or",
+       "left": {
+        "kind": "binary",
+        "op": "eq",
+        "left": {
+         "kind": "variable",
+         "name": "status"
+        },
+        "right": {
+         "kind": "literal",
+         "value": "Cancelled"
+        }
+       },
+       "right": {
+        "kind": "binary",
+        "op": "eq",
+        "left": {
+         "kind": "variable",
+         "name": "status"
+        },
+        "right": {
+         "kind": "literal",
+         "value": "Executed"
+        }
+       }
+      },
+      "explanation": "Завершение только отменой или исполнением",
+      "origin": "requirement",
+      "approved_by": null
+     }
+    ]
+   },
+   "spec_hash": "8d2b4108ae9b021838362f964ef9852eae90b4b50cbbe03417c301cfa83adb18",
+   "approved": true
+  },
+  {
+   "id": "v_031d4c8e27ce4080b4648b4d325c33cc",
+   "model_id": "m_1af10d0c122f47e6b8de0ce5fbdd249a",
+   "session_id": "s_fe63b017a44d41d3a864d02e2e9e2035",
+   "number": 1,
+   "parent_id": null,
+   "spec": null,
+   "spec_hash": "7a85b7ab4e4897b59d6c25baf2461895b5e26d2bacf076dfc3887facd4d71b29",
+   "approved": true
+  }
+ ],
+ "generations": [
+  {
+   "generation_id": "gen_76e251c5a3784e20b5cf6983c0f6fdee",
+   "session_id": "s_5dc02705790541648591bbf567d352af",
+   "model_id": "m_3e1087f20e6f45359b6dd82d5e94e2cc",
+   "version_id": "v_a7d7984214e34ef3a301816025de5bde",
+   "version_number": 1,
+   "spec_hash": "8d2b4108ae9b021838362f964ef9852eae90b4b50cbbe03417c301cfa83adb18",
+   "code_hash": "a123bc494e36fa3b110003ce9bca5e78f05a60ee4ab261869963e232c2ef42de",
+   "status": "completed",
+   "target": "python-fastapi",
+   "generator": {
+    "name": "proveryalka-codegen",
+    "version": "1.0.0"
+   },
+   "technical_conditions": {
+    "dependencies": "requirements.txt (все версии зафиксированы)",
+    "framework": "fastapi==0.162.0",
+    "language": "python",
+    "python": ">=3.11",
+    "state": "одно состояние в памяти процесса",
+    "test_runner": "pytest==8.3.5",
+    "validation": "pydantic==2.14.1"
+   },
+   "project_name": "zayavka-ispravleno-service",
+   "verification": {
+    "state": "holds",
+    "acknowledged": false,
+    "properties": [
+     {
+      "property_id": "NoCancelledExecution",
+      "status": "PROPERTY_HOLDS",
+      "check_run_id": "chk_65297f7f0d514fca906685847e3cf57f"
+     },
+     {
+      "property_id": "CanExecute",
+      "status": "PROPERTY_HOLDS",
+      "check_run_id": "chk_65297f7f0d514fca906685847e3cf57f"
+     },
+     {
+      "property_id": "EndsProperly",
+      "status": "PROPERTY_HOLDS",
+      "check_run_id": "chk_65297f7f0d514fca906685847e3cf57f"
+     }
+    ]
+   },
+   "coverage": {
+    "reachable_states": 4,
+    "exhaustive": true,
+    "boundary_states": 12,
+    "conformance_cases": 48,
+    "invalid_state_cases": 8,
+    "trace_replays": 1
+   },
+   "file_count": 17,
+   "total_bytes": 62653,
+   "created_at": "2026-10-31T08:12:01.230286+00:00",
+   "files": [
+    {
+     "path": "GENERATION.json",
+     "size": 5184,
+     "sha256": "795ba7b82f10604bfcfeeff2f197bb8c97cddb2c72c887cf7fbbd6e8a6364b94",
+     "role": "manifest",
+     "media_type": "application/json",
+     "explanation": "Происхождение: генератор, version_id, spec_hash, снимок проверки TLC, SHA-256 и требования файлов.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "README.md",
+     "size": 7227,
+     "sha256": "6181e0b67fc84f527c8868dbb106e34525df6f193518c7ae430d87c8cbf4f020",
+     "role": "doc",
+     "media_type": "text/markdown",
+     "explanation": "Описание проекта: версия модели, запуск, API, связь переходов с требованиями, результаты TLC, границы тестов.",
+     "requirement_ids": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6"
+     ],
+     "elements": []
+    },
+    {
+     "path": "app/__init__.py",
+     "size": 33,
+     "sha256": "5d14b7f33a41a3493a4fc784447992d12b370bc569251a241197c26f41cb3103",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "Пакет сервиса.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "app/api.py",
+     "size": 4327,
+     "sha256": "dbf6ad6a51c2023f8201cf945b36f7972cf489fadc3ba2877ad9bd0c1c287ee7",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "FastAPI: GET /model, GET /state, POST /events, POST /evaluate, POST /reset.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "app/domain.py",
+     "size": 1958,
+     "sha256": "ce091aaed9cd14f9a26525444f5657aa1d2196b188ecf1c7b42033c20321ea96",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "Проверка типов и конечных областей значений состояния.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "app/engine.py",
+     "size": 2047,
+     "sha256": "54245db4b67120c9d93d09e6a45ca8319f657ed1fc2386868cfd4592791436a7",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "Применение события: проверка состояния, условие, одновременное присваивание, проверка областей.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "app/rules.py",
+     "size": 2716,
+     "sha256": "d97c67b97ab22beb0ae30e5eb2c33b18e79fee9cc0870b94ba624d2c98ccbca8",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "Условия и одновременные присваивания переходов (Approve, Cancel, Execute); у каждого перехода указаны требования.",
+     "requirement_ids": [
+      "R2",
+      "R3",
+      "R4"
+     ],
+     "elements": [
+      {
+       "kind": "transition",
+       "id": "Approve",
+       "name": "Согласовать",
+       "requirement_ids": [
+        "R2"
+       ],
+       "start_line": 21,
+       "end_line": 31
+      },
+      {
+       "kind": "transition",
+       "id": "Cancel",
+       "name": "Отменить",
+       "requirement_ids": [
+        "R3"
+       ],
+       "start_line": 34,
+       "end_line": 45
+      },
+      {
+       "kind": "transition",
+       "id": "Execute",
+       "name": "Исполнить",
+       "requirement_ids": [
+        "R4"
+       ],
+       "start_line": 48,
+       "end_line": 57
+      }
+     ]
+    },
+    {
+     "path": "app/spec.py",
+     "size": 2014,
+     "sha256": "988b43b3731dad13dfb236d1cfa163884fe50d55d4146073d209d9d7fa481f82",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "Данные модели: требования, переменные с областями значений, начальное состояние, version_id и spec_hash.",
+     "requirement_ids": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6"
+     ],
+     "elements": [
+      {
+       "kind": "requirement",
+       "id": "R1",
+       "name": "R1",
+       "requirement_ids": [
+        "R1"
+       ],
+       "start_line": 12,
+       "end_line": 12
+      },
+      {
+       "kind": "requirement",
+       "id": "R2",
+       "name": "R2",
+       "requirement_ids": [
+        "R2"
+       ],
+       "start_line": 13,
+       "end_line": 13
+      },
+      {
+       "kind": "requirement",
+       "id": "R3",
+       "name": "R3",
+       "requirement_ids": [
+        "R3"
+       ],
+       "start_line": 14,
+       "end_line": 14
+      },
+      {
+       "kind": "requirement",
+       "id": "R4",
+       "name": "R4",
+       "requirement_ids": [
+        "R4"
+       ],
+       "start_line": 15,
+       "end_line": 15
+      },
+      {
+       "kind": "requirement",
+       "id": "R5",
+       "name": "R5",
+       "requirement_ids": [
+        "R5"
+       ],
+       "start_line": 16,
+       "end_line": 16
+      },
+      {
+       "kind": "requirement",
+       "id": "R6",
+       "name": "R6",
+       "requirement_ids": [
+        "R6"
+       ],
+       "start_line": 17,
+       "end_line": 17
+      },
+      {
+       "kind": "variable",
+       "id": "status",
+       "name": "Статус заявки",
+       "requirement_ids": [
+        "R1"
+       ],
+       "start_line": 21,
+       "end_line": 22
+      },
+      {
+       "kind": "variable",
+       "id": "approved",
+       "name": "Согласована",
+       "requirement_ids": [
+        "R1"
+       ],
+       "start_line": 23,
+       "end_line": 24
+      },
+      {
+       "kind": "variable",
+       "id": "cancelled",
+       "name": "Отменена",
+       "requirement_ids": [
+        "R1"
+       ],
+       "start_line": 25,
+       "end_line": 26
+      }
+     ]
+    },
+    {
+     "path": "model/behavioral_model.json",
+     "size": 9617,
+     "sha256": "6397561888d72cd6afdcf8641d4417d333e5662d7340c8667ebd0ce539fb0f5a",
+     "role": "model",
+     "media_type": "application/json",
+     "explanation": "Согласованная модель BehavioralModel 1.0 этой версии; её канонический SHA-256 равен spec_hash.",
+     "requirement_ids": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6"
+     ],
+     "elements": []
+    },
+    {
+     "path": "pytest.ini",
+     "size": 72,
+     "sha256": "900ad5ede42030e383e74fc5276d43bf10c5c256bfbd9066dc52675fe533240b",
+     "role": "config",
+     "media_type": "text/plain",
+     "explanation": "Настройка pytest: каталог тестов и путь импорта.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "requirements.txt",
+     "size": 374,
+     "sha256": "6cd9003888caa0cd71c88e5a0e9a26cf695f8f98424d44443b112b160c378a8f",
+     "role": "config",
+     "media_type": "text/plain",
+     "explanation": "Зафиксированные версии всех зависимостей (Python ≥3.11).",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "tests/data/conformance.json",
+     "size": 16771,
+     "sha256": "45599543314f94b536aac5739c5e3f8def2e263cf081dad887ea634375aa768e",
+     "role": "test_data",
+     "media_type": "application/json",
+     "explanation": "Ожидаемые исходы переходов, недопустимые состояния и трассы TLC; вычислены по семантике модели при генерации.",
+     "requirement_ids": [
+      "R2",
+      "R3",
+      "R4"
+     ],
+     "elements": []
+    },
+    {
+     "path": "tests/test_api.py",
+     "size": 3003,
+     "sha256": "249d7d979744d2e2eda7b94b2ca08f9ef71e1833124c05c2c2cb1433a8097f35",
+     "role": "test",
+     "media_type": "text/x-python",
+     "explanation": "Тесты HTTP API: последовательность событий, отказы 404/409/422, сброс.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "tests/test_domain.py",
+     "size": 906,
+     "sha256": "a7bdb2f414305a122f3fd452f8feaad7f93e744dd1db49243856c5b06c7fbf47",
+     "role": "test",
+     "media_type": "text/x-python",
+     "explanation": "Тесты типов и конечных областей значений.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "tests/test_provenance.py",
+     "size": 1582,
+     "sha256": "a84e0e75f055c742cc2fa37607a94601ed92724493fc2f38cc64a1ba146576d4",
+     "role": "test",
+     "media_type": "text/x-python",
+     "explanation": "Связь кода с моделью: spec_hash, состав переходов и переменных, ссылки на требования.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "tests/test_traces.py",
+     "size": 1117,
+     "sha256": "a141f10edf1ae379f2336d3a85997a05f71d9cd5afaf8a417ae0447f341eb1d0",
+     "role": "test",
+     "media_type": "text/x-python",
+     "explanation": "Повтор трасс TLC этой версии через сгенерированный код; статус свойства определяет TLC.",
+     "requirement_ids": [
+      "R4"
+     ],
+     "elements": []
+    },
+    {
+     "path": "tests/test_transitions.py",
+     "size": 3705,
+     "sha256": "acad557f34fb04476cefd55eb288514c155c6aedd36e40fb23423467499e3faa",
+     "role": "test",
+     "media_type": "text/x-python",
+     "explanation": "Тесты переходов: применение, неизменные переменные, одновременность, ложное условие, выход за область, таблица исходов.",
+     "requirement_ids": [
+      "R2",
+      "R3",
+      "R4"
+     ],
+     "elements": [
+      {
+       "kind": "transition",
+       "id": "Approve",
+       "name": "Согласовать",
+       "requirement_ids": [
+        "R2"
+       ],
+       "start_line": 18,
+       "end_line": 33
+      },
+      {
+       "kind": "transition",
+       "id": "Cancel",
+       "name": "Отменить",
+       "requirement_ids": [
+        "R3"
+       ],
+       "start_line": 36,
+       "end_line": 49
+      },
+      {
+       "kind": "transition",
+       "id": "Execute",
+       "name": "Исполнить",
+       "requirement_ids": [
+        "R4"
+       ],
+       "start_line": 52,
+       "end_line": 67
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "generation_id": "gen_004bb41595f94215a7cdd90ebbb9ecf3",
+   "session_id": "s_fe63b017a44d41d3a864d02e2e9e2035",
+   "model_id": "m_1af10d0c122f47e6b8de0ce5fbdd249a",
+   "version_id": "v_031d4c8e27ce4080b4648b4d325c33cc",
+   "version_number": 1,
+   "spec_hash": "7a85b7ab4e4897b59d6c25baf2461895b5e26d2bacf076dfc3887facd4d71b29",
+   "code_hash": "ff144c447ae19b36e958f8c6c5fa71c787ec9c02f9b262863e0f19496131ebb6",
+   "status": "completed",
+   "target": "python-fastapi",
+   "generator": {
+    "name": "proveryalka-codegen",
+    "version": "1.0.0"
+   },
+   "technical_conditions": {
+    "dependencies": "requirements.txt (все версии зафиксированы)",
+    "framework": "fastapi==0.162.0",
+    "language": "python",
+    "python": ">=3.11",
+    "state": "одно состояние в памяти процесса",
+    "test_runner": "pytest==8.3.5",
+    "validation": "pydantic==2.14.1"
+   },
+   "project_name": "zayavka-service",
+   "verification": {
+    "state": "violated",
+    "acknowledged": true,
+    "properties": [
+     {
+      "property_id": "NoCancelledExecution",
+      "status": "PROPERTY_VIOLATED",
+      "check_run_id": "chk_83915c0e46ab44459cf1d3ee6d5e61c7"
+     },
+     {
+      "property_id": "CanExecute",
+      "status": "PROPERTY_HOLDS",
+      "check_run_id": "chk_83915c0e46ab44459cf1d3ee6d5e61c7"
+     },
+     {
+      "property_id": "EndsProperly",
+      "status": "PROPERTY_HOLDS",
+      "check_run_id": "chk_83915c0e46ab44459cf1d3ee6d5e61c7"
+     }
+    ]
+   },
+   "coverage": {
+    "reachable_states": 6,
+    "exhaustive": true,
+    "boundary_states": 10,
+    "conformance_cases": 48,
+    "invalid_state_cases": 8,
+    "trace_replays": 2
+   },
+   "file_count": 17,
+   "total_bytes": 63275,
+   "created_at": "2026-10-31T08:12:03.312719+00:00",
+   "files": [
+    {
+     "path": "GENERATION.json",
+     "size": 5180,
+     "sha256": "96378e92a534abf016ddd6c9f1b76b9c8defc8c4ab1c4a5818b54f6450db55f5",
+     "role": "manifest",
+     "media_type": "application/json",
+     "explanation": "Происхождение: генератор, version_id, spec_hash, снимок проверки TLC, SHA-256 и требования файлов.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "README.md",
+     "size": 7305,
+     "sha256": "b62b9bc534a5ed7a1bb24752db26dc172ef2fdccd545e8c42de81aa73eb3b019",
+     "role": "doc",
+     "media_type": "text/markdown",
+     "explanation": "Описание проекта: версия модели, запуск, API, связь переходов с требованиями, результаты TLC, границы тестов.",
+     "requirement_ids": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6"
+     ],
+     "elements": []
+    },
+    {
+     "path": "app/__init__.py",
+     "size": 33,
+     "sha256": "5d14b7f33a41a3493a4fc784447992d12b370bc569251a241197c26f41cb3103",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "Пакет сервиса.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "app/api.py",
+     "size": 4327,
+     "sha256": "dbf6ad6a51c2023f8201cf945b36f7972cf489fadc3ba2877ad9bd0c1c287ee7",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "FastAPI: GET /model, GET /state, POST /events, POST /evaluate, POST /reset.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "app/domain.py",
+     "size": 1958,
+     "sha256": "ce091aaed9cd14f9a26525444f5657aa1d2196b188ecf1c7b42033c20321ea96",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "Проверка типов и конечных областей значений состояния.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "app/engine.py",
+     "size": 2047,
+     "sha256": "54245db4b67120c9d93d09e6a45ca8319f657ed1fc2386868cfd4592791436a7",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "Применение события: проверка состояния, условие, одновременное присваивание, проверка областей.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "app/rules.py",
+     "size": 2616,
+     "sha256": "29bdb8da1ebb5dc922abaa33611919aece7304414b0b160ce17dc535fc5a07e2",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "Условия и одновременные присваивания переходов (Approve, Cancel, Execute); у каждого перехода указаны требования.",
+     "requirement_ids": [
+      "R2",
+      "R3",
+      "R4"
+     ],
+     "elements": [
+      {
+       "kind": "transition",
+       "id": "Approve",
+       "name": "Согласовать",
+       "requirement_ids": [
+        "R2"
+       ],
+       "start_line": 21,
+       "end_line": 31
+      },
+      {
+       "kind": "transition",
+       "id": "Cancel",
+       "name": "Отменить",
+       "requirement_ids": [
+        "R3"
+       ],
+       "start_line": 34,
+       "end_line": 44
+      },
+      {
+       "kind": "transition",
+       "id": "Execute",
+       "name": "Исполнить",
+       "requirement_ids": [
+        "R4"
+       ],
+       "start_line": 47,
+       "end_line": 56
+      }
+     ]
+    },
+    {
+     "path": "app/spec.py",
+     "size": 1907,
+     "sha256": "f849f56b03c4cd1a75cfafde1ebbd948b96ba782e439c86bfe9b7f9d1d132e15",
+     "role": "source",
+     "media_type": "text/x-python",
+     "explanation": "Данные модели: требования, переменные с областями значений, начальное состояние, version_id и spec_hash.",
+     "requirement_ids": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6"
+     ],
+     "elements": [
+      {
+       "kind": "requirement",
+       "id": "R1",
+       "name": "R1",
+       "requirement_ids": [
+        "R1"
+       ],
+       "start_line": 12,
+       "end_line": 12
+      },
+      {
+       "kind": "requirement",
+       "id": "R2",
+       "name": "R2",
+       "requirement_ids": [
+        "R2"
+       ],
+       "start_line": 13,
+       "end_line": 13
+      },
+      {
+       "kind": "requirement",
+       "id": "R3",
+       "name": "R3",
+       "requirement_ids": [
+        "R3"
+       ],
+       "start_line": 14,
+       "end_line": 14
+      },
+      {
+       "kind": "requirement",
+       "id": "R4",
+       "name": "R4",
+       "requirement_ids": [
+        "R4"
+       ],
+       "start_line": 15,
+       "end_line": 15
+      },
+      {
+       "kind": "requirement",
+       "id": "R5",
+       "name": "R5",
+       "requirement_ids": [
+        "R5"
+       ],
+       "start_line": 16,
+       "end_line": 16
+      },
+      {
+       "kind": "requirement",
+       "id": "R6",
+       "name": "R6",
+       "requirement_ids": [
+        "R6"
+       ],
+       "start_line": 17,
+       "end_line": 17
+      },
+      {
+       "kind": "variable",
+       "id": "status",
+       "name": "Статус заявки",
+       "requirement_ids": [
+        "R1"
+       ],
+       "start_line": 21,
+       "end_line": 22
+      },
+      {
+       "kind": "variable",
+       "id": "approved",
+       "name": "Согласована",
+       "requirement_ids": [
+        "R1"
+       ],
+       "start_line": 23,
+       "end_line": 24
+      },
+      {
+       "kind": "variable",
+       "id": "cancelled",
+       "name": "Отменена",
+       "requirement_ids": [
+        "R1"
+       ],
+       "start_line": 25,
+       "end_line": 26
+      }
+     ]
+    },
+    {
+     "path": "model/behavioral_model.json",
+     "size": 9265,
+     "sha256": "ab15a6d973c1d30a4fd79ec1625ecaee77066da9a6d0927961fcadaaa87cc33c",
+     "role": "model",
+     "media_type": "application/json",
+     "explanation": "Согласованная модель BehavioralModel 1.0 этой версии; её канонический SHA-256 равен spec_hash.",
+     "requirement_ids": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6"
+     ],
+     "elements": []
+    },
+    {
+     "path": "pytest.ini",
+     "size": 72,
+     "sha256": "900ad5ede42030e383e74fc5276d43bf10c5c256bfbd9066dc52675fe533240b",
+     "role": "config",
+     "media_type": "text/plain",
+     "explanation": "Настройка pytest: каталог тестов и путь импорта.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "requirements.txt",
+     "size": 374,
+     "sha256": "6cd9003888caa0cd71c88e5a0e9a26cf695f8f98424d44443b112b160c378a8f",
+     "role": "config",
+     "media_type": "text/plain",
+     "explanation": "Зафиксированные версии всех зависимостей (Python ≥3.11).",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "tests/data/conformance.json",
+     "size": 17722,
+     "sha256": "64b974bbc4a4a0ce76b3d4062026e5443eb0cd1358db87f66e8d3d4aa15ae540",
+     "role": "test_data",
+     "media_type": "application/json",
+     "explanation": "Ожидаемые исходы переходов, недопустимые состояния и трассы TLC; вычислены по семантике модели при генерации.",
+     "requirement_ids": [
+      "R2",
+      "R3",
+      "R4"
+     ],
+     "elements": []
+    },
+    {
+     "path": "tests/test_api.py",
+     "size": 3080,
+     "sha256": "cb2366ee6a44fc2c3448626fb78b61f9d24ba20798cd947576c5e9b6d0227e6e",
+     "role": "test",
+     "media_type": "text/x-python",
+     "explanation": "Тесты HTTP API: последовательность событий, отказы 404/409/422, сброс.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "tests/test_domain.py",
+     "size": 906,
+     "sha256": "a7bdb2f414305a122f3fd452f8feaad7f93e744dd1db49243856c5b06c7fbf47",
+     "role": "test",
+     "media_type": "text/x-python",
+     "explanation": "Тесты типов и конечных областей значений.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "tests/test_provenance.py",
+     "size": 1582,
+     "sha256": "a84e0e75f055c742cc2fa37607a94601ed92724493fc2f38cc64a1ba146576d4",
+     "role": "test",
+     "media_type": "text/x-python",
+     "explanation": "Связь кода с моделью: spec_hash, состав переходов и переменных, ссылки на требования.",
+     "requirement_ids": [],
+     "elements": []
+    },
+    {
+     "path": "tests/test_traces.py",
+     "size": 1117,
+     "sha256": "a141f10edf1ae379f2336d3a85997a05f71d9cd5afaf8a417ae0447f341eb1d0",
+     "role": "test",
+     "media_type": "text/x-python",
+     "explanation": "Повтор трасс TLC этой версии через сгенерированный код; статус свойства определяет TLC.",
+     "requirement_ids": [
+      "R4",
+      "R5"
+     ],
+     "elements": []
+    },
+    {
+     "path": "tests/test_transitions.py",
+     "size": 3784,
+     "sha256": "2cee12941c2bc8a0259f6e475bcb29d7ca6d60228d8e365465501c1d1cbd6c25",
+     "role": "test",
+     "media_type": "text/x-python",
+     "explanation": "Тесты переходов: применение, неизменные переменные, одновременность, ложное условие, выход за область, таблица исходов.",
+     "requirement_ids": [
+      "R2",
+      "R3",
+      "R4"
+     ],
+     "elements": [
+      {
+       "kind": "transition",
+       "id": "Approve",
+       "name": "Согласовать",
+       "requirement_ids": [
+        "R2"
+       ],
+       "start_line": 18,
+       "end_line": 33
+      },
+      {
+       "kind": "transition",
+       "id": "Cancel",
+       "name": "Отменить",
+       "requirement_ids": [
+        "R3"
+       ],
+       "start_line": 36,
+       "end_line": 51
+      },
+      {
+       "kind": "transition",
+       "id": "Execute",
+       "name": "Исполнить",
+       "requirement_ids": [
+        "R4"
+       ],
+       "start_line": 54,
+       "end_line": 69
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "verification_required": {
+  "m_1af10d0c122f47e6b8de0ce5fbdd249a/1": {
+   "error": {
+    "code": "VERIFICATION_REQUIRED",
+    "message": "TLC verification state is violated; confirm generation with allow_unverified=true",
+    "details": [
+     {
+      "property_id": "NoCancelledExecution",
+      "status": "PROPERTY_VIOLATED",
+      "check_run_id": "chk_83915c0e46ab44459cf1d3ee6d5e61c7"
+     },
+     {
+      "property_id": "CanExecute",
+      "status": "PROPERTY_HOLDS",
+      "check_run_id": "chk_83915c0e46ab44459cf1d3ee6d5e61c7"
+     },
+     {
+      "property_id": "EndsProperly",
+      "status": "PROPERTY_HOLDS",
+      "check_run_id": "chk_83915c0e46ab44459cf1d3ee6d5e61c7"
+     }
+    ]
+   }
+  }
+ },
+ "files": {
+  "gen_76e251c5a3784e20b5cf6983c0f6fdee": {
+   "GENERATION.json": "{\n  \"schema_version\": \"1.0\",\n  \"generator\": {\n    \"name\": \"proveryalka-codegen\",\n    \"version\": \"1.0.0\"\n  },\n  \"target\": \"python-fastapi\",\n  \"technical_conditions\": {\n    \"language\": \"python\",\n    \"python\": \">=3.11\",\n    \"framework\": \"fastapi==0.162.0\",\n    \"validation\": \"pydantic==2.14.1\",\n    \"test_runner\": \"pytest==8.3.5\",\n    \"dependencies\": \"requirements.txt (все версии зафиксированы)\",\n    \"state\": \"одно состояние в памяти процесса\"\n  },\n  \"model\": {\n    \"name\": \"Заявка (исправлено)\",\n    \"schema_version\": \"1.0\",\n    \"version_id\": \"v_a7d7984214e34ef3a301816025de5bde\",\n    \"spec_hash\": \"8d2b4108ae9b021838362f964ef9852eae90b4b50cbbe03417c301cfa83adb18\"\n  },\n  \"verification\": {\n    \"state\": \"holds\",\n    \"acknowledged\": false,\n    \"properties\": [\n      {\n        \"property_id\": \"NoCancelledExecution\",\n        \"status\": \"PROPERTY_HOLDS\",\n        \"check_run_id\": \"chk_65297f7f0d514fca906685847e3cf57f\"\n      },\n      {\n        \"property_id\": \"CanExecute\",\n        \"status\": \"PROPERTY_HOLDS\",\n        \"check_run_id\": \"chk_65297f7f0d514fca906685847e3cf57f\"\n      },\n      {\n        \"property_id\": \"EndsProperly\",\n        \"status\": \"PROPERTY_HOLDS\",\n        \"check_run_id\": \"chk_65297f7f0d514fca906685847e3cf57f\"\n      }\n    ]\n  },\n  \"coverage\": {\n    \"reachable_states\": 4,\n    \"exhaustive\": true,\n    \"boundary_states\": 12,\n    \"conformance_cases\": 48,\n    \"invalid_state_cases\": 8,\n    \"trace_replays\": 1\n  },\n  \"files\": [\n    {\n      \"path\": \"README.md\",\n      \"size\": 7227,\n      \"sha256\": \"6181e0b67fc84f527c8868dbb106e34525df6f193518c7ae430d87c8cbf4f020\",\n      \"role\": \"doc\",\n      \"requirement_ids\": [\n        \"R1\",\n        \"R2\",\n        \"R3\",\n        \"R4\",\n        \"R5\",\n        \"R6\"\n      ]\n    },\n    {\n      \"path\": \"requirements.txt\",\n      \"size\": 374,\n      \"sha256\": \"6cd9003888caa0cd71c88e5a0e9a26cf695f8f98424d44443b112b160c378a8f\",\n      \"role\": \"config\",\n      \"requirement_ids\": []\n    },\n    {\n      \"path\": \"pytest.ini\",\n      \"size\": 72,\n      \"sha256\": \"900ad5ede42030e383e74fc5276d43bf10c5c256bfbd9066dc52675fe533240b\",\n      \"role\": \"config\",\n      \"requirement_ids\": []\n    },\n    {\n      \"path\": \"model/behavioral_model.json\",\n      \"size\": 9617,\n      \"sha256\": \"6397561888d72cd6afdcf8641d4417d333e5662d7340c8667ebd0ce539fb0f5a\",\n      \"role\": \"model\",\n      \"requirement_ids\": [\n        \"R1\",\n        \"R2\",\n        \"R3\",\n        \"R4\",\n        \"R5\",\n        \"R6\"\n      ]\n    },\n    {\n      \"path\": \"app/__init__.py\",\n      \"size\": 33,\n      \"sha256\": \"5d14b7f33a41a3493a4fc784447992d12b370bc569251a241197c26f41cb3103\",\n      \"role\": \"source\",\n      \"requirement_ids\": []\n    },\n    {\n      \"path\": \"app/spec.py\",\n      \"size\": 2014,\n      \"sha256\": \"988b43b3731dad13dfb236d1cfa163884fe50d55d4146073d209d9d7fa481f82\",\n      \"role\": \"source\",\n      \"requirement_ids\": [\n        \"R1\",\n        \"R2\",\n        \"R3\",\n        \"R4\",\n        \"R5\",\n        \"R6\"\n      ]\n    },\n    {\n      \"path\": \"app/domain.py\",\n      \"size\": 1958,\n      \"sha256\": \"ce091aaed9cd14f9a26525444f5657aa1d2196b188ecf1c7b42033c20321ea96\",\n      \"role\": \"source\",\n      \"requirement_ids\": []\n    },\n    {\n      \"path\": \"app/rules.py\",\n      \"size\": 2716,\n      \"sha256\": \"d97c67b97ab22beb0ae30e5eb2c33b18e79fee9cc0870b94ba624d2c98ccbca8\",\n      \"role\": \"source\",\n      \"requirement_ids\": [\n        \"R2\",\n        \"R3\",\n        \"R4\"\n      ]\n    },\n    {\n      \"path\": \"app/engine.py\",\n      \"size\": 2047,\n      \"sha256\": \"54245db4b67120c9d93d09e6a45ca8319f657ed1fc2386868cfd4592791436a7\",\n      \"role\": \"source\",\n      \"requirement_ids\": []\n    },\n    {\n      \"path\": \"app/api.py\",\n      \"size\": 4327,\n      \"sha256\": \"dbf6ad6a51c2023f8201cf945b36f7972cf489fadc3ba2877ad9bd0c1c287ee7\",\n      \"role\": \"source\",\n      \"requirement_ids\": []\n    },\n    {\n      \"path\": \"tests/data/conformance.json\",\n      \"size\": 16771,\n      \"sha256\": \"45599543314f94b536aac5739c5e3f8def2e263cf081dad887ea634375aa768e\",\n      \"role\": \"test_data\",\n      \"requirement_ids\": [\n        \"R2\",\n        \"R3\",\n        \"R4\"\n      ]\n    },\n    {\n      \"path\": \"tests/test_transitions.py\",\n      \"size\": 3705,\n      \"sha256\": \"acad557f34fb04476cefd55eb288514c155c6aedd36e40fb23423467499e3faa\",\n      \"role\": \"test\",\n      \"requirement_ids\": [\n        \"R2\",\n        \"R3\",\n        \"R4\"\n      ]\n    },\n    {\n      \"path\": \"tests/test_domain.py\",\n      \"size\": 906,\n      \"sha256\": \"a7bdb2f414305a122f3fd452f8feaad7f93e744dd1db49243856c5b06c7fbf47\",\n      \"role\": \"test\",\n      \"requirement_ids\": []\n    },\n    {\n      \"path\": \"tests/test_api.py\",\n      \"size\": 3003,\n      \"sha256\": \"249d7d979744d2e2eda7b94b2ca08f9ef71e1833124c05c2c2cb1433a8097f35\",\n      \"role\": \"test\",\n      \"requirement_ids\": []\n    },\n    {\n      \"path\": \"tests/test_provenance.py\",\n      \"size\": 1582,\n      \"sha256\": \"a84e0e75f055c742cc2fa37607a94601ed92724493fc2f38cc64a1ba146576d4\",\n      \"role\": \"test\",\n      \"requirement_ids\": []\n    },\n    {\n      \"path\": \"tests/test_traces.py\",\n      \"size\": 1117,\n      \"sha256\": \"a141f10edf1ae379f2336d3a85997a05f71d9cd5afaf8a417ae0447f341eb1d0\",\n      \"role\": \"test\",\n      \"requirement_ids\": [\n        \"R4\"\n      ]\n    }\n  ]\n}\n",
+   "README.md": "# Заявка (исправлено)\n\nСервис сгенерирован `proveryalka-codegen 1.0.0` из согласованной версии модели. Изменения правил вносятся новой версией модели и повторной генерацией.\n\n| Поле | Значение |\n|---|---|\n| version_id | `v_a7d7984214e34ef3a301816025de5bde` |\n| spec_hash | `8d2b4108ae9b021838362f964ef9852eae90b4b50cbbe03417c301cfa83adb18` |\n| Цель | Python >=3.11, fastapi==0.162.0, pytest==8.3.5 |\n| Проверка TLC | holds |\n\n## Запуск\n\n```bash\npython -m venv .venv && . .venv/bin/activate\npip install -r requirements.txt\npytest\nuvicorn app.api:app --port 8001\n```\n\n## API\n\n| Метод | Путь | Назначение |\n|---|---|---|\n| GET | `/model` | Переменные, области, переходы, ссылки на требования, version_id, spec_hash |\n| GET | `/state` | Текущее состояние, номер ревизии, доступные переходы |\n| POST | `/events` | `{\"transition\": id, \"expected_revision\"?: n}`: применить событие; 404 неизвестный переход, 409 условие ложно, выход за область или конфликт ревизии |\n| POST | `/evaluate` | `{\"state\": {...}, \"transition\": id}`: вычислить переход без изменения состояния сервиса; 422 при недопустимом состоянии |\n| POST | `/reset` | Вернуть начальное состояние |\n\n## Переходы и требования\n\n| Переход | Название | Требования | Присваивает | Код |\n|---|---|---|---|---|\n| `Approve` | Согласовать | R2 | status, approved | `app/rules.py:21` |\n| `Cancel` | Отменить | R3 | status, cancelled, approved | `app/rules.py:34` |\n| `Execute` | Исполнить | R4 | status | `app/rules.py:48` |\n\n## Требования\n\n- **R1** — Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.\n- **R2** — Заявку в статусе Created можно согласовать: статус Approved, approved=true.\n- **R3** — Заявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true, согласование снимается: approved=false.\n- **R4** — Исполнить можно только согласованную заявку: статус Executed.\n- **R5** — Отменённая заявка не должна быть исполнена.\n- **R6** — Процесс может завершиться только отменой или исполнением.\n\n## Проверка модели (TLC)\n\nTLC подтвердил все свойства модели для этой версии (в пределах лимитов проверки).\n\n| Свойство | Вид | Статус | Проверка |\n|---|---|---|---|\n| `NoCancelledExecution` | forbidden_state | PROPERTY_HOLDS | chk_65297f7f0d514fca906685847e3cf57f |\n| `CanExecute` | reachable | PROPERTY_HOLDS | chk_65297f7f0d514fca906685847e3cf57f |\n| `EndsProperly` | deadlock_free | PROPERTY_HOLDS | chk_65297f7f0d514fca906685847e3cf57f |\n\n## Что проверяют тесты\n\n- `tests/test_transitions.py` и `tests/data/conformance.json`: 48 исходов переходов для 4 достижимых состояний (полный перебор) и 12 граничных состояний областей.\n- `tests/test_domain.py`: типы и конечные области, 8 недопустимых состояний.\n- `tests/test_api.py`: HTTP API на последовательности событий и отказах.\n- `tests/test_traces.py`: повтор трасс TLC через код, трасс: 1.\n- `tests/test_provenance.py`: spec_hash модели, состав переходов, переменных и ссылок на требования.\n\nТесты сравнивают код с семантикой модели на перечисленных состояниях. Они не доказывают соответствие во всех состояниях и не заменяют проверку свойств: статусы свойств получены TLC в пределах его лимитов.\n\n## Файлы\n\n- `README.md` — Описание, запуск, связь переходов с требованиями, результаты TLC.\n- `GENERATION.json` — Происхождение: генератор, version_id, spec_hash, проверка TLC, SHA-256 файлов.\n- `requirements.txt` — Зафиксированные версии всех зависимостей (Python ≥3.11).\n- `pytest.ini` — Настройка pytest: каталог тестов и путь импорта.\n- `model/behavioral_model.json` — Согласованная модель BehavioralModel 1.0 этой версии; её канонический SHA-256 равен spec_hash.\n- `app/__init__.py` — Пакет сервиса.\n- `app/spec.py` — Данные модели: требования, переменные с областями значений, начальное состояние, version_id и spec_hash.\n- `app/domain.py` — Проверка типов и конечных областей значений состояния.\n- `app/rules.py` — Условия и одновременные присваивания переходов (Approve, Cancel, Execute); у каждого перехода указаны требования.\n- `app/engine.py` — Применение события: проверка состояния, условие, одновременное присваивание, проверка областей.\n- `app/api.py` — FastAPI: GET /model, GET /state, POST /events, POST /evaluate, POST /reset.\n- `tests/data/conformance.json` — Ожидаемые исходы переходов, недопустимые состояния и трассы TLC; вычислены по семантике модели при генерации.\n- `tests/test_transitions.py` — Тесты переходов: применение, неизменные переменные, одновременность, ложное условие, выход за область, таблица исходов.\n- `tests/test_domain.py` — Тесты типов и конечных областей значений.\n- `tests/test_api.py` — Тесты HTTP API: последовательность событий, отказы 404/409/422, сброс.\n- `tests/test_provenance.py` — Связь кода с моделью: spec_hash, состав переходов и переменных, ссылки на требования.\n- `tests/test_traces.py` — Повтор трасс TLC этой версии через сгенерированный код; статус свойства определяет TLC.\n",
+   "app/__init__.py": "\"\"\"Generated service package.\"\"\"\n",
+   "app/api.py": "\"\"\"HTTP API сервиса: модель, текущее состояние и применение событий.\n\nСостояние хранится в памяти одного процесса; события применяются по одному под блокировкой.\n\"\"\"\nfrom threading import Lock\nfrom typing import Optional, Union\n\nfrom fastapi import FastAPI\nfrom fastapi.responses import JSONResponse\nfrom pydantic import BaseModel, ConfigDict, StrictBool, StrictInt, StrictStr\n\nfrom . import engine\nfrom .domain import InvalidState\nfrom .rules import TRANSITIONS\nfrom .spec import GENERATOR, MODEL_NAME, REQUIREMENTS, SPEC_HASH, VARIABLES, VERSION_ID\n\n\nValue = Union[StrictBool, StrictInt, StrictStr]\nREJECTIONS = (InvalidState, engine.UnknownTransition, engine.TransitionNotEnabled, engine.EffectOutOfDomain)\n\n\nclass Body(BaseModel):\n    model_config = ConfigDict(extra=\"forbid\")\n\n\nclass EventRequest(Body):\n    transition: StrictStr\n    expected_revision: Optional[StrictInt] = None\n\n\nclass EvaluateRequest(Body):\n    state: dict[str, Value]\n    transition: StrictStr\n\n\ndef error(status, code, message):\n    return JSONResponse(status_code=status, content={\"error\": {\"code\": code, \"message\": message}})\n\n\ndef rejection(transition_id, failure):\n    if isinstance(failure, engine.UnknownTransition):\n        return error(404, \"UNKNOWN_TRANSITION\", f\"Перехода {transition_id!r} нет в модели\")\n    if isinstance(failure, engine.TransitionNotEnabled):\n        return error(409, \"TRANSITION_NOT_ENABLED\", f\"Условие перехода {transition_id} не выполнено\")\n    if isinstance(failure, engine.EffectOutOfDomain):\n        return error(409, \"EFFECT_OUT_OF_DOMAIN\", str(failure))\n    return error(422, \"INVALID_STATE\", str(failure))\n\n\ndef describe(variable):\n    domain = {\"kind\": variable.kind}\n    if variable.kind == \"integer\":\n        domain.update(minimum=variable.minimum, maximum=variable.maximum)\n    if variable.kind == \"enum\":\n        domain[\"values\"] = list(variable.values)\n    return {\"id\": variable.id, \"name\": variable.name, \"domain\": domain,\n            \"initial_value\": variable.initial, \"requirement_ids\": list(variable.requirement_ids)}\n\n\ndef create_app():\n    app = FastAPI(title=MODEL_NAME, version=VERSION_ID)\n    lock = Lock()\n    current = {\"state\": engine.initial_state(), \"revision\": 0}\n\n    def snapshot():\n        return {\"state\": dict(current[\"state\"]), \"revision\": current[\"revision\"],\n                \"enabled\": engine.enabled_transitions(current[\"state\"])}\n\n    @app.get(\"/model\")\n    def model():\n        return {\n            \"name\": MODEL_NAME, \"version_id\": VERSION_ID, \"spec_hash\": SPEC_HASH, \"generator\": GENERATOR,\n            \"variables\": [describe(variable) for variable in VARIABLES],\n            \"transitions\": [{\"id\": rule.id, \"name\": rule.name, \"requirement_ids\": list(rule.requirement_ids),\n                             \"assigns\": list(rule.assigns)} for rule in TRANSITIONS.values()],\n            \"requirements\": REQUIREMENTS,\n        }\n\n    @app.get(\"/state\")\n    def state():\n        with lock:\n            return snapshot()\n\n    @app.post(\"/events\")\n    def apply_event(body: EventRequest):\n        with lock:\n            if body.expected_revision is not None and body.expected_revision != current[\"revision\"]:\n                return error(409, \"REVISION_CONFLICT\", \"Состояние изменилось; перечитайте /state\")\n            try:\n                following = engine.apply(current[\"state\"], body.transition)\n            except REJECTIONS as failure:\n                return rejection(body.transition, failure)\n            current[\"state\"] = following\n            current[\"revision\"] += 1\n            return {**snapshot(), \"applied\": body.transition}\n\n    @app.post(\"/evaluate\")\n    def evaluate(body: EvaluateRequest):\n        try:\n            following = engine.apply(body.state, body.transition)\n        except REJECTIONS as failure:\n            return rejection(body.transition, failure)\n        return {\"state\": following, \"enabled\": engine.enabled_transitions(following)}\n\n    @app.post(\"/reset\")\n    def reset():\n        with lock:\n            current[\"state\"] = engine.initial_state()\n            current[\"revision\"] += 1\n            return snapshot()\n\n    return app\n\n\napp = create_app()\n",
+   "app/domain.py": "\"\"\"Типы и конечные области значений переменных; проверка состояния модели.\"\"\"\nfrom dataclasses import dataclass\nfrom typing import Optional\n\n\nclass InvalidState(ValueError):\n    \"\"\"Состояние не соответствует переменным или областям значений модели.\"\"\"\n\n    def __init__(self, variable, reason):\n        super().__init__(f\"{variable}: {reason}\")\n        self.variable = variable\n        self.reason = reason\n\n\n@dataclass(frozen=True)\nclass Variable:\n    id: str\n    name: str\n    kind: str\n    initial: object\n    requirement_ids: tuple\n    minimum: Optional[int] = None\n    maximum: Optional[int] = None\n    values: tuple = ()\n\n    def contains(self, value):\n        # bool не считается целым: True и 1 различаются, как в модели.\n        if self.kind == \"boolean\":\n            return type(value) is bool\n        if self.kind == \"integer\":\n            return type(value) is int and self.minimum <= value <= self.maximum\n        return type(value) is str and value in self.values\n\n\ndef validate_state(variables, state):\n    \"\"\"Возвращает копию состояния или поднимает InvalidState.\"\"\"\n    if not isinstance(state, dict):\n        raise InvalidState(\"*\", \"состояние должно быть объектом\")\n    known = {variable.id for variable in variables}\n    for name in state:\n        if name not in known:\n            raise InvalidState(str(name), \"переменной нет в модели\")\n    for variable in variables:\n        if variable.id not in state:\n            raise InvalidState(variable.id, \"значение отсутствует\")\n        if not variable.contains(state[variable.id]):\n            raise InvalidState(variable.id, f\"значение {state[variable.id]!r} вне области {variable.kind}\")\n    return dict(state)\n",
+   "app/engine.py": "\"\"\"Применение события модели к состоянию.\n\nПорядок: проверка состояния, условие перехода, одновременное присваивание (все правые части\nвычисляются по состоянию до события), проверка областей нового состояния. Переменные без\nприсваивания сохраняют значение. Отказ не меняет переданное состояние.\n\"\"\"\nfrom .domain import InvalidState, validate_state\nfrom .rules import TRANSITIONS\nfrom .spec import INITIAL_STATE, VARIABLES\n\n\nclass UnknownTransition(LookupError):\n    \"\"\"Перехода нет в модели.\"\"\"\n\n\nclass TransitionNotEnabled(ValueError):\n    \"\"\"Условие перехода ложно в этом состоянии.\"\"\"\n\n\nclass EffectOutOfDomain(ValueError):\n    \"\"\"Присваивание выводит переменную за область значений.\"\"\"\n\n    def __init__(self, transition_id, error):\n        super().__init__(f\"{transition_id}: {error}\")\n        self.transition_id = transition_id\n        self.variable = error.variable\n\n\ndef initial_state():\n    return dict(INITIAL_STATE)\n\n\ndef check_state(state):\n    return validate_state(VARIABLES, state)\n\n\ndef transition(transition_id):\n    try:\n        return TRANSITIONS[transition_id]\n    except (KeyError, TypeError):\n        raise UnknownTransition(transition_id) from None\n\n\ndef enabled_transitions(state):\n    current = check_state(state)\n    return [rule.id for rule in TRANSITIONS.values() if rule.guard(current)]\n\n\ndef apply(state, transition_id):\n    current = check_state(state)\n    rule = transition(transition_id)\n    if not rule.guard(current):\n        raise TransitionNotEnabled(transition_id)\n    following = {**current, **rule.effects(current)}\n    try:\n        return check_state(following)\n    except InvalidState as error:\n        raise EffectOutOfDomain(transition_id, error) from error\n",
+   "app/rules.py": "\"\"\"Правила переходов модели: условие (guard) и одновременное присваивание (effects).\n\nФункции effects_* читают только состояние до события `s` и возвращают новые значения\nприсваиваемых переменных; остальные переменные не меняются. Правила меняются только через\nновую согласованную версию модели и повторную генерацию.\"\"\"\n# Версия v_a7d7984214e34ef3a301816025de5bde, spec_hash 8d2b4108ae9b021838362f964ef9852eae90b4b50cbbe03417c301cfa83adb18, proveryalka-codegen 1.0.0\nfrom dataclasses import dataclass\nfrom typing import Callable\n\n\n@dataclass(frozen=True)\nclass Transition:\n    id: str\n    name: str\n    requirement_ids: tuple\n    assigns: tuple\n    guard: Callable\n    effects: Callable\n\n\n# Переход Approve «Согласовать»\n# R2: Заявку в статусе Created можно согласовать: статус Approved, approved=true.\ndef guard_Approve(s):\n    return s['status'] == 'Created'\n\n\ndef effects_Approve(s):\n    return {\n        'status': 'Approved',\n        'approved': True,\n    }\n\n\n# Переход Cancel «Отменить»\n# R3: Заявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true, согласование снимается: approved=false.\ndef guard_Cancel(s):\n    return (s['status'] == 'Created') or (s['status'] == 'Approved')\n\n\ndef effects_Cancel(s):\n    return {\n        'status': 'Cancelled',\n        'cancelled': True,\n        'approved': False,\n    }\n\n\n# Переход Execute «Исполнить»\n# R4: Исполнить можно только согласованную заявку: статус Executed.\ndef guard_Execute(s):\n    return s['approved'] == True\n\n\ndef effects_Execute(s):\n    return {\n        'status': 'Executed',\n    }\n\n\nTRANSITIONS = {\n    'Approve': Transition(\n        id='Approve',\n        name='Согласовать',\n        requirement_ids=('R2',),\n        assigns=('status', 'approved'),\n        guard=guard_Approve,\n        effects=effects_Approve,\n    ),\n    'Cancel': Transition(\n        id='Cancel',\n        name='Отменить',\n        requirement_ids=('R3',),\n        assigns=('status', 'cancelled', 'approved'),\n        guard=guard_Cancel,\n        effects=effects_Cancel,\n    ),\n    'Execute': Transition(\n        id='Execute',\n        name='Исполнить',\n        requirement_ids=('R4',),\n        assigns=('status',),\n        guard=guard_Execute,\n        effects=effects_Execute,\n    ),\n}\n",
+   "app/spec.py": "\"\"\"Данные согласованной модели: требования, переменные, области значений, начальное состояние.\"\"\"\nfrom .domain import Variable\n\n\n# Модель: Заявка (исправлено)\nMODEL_NAME = 'Заявка (исправлено)'\nVERSION_ID = 'v_a7d7984214e34ef3a301816025de5bde'\nSPEC_HASH = '8d2b4108ae9b021838362f964ef9852eae90b4b50cbbe03417c301cfa83adb18'\nGENERATOR = 'proveryalka-codegen 1.0.0'\n\nREQUIREMENTS = {\n    'R1': 'Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.',\n    'R2': 'Заявку в статусе Created можно согласовать: статус Approved, approved=true.',\n    'R3': 'Заявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true, согласование снимается: approved=false.',\n    'R4': 'Исполнить можно только согласованную заявку: статус Executed.',\n    'R5': 'Отменённая заявка не должна быть исполнена.',\n    'R6': 'Процесс может завершиться только отменой или исполнением.',\n}\n\nVARIABLES = (\n    # status «Статус заявки» — R1\n    Variable(id='status', name='Статус заявки', kind='enum', initial='Created', requirement_ids=('R1',), values=('Created', 'Approved', 'Cancelled', 'Executed')),\n    # approved «Согласована» — R1\n    Variable(id='approved', name='Согласована', kind='boolean', initial=False, requirement_ids=('R1',)),\n    # cancelled «Отменена» — R1\n    Variable(id='cancelled', name='Отменена', kind='boolean', initial=False, requirement_ids=('R1',)),\n)\n\nINITIAL_STATE = {variable.id: variable.initial for variable in VARIABLES}\n",
+   "model/behavioral_model.json": "{\n  \"schema_version\": \"1.0\",\n  \"name\": \"Заявка (исправлено)\",\n  \"sources\": [\n    {\n      \"id\": \"src_783895a7160041268b64f9dca9f88bb2\",\n      \"session_id\": \"s_5dc02705790541648591bbf567d352af\",\n      \"kind\": \"text\",\n      \"text\": \"Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.\\nЗаявку в статусе Created можно согласовать: статус Approved, approved=true.\\nЗаявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true, согласование снимается: approved=false.\\nИсполнить можно только согласованную заявку: статус Executed.\\nОтменённая заявка не должна быть исполнена.\\nПроцесс может завершиться только отменой или исполнением.\"\n    }\n  ],\n  \"requirements\": [\n    {\n      \"id\": \"R1\",\n      \"text\": \"Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.\",\n      \"source_refs\": [\n        {\n          \"source_id\": \"src_783895a7160041268b64f9dca9f88bb2\",\n          \"quote\": \"Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.\",\n          \"start\": 0,\n          \"end\": 157\n        }\n      ]\n    },\n    {\n      \"id\": \"R2\",\n      \"text\": \"Заявку в статусе Created можно согласовать: статус Approved, approved=true.\",\n      \"source_refs\": [\n        {\n          \"source_id\": \"src_783895a7160041268b64f9dca9f88bb2\",\n          \"quote\": \"Заявку в статусе Created можно согласовать: статус Approved, approved=true.\",\n          \"start\": 158,\n          \"end\": 233\n        }\n      ]\n    },\n    {\n      \"id\": \"R3\",\n      \"text\": \"Заявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true, согласование снимается: approved=false.\",\n      \"source_refs\": [\n        {\n          \"source_id\": \"src_783895a7160041268b64f9dca9f88bb2\",\n          \"quote\": \"Заявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true, согласование снимается: approved=false.\",\n          \"start\": 234,\n          \"end\": 361\n        }\n      ]\n    },\n    {\n      \"id\": \"R4\",\n      \"text\": \"Исполнить можно только согласованную заявку: статус Executed.\",\n      \"source_refs\": [\n        {\n          \"source_id\": \"src_783895a7160041268b64f9dca9f88bb2\",\n          \"quote\": \"Исполнить можно только согласованную заявку: статус Executed.\",\n          \"start\": 362,\n          \"end\": 423\n        }\n      ]\n    },\n    {\n      \"id\": \"R5\",\n      \"text\": \"Отменённая заявка не должна быть исполнена.\",\n      \"source_refs\": [\n        {\n          \"source_id\": \"src_783895a7160041268b64f9dca9f88bb2\",\n          \"quote\": \"Отменённая заявка не должна быть исполнена.\",\n          \"start\": 424,\n          \"end\": 467\n        }\n      ]\n    },\n    {\n      \"id\": \"R6\",\n      \"text\": \"Процесс может завершиться только отменой или исполнением.\",\n      \"source_refs\": [\n        {\n          \"source_id\": \"src_783895a7160041268b64f9dca9f88bb2\",\n          \"quote\": \"Процесс может завершиться только отменой или исполнением.\",\n          \"start\": 468,\n          \"end\": 525\n        }\n      ]\n    }\n  ],\n  \"variables\": [\n    {\n      \"id\": \"status\",\n      \"name\": \"Статус заявки\",\n      \"requirement_ids\": [\n        \"R1\"\n      ],\n      \"domain\": {\n        \"kind\": \"enum\",\n        \"values\": [\n          \"Created\",\n          \"Approved\",\n          \"Cancelled\",\n          \"Executed\"\n        ]\n      },\n      \"initial_value\": \"Created\"\n    },\n    {\n      \"id\": \"approved\",\n      \"name\": \"Согласована\",\n      \"requirement_ids\": [\n        \"R1\"\n      ],\n      \"domain\": {\n        \"kind\": \"boolean\"\n      },\n      \"initial_value\": false\n    },\n    {\n      \"id\": \"cancelled\",\n      \"name\": \"Отменена\",\n      \"requirement_ids\": [\n        \"R1\"\n      ],\n      \"domain\": {\n        \"kind\": \"boolean\"\n      },\n      \"initial_value\": false\n    }\n  ],\n  \"transitions\": [\n    {\n      \"id\": \"Approve\",\n      \"name\": \"Согласовать\",\n      \"requirement_ids\": [\n        \"R2\"\n      ],\n      \"guard\": {\n        \"kind\": \"binary\",\n        \"op\": \"eq\",\n        \"left\": {\n          \"kind\": \"variable\",\n          \"name\": \"status\"\n        },\n        \"right\": {\n          \"kind\": \"literal\",\n          \"value\": \"Created\"\n        }\n      },\n      \"effects\": [\n        {\n          \"variable\": \"status\",\n          \"value\": {\n            \"kind\": \"literal\",\n            \"value\": \"Approved\"\n          }\n        },\n        {\n          \"variable\": \"approved\",\n          \"value\": {\n            \"kind\": \"literal\",\n            \"value\": true\n          }\n        }\n      ]\n    },\n    {\n      \"id\": \"Cancel\",\n      \"name\": \"Отменить\",\n      \"requirement_ids\": [\n        \"R3\"\n      ],\n      \"guard\": {\n        \"kind\": \"binary\",\n        \"op\": \"or\",\n        \"left\": {\n          \"kind\": \"binary\",\n          \"op\": \"eq\",\n          \"left\": {\n            \"kind\": \"variable\",\n            \"name\": \"status\"\n          },\n          \"right\": {\n            \"kind\": \"literal\",\n            \"value\": \"Created\"\n          }\n        },\n        \"right\": {\n          \"kind\": \"binary\",\n          \"op\": \"eq\",\n          \"left\": {\n            \"kind\": \"variable\",\n            \"name\": \"status\"\n          },\n          \"right\": {\n            \"kind\": \"literal\",\n            \"value\": \"Approved\"\n          }\n        }\n      },\n      \"effects\": [\n        {\n          \"variable\": \"status\",\n          \"value\": {\n            \"kind\": \"literal\",\n            \"value\": \"Cancelled\"\n          }\n        },\n        {\n          \"variable\": \"cancelled\",\n          \"value\": {\n            \"kind\": \"literal\",\n            \"value\": true\n          }\n        },\n        {\n          \"variable\": \"approved\",\n          \"value\": {\n            \"kind\": \"literal\",\n            \"value\": false\n          }\n        }\n      ]\n    },\n    {\n      \"id\": \"Execute\",\n      \"name\": \"Исполнить\",\n      \"requirement_ids\": [\n        \"R4\"\n      ],\n      \"guard\": {\n        \"kind\": \"binary\",\n        \"op\": \"eq\",\n        \"left\": {\n          \"kind\": \"variable\",\n          \"name\": \"approved\"\n        },\n        \"right\": {\n          \"kind\": \"literal\",\n          \"value\": true\n        }\n      },\n      \"effects\": [\n        {\n          \"variable\": \"status\",\n          \"value\": {\n            \"kind\": \"literal\",\n            \"value\": \"Executed\"\n          }\n        }\n      ]\n    }\n  ],\n  \"properties\": [\n    {\n      \"id\": \"NoCancelledExecution\",\n      \"name\": \"Отменённая заявка не исполняется\",\n      \"requirement_ids\": [\n        \"R5\"\n      ],\n      \"kind\": \"forbidden_state\",\n      \"predicate\": {\n        \"kind\": \"binary\",\n        \"op\": \"and\",\n        \"left\": {\n          \"kind\": \"variable\",\n          \"name\": \"cancelled\"\n        },\n        \"right\": {\n          \"kind\": \"binary\",\n          \"op\": \"eq\",\n          \"left\": {\n            \"kind\": \"variable\",\n            \"name\": \"status\"\n          },\n          \"right\": {\n            \"kind\": \"literal\",\n            \"value\": \"Executed\"\n          }\n        }\n      },\n      \"explanation\": \"Отменённая заявка не исполняется\",\n      \"origin\": \"requirement\",\n      \"approved_by\": null\n    },\n    {\n      \"id\": \"CanExecute\",\n      \"name\": \"Заявку можно исполнить\",\n      \"requirement_ids\": [\n        \"R4\"\n      ],\n      \"kind\": \"reachable\",\n      \"predicate\": {\n        \"kind\": \"binary\",\n        \"op\": \"eq\",\n        \"left\": {\n          \"kind\": \"variable\",\n          \"name\": \"status\"\n        },\n        \"right\": {\n          \"kind\": \"literal\",\n          \"value\": \"Executed\"\n        }\n      },\n      \"explanation\": \"Заявку можно исполнить\",\n      \"origin\": \"requirement\",\n      \"approved_by\": null\n    },\n    {\n      \"id\": \"EndsProperly\",\n      \"name\": \"Завершение только отменой или исполнением\",\n      \"requirement_ids\": [\n        \"R6\"\n      ],\n      \"kind\": \"deadlock_free\",\n      \"predicate\": {\n        \"kind\": \"binary\",\n        \"op\": \"or\",\n        \"left\": {\n          \"kind\": \"binary\",\n          \"op\": \"eq\",\n          \"left\": {\n            \"kind\": \"variable\",\n            \"name\": \"status\"\n          },\n          \"right\": {\n            \"kind\": \"literal\",\n            \"value\": \"Cancelled\"\n          }\n        },\n        \"right\": {\n          \"kind\": \"binary\",\n          \"op\": \"eq\",\n          \"left\": {\n            \"kind\": \"variable\",\n            \"name\": \"status\"\n          },\n          \"right\": {\n            \"kind\": \"literal\",\n            \"value\": \"Executed\"\n          }\n        }\n      },\n      \"explanation\": \"Завершение только отменой или исполнением\",\n      \"origin\": \"requirement\",\n      \"approved_by\": null\n    }\n  ]\n}\n",
+   "pytest.ini": "[pytest]\ntestpaths = tests\npythonpath = .\naddopts = -p no:cacheprovider\n",
+   "requirements.txt": "annotated-doc==0.0.5\nannotated-types==0.8.0\nanyio==4.15.1\nclick==8.5.0\nfastapi==0.162.0\nh11==0.16.0\nhttpcore2==2.16.0\nhttpx2==2.16.0\nidna==3.20\niniconfig==2.3.1\nopentelemetry-api==1.45.2\npackaging==26.3\npluggy==1.7.0\npydantic==2.14.1\npydantic-core==2.50.1\npytest==8.3.5\nstarlette==1.10.0\ntruststore==0.10.5\ntyping-extensions==4.16.0\ntyping-inspection==0.4.4\nuvicorn==0.34.2\n",
+   "tests/data/conformance.json": "{\n  \"semantics\": \"BehavioralModel 1.0, proveryalka.behavior.step\",\n  \"version_id\": \"v_a7d7984214e34ef3a301816025de5bde\",\n  \"spec_hash\": \"8d2b4108ae9b021838362f964ef9852eae90b4b50cbbe03417c301cfa83adb18\",\n  \"initial_state\": {\n    \"status\": \"Created\",\n    \"approved\": false,\n    \"cancelled\": false\n  },\n  \"reachable_states\": 4,\n  \"exhaustive\": true,\n  \"boundary_states\": 12,\n  \"rows\": [\n    {\n      \"id\": \"r0-Approve\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Approved\",\n        \"approved\": true,\n        \"cancelled\": false\n      }\n    },\n    {\n      \"id\": \"r0-Cancel\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"r0-Execute\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"r1-Approve\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"r1-Cancel\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"r1-Execute\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": false\n      }\n    },\n    {\n      \"id\": \"r2-Approve\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"r2-Cancel\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"r2-Execute\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"r3-Approve\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"r3-Cancel\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"r3-Execute\",\n      \"origin\": \"reachable\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": false\n      }\n    },\n    {\n      \"id\": \"b0-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Approved\",\n        \"approved\": true,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"b0-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"b0-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b1-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Approved\",\n        \"approved\": true,\n        \"cancelled\": false\n      }\n    },\n    {\n      \"id\": \"b1-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"b1-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": false\n      }\n    },\n    {\n      \"id\": \"b2-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Approved\",\n        \"approved\": true,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"b2-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"b2-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"b3-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b3-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"b3-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b4-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b4-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"b4-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b5-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b5-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"b5-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Approved\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"b6-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b6-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b6-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b7-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b7-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b7-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": true,\n        \"cancelled\": false\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": false\n      }\n    },\n    {\n      \"id\": \"b8-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b8-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b8-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Cancelled\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": true\n      }\n    },\n    {\n      \"id\": \"b9-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b9-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b9-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": false,\n        \"cancelled\": false\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b10-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b10-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b10-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": false,\n        \"cancelled\": true\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b11-Approve\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Approve\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b11-Cancel\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Cancel\",\n      \"outcome\": \"not_enabled\",\n      \"next\": null\n    },\n    {\n      \"id\": \"b11-Execute\",\n      \"origin\": \"boundary\",\n      \"state\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": true\n      },\n      \"transition\": \"Execute\",\n      \"outcome\": \"applied\",\n      \"next\": {\n        \"status\": \"Executed\",\n        \"approved\": true,\n        \"cancelled\": true\n      }\n    }\n  ],\n  \"invalid_states\": [\n    {\n      \"id\": \"status-integer_instead_of_enum\",\n      \"variable\": \"status\",\n      \"state\": {\n        \"status\": 0,\n        \"approved\": false,\n        \"cancelled\": false\n      }\n    },\n    {\n      \"id\": \"status-value_outside_enum\",\n      \"variable\": \"status\",\n      \"state\": {\n        \"status\": \"\",\n        \"approved\": false,\n        \"cancelled\": false\n      }\n    },\n    {\n      \"id\": \"approved-integer_instead_of_boolean\",\n      \"variable\": \"approved\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": 1,\n        \"cancelled\": false\n      }\n    },\n    {\n      \"id\": \"approved-string_instead_of_boolean\",\n      \"variable\": \"approved\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": \"true\",\n        \"cancelled\": false\n      }\n    },\n    {\n      \"id\": \"cancelled-integer_instead_of_boolean\",\n      \"variable\": \"cancelled\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": false,\n        \"cancelled\": 1\n      }\n    },\n    {\n      \"id\": \"cancelled-string_instead_of_boolean\",\n      \"variable\": \"cancelled\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": false,\n        \"cancelled\": \"true\"\n      }\n    },\n    {\n      \"id\": \"missing_variable\",\n      \"variable\": \"status\",\n      \"state\": {\n        \"approved\": false,\n        \"cancelled\": false\n      }\n    },\n    {\n      \"id\": \"unknown_variable\",\n      \"variable\": \"__extra__\",\n      \"state\": {\n        \"status\": \"Created\",\n        \"approved\": false,\n        \"cancelled\": false,\n        \"__extra__\": 0\n      }\n    }\n  ],\n  \"traces\": [\n    {\n      \"property_id\": \"CanExecute\",\n      \"status\": \"PROPERTY_HOLDS\",\n      \"kind\": \"reachable\",\n      \"check_run_id\": \"chk_65297f7f0d514fca906685847e3cf57f\",\n      \"steps\": [\n        {\n          \"transition_id\": null,\n          \"state\": {\n            \"status\": \"Created\",\n            \"approved\": false,\n            \"cancelled\": false\n          }\n        },\n        {\n          \"transition_id\": \"Approve\",\n          \"state\": {\n            \"status\": \"Approved\",\n            \"approved\": true,\n            \"cancelled\": false\n          }\n        },\n        {\n          \"transition_id\": \"Execute\",\n          \"state\": {\n            \"status\": \"Executed\",\n            \"approved\": true,\n            \"cancelled\": false\n          }\n        }\n      ]\n    }\n  ]\n}\n",
+   "tests/test_api.py": "\"\"\"HTTP API: модель, состояние, применение событий и отказы.\"\"\"\nfrom fastapi.testclient import TestClient\n\nfrom app.api import create_app\nfrom app.spec import SPEC_HASH, VERSION_ID\n\n\nINITIAL = {'status': 'Created', 'approved': False, 'cancelled': False}\nINITIAL_ENABLED = ('Approve', 'Cancel')\nTRANSITIONS = {'Approve': ('R2',), 'Cancel': ('R3',), 'Execute': ('R4',)}\nPATH = (\n    ('Approve', {'status': 'Approved', 'approved': True, 'cancelled': False}),\n    ('Execute', {'status': 'Executed', 'approved': True, 'cancelled': False}),\n)\n\n\ndef client():\n    return TestClient(create_app())\n\n\ndef test_model_endpoint_links_version_and_requirements():\n    body = client().get(\"/model\").json()\n    assert body[\"version_id\"] == VERSION_ID\n    assert body[\"spec_hash\"] == SPEC_HASH\n    assert {item[\"id\"]: tuple(item[\"requirement_ids\"]) for item in body[\"transitions\"]} == TRANSITIONS\n\n\ndef test_initial_state():\n    assert client().get(\"/state\").json() == {\"state\": INITIAL, \"revision\": 0, \"enabled\": list(INITIAL_ENABLED)}\n\n\ndef test_event_sequence_over_http():\n    api = client()\n    for revision, (transition_id, expected) in enumerate(PATH, start=1):\n        response = api.post(\"/events\", json={\"transition\": transition_id, \"expected_revision\": revision - 1})\n        assert response.status_code == 200, response.text\n        assert response.json()[\"state\"] == expected\n        assert response.json()[\"revision\"] == revision\n    assert api.get(\"/state\").json()[\"state\"] == PATH[-1][1]\n\n\ndef test_reset_returns_initial_state():\n    api = client()\n    api.post(\"/events\", json={\"transition\": PATH[0][0]})\n    body = api.post(\"/reset\").json()\n    assert body[\"state\"] == INITIAL\n\n\ndef test_disabled_event_is_rejected_and_state_kept():\n    api = client()\n    response = api.post(\"/events\", json={\"transition\": 'Execute'})\n    assert response.status_code == 409\n    assert response.json()[\"error\"][\"code\"] == \"TRANSITION_NOT_ENABLED\"\n    assert api.get(\"/state\").json() == {\"state\": INITIAL, \"revision\": 0, \"enabled\": list(INITIAL_ENABLED)}\n\n\ndef test_unknown_transition_returns_404():\n    response = client().post(\"/events\", json={\"transition\": \"__unknown__\"})\n    assert response.status_code == 404\n    assert response.json()[\"error\"][\"code\"] == \"UNKNOWN_TRANSITION\"\n\n\ndef test_revision_conflict_returns_409():\n    response = client().post(\"/events\", json={\"transition\": 'Approve', \"expected_revision\": 99})\n    assert response.status_code == 409\n    assert response.json()[\"error\"][\"code\"] == \"REVISION_CONFLICT\"\n\n\ndef test_request_body_is_validated():\n    assert client().post(\"/events\", json={\"transition\": 1}).status_code == 422\n    assert client().post(\"/events\", json={\"transition\": \"x\", \"extra\": True}).status_code == 422\n\n\ndef test_evaluate_rejects_invalid_state():\n    response = client().post(\"/evaluate\", json={\"state\": {}, \"transition\": \"__unknown__\"})\n    assert response.status_code == 422\n    assert response.json()[\"error\"][\"code\"] == \"INVALID_STATE\"\n",
+   "tests/test_domain.py": "\"\"\"Проверка типов и конечных областей значений состояния.\"\"\"\nimport json\nfrom pathlib import Path\n\nimport pytest\n\nfrom app import engine\nfrom app.domain import InvalidState\n\n\nTABLE = json.loads((Path(__file__).parent / \"data\" / \"conformance.json\").read_text(encoding=\"utf-8\"))\nCASES = TABLE[\"invalid_states\"]\n\n\ndef test_initial_state_matches_model():\n    assert engine.initial_state() == TABLE[\"initial_state\"]\n    assert engine.check_state(engine.initial_state()) == TABLE[\"initial_state\"]\n\n\n@pytest.mark.parametrize(\"case\", CASES, ids=[case[\"id\"] for case in CASES])\ndef test_invalid_state_is_rejected(case):\n    with pytest.raises(InvalidState) as error:\n        engine.check_state(case[\"state\"])\n    assert error.value.variable == case[\"variable\"]\n\n\ndef test_state_must_be_an_object():\n    with pytest.raises(InvalidState):\n        engine.check_state([])\n",
+   "tests/test_provenance.py": "\"\"\"Связь кода с согласованной моделью: spec_hash, переходы, переменные и ссылки на требования.\"\"\"\nimport hashlib\nimport json\nfrom pathlib import Path\n\nfrom app.rules import TRANSITIONS\nfrom app.spec import REQUIREMENTS, SPEC_HASH, VARIABLES\n\n\nMODEL = json.loads((Path(__file__).resolve().parents[1] / \"model\" / \"behavioral_model.json\").read_text(encoding=\"utf-8\"))\n\n\ndef test_model_file_matches_spec_hash():\n    canonical = json.dumps(MODEL, sort_keys=True, ensure_ascii=False, separators=(\",\", \":\"), allow_nan=False)\n    assert hashlib.sha256(canonical.encode(\"utf-8\")).hexdigest() == SPEC_HASH\n\n\ndef test_rules_follow_model_transitions():\n    assert list(TRANSITIONS) == [item[\"id\"] for item in MODEL[\"transitions\"]]\n    for item in MODEL[\"transitions\"]:\n        rule = TRANSITIONS[item[\"id\"]]\n        assert rule.requirement_ids == tuple(item[\"requirement_ids\"])\n        assert rule.assigns == tuple(effect[\"variable\"] for effect in item[\"effects\"])\n\n\ndef test_variables_follow_model():\n    expected = [(item[\"id\"], item[\"domain\"][\"kind\"], item[\"initial_value\"]) for item in MODEL[\"variables\"]]\n    assert [(variable.id, variable.kind, variable.initial) for variable in VARIABLES] == expected\n\n\ndef test_requirement_references_exist():\n    assert set(REQUIREMENTS) == {item[\"id\"] for item in MODEL[\"requirements\"]}\n    for rule in TRANSITIONS.values():\n        assert set(rule.requirement_ids) <= set(REQUIREMENTS)\n    for variable in VARIABLES:\n        assert set(variable.requirement_ids) <= set(REQUIREMENTS)\n",
+   "tests/test_traces.py": "\"\"\"Повтор трасс TLC этой версии модели через сгенерированный код.\n\nСтатус свойства определяет TLC в пределах своих лимитов, а не эти тесты. Трасса нарушения\nвоспроизводится как поведение согласованной модели: генератор модель не исправляет.\n\"\"\"\nimport json\nfrom pathlib import Path\n\nimport pytest\n\nfrom app import engine\n\n\nTRACES = json.loads((Path(__file__).parent / \"data\" / \"conformance.json\").read_text(encoding=\"utf-8\"))[\"traces\"]\n\n\n@pytest.mark.parametrize(\"trace\", TRACES, ids=[trace[\"property_id\"] for trace in TRACES])\ndef test_tlc_trace_is_reproduced(trace):\n    state = engine.initial_state()\n    assert state == trace[\"steps\"][0][\"state\"]\n    for step in trace[\"steps\"][1:]:\n        state = engine.apply(state, step[\"transition_id\"])\n        assert state == step[\"state\"]\n    if trace[\"kind\"] == \"deadlock_free\" and trace[\"status\"] == \"PROPERTY_VIOLATED\":\n        assert engine.enabled_transitions(state) == []\n",
+   "tests/test_transitions.py": "\"\"\"Тесты переходов: сгенерированные правила против семантики согласованной модели.\n\nОжидаемые состояния вычислены генератором по BehavioralModel 1.0 (proveryalka.behavior.step)\nдля этой версии. Тесты проверяют перечисленные состояния и не доказывают соответствие\nво всех состояниях.\"\"\"\nimport json\nfrom pathlib import Path\n\nimport pytest\n\nfrom app import engine\n\n\nTABLE = json.loads((Path(__file__).parent / \"data\" / \"conformance.json\").read_text(encoding=\"utf-8\"))\nROWS = TABLE[\"rows\"]\n\n\n# Approve «Согласовать» — R2\n# Исходное состояние — начальное\ndef test_Approve_applies_effects_and_keeps_other_variables():\n    before = {'status': 'Created', 'approved': False, 'cancelled': False}\n    after = engine.apply(before, 'Approve')\n    assert after == {'status': 'Approved', 'approved': True, 'cancelled': False}\n    kept = ('cancelled',)\n    assert {name: after[name] for name in kept} == {name: before[name] for name in kept}\n    assert before == {'status': 'Created', 'approved': False, 'cancelled': False}\n\n\ndef test_Approve_rejected_when_guard_is_false():\n    state = {'status': 'Approved', 'approved': True, 'cancelled': False}\n    with pytest.raises(engine.TransitionNotEnabled):\n        engine.apply(state, 'Approve')\n    assert engine.check_state(state) == state\n\n\n# Cancel «Отменить» — R3\n# Исходное состояние достигается из начального: Approve\ndef test_Cancel_applies_effects_and_keeps_other_variables():\n    before = {'status': 'Approved', 'approved': True, 'cancelled': False}\n    after = engine.apply(before, 'Cancel')\n    assert after == {'status': 'Cancelled', 'approved': False, 'cancelled': True}\n    assert before == {'status': 'Approved', 'approved': True, 'cancelled': False}\n\n\ndef test_Cancel_rejected_when_guard_is_false():\n    state = {'status': 'Cancelled', 'approved': False, 'cancelled': True}\n    with pytest.raises(engine.TransitionNotEnabled):\n        engine.apply(state, 'Cancel')\n    assert engine.check_state(state) == state\n\n\n# Execute «Исполнить» — R4\n# Исходное состояние достигается из начального: Approve\ndef test_Execute_applies_effects_and_keeps_other_variables():\n    before = {'status': 'Approved', 'approved': True, 'cancelled': False}\n    after = engine.apply(before, 'Execute')\n    assert after == {'status': 'Executed', 'approved': True, 'cancelled': False}\n    kept = ('approved', 'cancelled')\n    assert {name: after[name] for name in kept} == {name: before[name] for name in kept}\n    assert before == {'status': 'Approved', 'approved': True, 'cancelled': False}\n\n\ndef test_Execute_rejected_when_guard_is_false():\n    state = {'status': 'Created', 'approved': False, 'cancelled': False}\n    with pytest.raises(engine.TransitionNotEnabled):\n        engine.apply(state, 'Execute')\n    assert engine.check_state(state) == state\n\n\n@pytest.mark.parametrize(\"row\", ROWS, ids=[row[\"id\"] for row in ROWS])\ndef test_conformance_table(row):\n    if row[\"outcome\"] == \"applied\":\n        assert engine.apply(row[\"state\"], row[\"transition\"]) == row[\"next\"]\n        return\n    expected = engine.TransitionNotEnabled if row[\"outcome\"] == \"not_enabled\" else engine.EffectOutOfDomain\n    with pytest.raises(expected):\n        engine.apply(row[\"state\"], row[\"transition\"])\n\n\ndef test_unknown_transition_is_rejected():\n    with pytest.raises(engine.UnknownTransition):\n        engine.apply(engine.initial_state(), '__unknown__')\n"
+  }
+ },
+ "archives": {
+  "gen_76e251c5a3784e20b5cf6983c0f6fdee": {
+   "base64": "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nAoAACcAAAAAAAAAAAAAAKSBQx8AAHpheWF2a2EtaXNwcmF2bGVuby1zZXJ2aWNlL2FwcC9ydWxlcy5weVBLAQIUAxQAAAAIAAAAIQCOsLtrlwMAAN4HAAAmAAAAAAAAAAAAAACkgXIjAAB6YXlhdmthLWlzcHJhdmxlbm8tc2VydmljZS9hcHAvc3BlYy5weVBLAQIUAxQAAAAIAAAAIQCkHNsAKQUAAJElAAA2AAAAAAAAAAAAAACkgU0nAAB6YXlhdmthLWlzcHJhdmxlbm8tc2VydmljZS9tb2RlbC9iZWhhdmlvcmFsX21vZGVsLmpzb25QSwECFAMUAAAACAAAACEA7g/hNj8AAABIAAAAJQAAAAAAAAAAAAAApIHKLAAAemF5YXZrYS1pc3ByYXZsZW5vLXNlcnZpY2UvcHl0ZXN0LmluaVBLAQIUAxQAAAAIAAAAIQC0dCK/3wAAAHYBAAArAAAAAAAAAAAAAACkgUwtAAB6YXlhdmthLWlzcHJhdmxlbm8tc2VydmljZS9yZXF1aXJlbWVudHMudHh0UEsBAhQDFAAAAAgAAAAhAIwZ0yd6BAAAg0EAADYAAAAAAAAAAAAAAKSBdC4AAHpheWF2a2EtaXNwcmF2bGVuby1zZXJ2aWNlL3Rlc3RzL2RhdGEvY29uZm9ybWFuY2UuanNvblBLAQIUAxQAAAAIAAAAIQDV/FAO8gMAALsLAAAsAAAAAAAAAAAAAACkgUIzAAB6YXlhdmthLWlzcHJhdmxlbm8tc2VydmljZS90ZXN0cy90ZXN0X2FwaS5weVBLAQIUAxQAAAAIAAAAIQBBYM0V1gEAAIoDAAAvAAAAAAAAAAAAAACkgX43AAB6YXlhdmthLWlzcHJhdmxlbm8tc2VydmljZS90ZXN0cy90ZXN0X2RvbWFpbi5weVBLAQIUAxQAAAAIAAAAIQCjYYUz4wIAAC4GAAAzAAAAAAAAAAAAAACkgaE5AAB6YXlhdmthLWlzcHJhdmxlbm8tc2VydmljZS90ZXN0cy90ZXN0X3Byb3ZlbmFuY2UucHlQSwECFAMUAAAACAAAACEAKU1LLW8CAABdBAAALwAAAAAAAAAAAAAApIHVPAAAemF5YXZrYS1pc3ByYXZsZW5vLXNlcnZpY2UvdGVzdHMvdGVzdF90cmFjZXMucHlQSwECFAMUAAAACAAAACEASSwlnVQEAAB5DgAANAAAAAAAAAAAAAAApIGRPwAAemF5YXZrYS1pc3ByYXZsZW5vLXNlcnZpY2UvdGVzdHMvdGVzdF90cmFuc2l0aW9ucy5weVBLBQYAAAAAEQARAPUFAAA3RAAAAAA=",
+   "file_name": "zayavka-ispravleno-service-gen_76e251c5a3784e20b5cf6983c0f6fdee.zip",
+   "code_hash": "a123bc494e36fa3b110003ce9bca5e78f05a60ee4ab261869963e232c2ef42de"
+  }
+ },
+ "test_runs": {
+  "gen_76e251c5a3784e20b5cf6983c0f6fdee": [
+   {
+    "test_run_id": "trun_234ba9085a774e938d2e1596be707f98",
+    "generation_id": "gen_76e251c5a3784e20b5cf6983c0f6fdee",
+    "session_id": "s_5dc02705790541648591bbf567d352af",
+    "version_id": "v_a7d7984214e34ef3a301816025de5bde",
+    "spec_hash": "8d2b4108ae9b021838362f964ef9852eae90b4b50cbbe03417c301cfa83adb18",
+    "code_hash": "a123bc494e36fa3b110003ce9bca5e78f05a60ee4ab261869963e232c2ef42de",
+    "status": "passed",
+    "error_code": null,
+    "message": "Пройдено 79 из 79",
+    "cancel_requested": false,
+    "timeout_seconds": 120.0,
+    "created_at": "2026-10-31T08:12:01.239477+00:00",
+    "started_at": "2026-10-31T08:12:01.240938+00:00",
+    "finished_at": "2026-10-31T08:12:02.521295+00:00",
+    "duration_seconds": 1.277,
+    "exit_code": 0,
+    "counts": {
+     "total": 79,
+     "passed": 79,
+     "failed": 0,
+     "errors": 0,
+     "skipped": 0
+    },
+    "cases": [
+     {
+      "name": "test_model_endpoint_links_version_and_requirements",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.004,
+      "message": null
+     },
+     {
+      "name": "test_initial_state",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.002,
+      "message": null
+     },
+     {
+      "name": "test_event_sequence_over_http",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.005,
+      "message": null
+     },
+     {
+      "name": "test_reset_returns_initial_state",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.004,
+      "message": null
+     },
+     {
+      "name": "test_disabled_event_is_rejected_and_state_kept",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.004,
+      "message": null
+     },
+     {
+      "name": "test_unknown_transition_returns_404",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.002,
+      "message": null
+     },
+     {
+      "name": "test_revision_conflict_returns_409",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.002,
+      "message": null
+     },
+     {
+      "name": "test_request_body_is_validated",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.004,
+      "message": null
+     },
+     {
+      "name": "test_evaluate_rejects_invalid_state",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.002,
+      "message": null
+     },
+     {
+      "name": "test_initial_state_matches_model",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[status-integer_instead_of_enum]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[status-value_outside_enum]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[approved-integer_instead_of_boolean]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[approved-string_instead_of_boolean]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[cancelled-integer_instead_of_boolean]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[cancelled-string_instead_of_boolean]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[missing_variable]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[unknown_variable]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_state_must_be_an_object",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_model_file_matches_spec_hash",
+      "classname": "tests.test_provenance",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_rules_follow_model_transitions",
+      "classname": "tests.test_provenance",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_variables_follow_model",
+      "classname": "tests.test_provenance",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_requirement_references_exist",
+      "classname": "tests.test_provenance",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_tlc_trace_is_reproduced[CanExecute]",
+      "classname": "tests.test_traces",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Approve_applies_effects_and_keeps_other_variables",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Approve_rejected_when_guard_is_false",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Cancel_applies_effects_and_keeps_other_variables",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Cancel_rejected_when_guard_is_false",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Execute_applies_effects_and_keeps_other_variables",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Execute_rejected_when_guard_is_false",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r0-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r0-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r0-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r1-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r1-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r1-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r2-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r2-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r2-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r3-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r3-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r3-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b0-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b0-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b0-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b1-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b1-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b1-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b2-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b2-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b2-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b3-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b3-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b3-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b4-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b4-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b4-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b5-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b5-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b5-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b6-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b6-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b6-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b7-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b7-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b7-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b8-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b8-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b8-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b9-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b9-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b9-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b10-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b10-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b10-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b11-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b11-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b11-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_unknown_transition_is_rejected",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     }
+    ],
+    "sandbox": {
+     "engine": "docker",
+     "image": "proveryalka-codegen-sandbox:4d76b97118d8df7e",
+     "network": "none",
+     "read_only_root": true,
+     "user": "10001:10001",
+     "capabilities": [],
+     "no_new_privileges": true,
+     "memory_mb": 512,
+     "swap_mb": 0,
+     "cpus": 1.0,
+     "pids_limit": 128,
+     "tmpfs_mb": 64,
+     "project_mount": "read-only",
+     "engine_version": "29.1.3",
+     "image_id": "sha256:e052badb7925dc75a36c07a7f952c038946f277f7dd96970baf3a3b74dbcd1d6",
+     "container_exit_code": 0,
+     "oom_killed": false
+    },
+    "log_available": true,
+    "log_truncated": false
+   }
+  ],
+  "gen_004bb41595f94215a7cdd90ebbb9ecf3": [
+   {
+    "test_run_id": "trun_ee08a79bab5d4f04902b08d64203ceef",
+    "generation_id": "gen_004bb41595f94215a7cdd90ebbb9ecf3",
+    "session_id": "s_fe63b017a44d41d3a864d02e2e9e2035",
+    "version_id": "v_031d4c8e27ce4080b4648b4d325c33cc",
+    "spec_hash": "7a85b7ab4e4897b59d6c25baf2461895b5e26d2bacf076dfc3887facd4d71b29",
+    "code_hash": "ff144c447ae19b36e958f8c6c5fa71c787ec9c02f9b262863e0f19496131ebb6",
+    "status": "passed",
+    "error_code": null,
+    "message": "Пройдено 80 из 80",
+    "cancel_requested": false,
+    "timeout_seconds": 120.0,
+    "created_at": "2026-10-31T08:12:03.318422+00:00",
+    "started_at": "2026-10-31T08:12:03.319900+00:00",
+    "finished_at": "2026-10-31T08:12:04.267182+00:00",
+    "duration_seconds": 0.943,
+    "exit_code": 0,
+    "counts": {
+     "total": 80,
+     "passed": 80,
+     "failed": 0,
+     "errors": 0,
+     "skipped": 0
+    },
+    "cases": [
+     {
+      "name": "test_model_endpoint_links_version_and_requirements",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.004,
+      "message": null
+     },
+     {
+      "name": "test_initial_state",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.003,
+      "message": null
+     },
+     {
+      "name": "test_event_sequence_over_http",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.007,
+      "message": null
+     },
+     {
+      "name": "test_reset_returns_initial_state",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.004,
+      "message": null
+     },
+     {
+      "name": "test_disabled_event_is_rejected_and_state_kept",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.003,
+      "message": null
+     },
+     {
+      "name": "test_unknown_transition_returns_404",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.002,
+      "message": null
+     },
+     {
+      "name": "test_revision_conflict_returns_409",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.002,
+      "message": null
+     },
+     {
+      "name": "test_request_body_is_validated",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.004,
+      "message": null
+     },
+     {
+      "name": "test_evaluate_rejects_invalid_state",
+      "classname": "tests.test_api",
+      "outcome": "passed",
+      "duration_seconds": 0.002,
+      "message": null
+     },
+     {
+      "name": "test_initial_state_matches_model",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[status-integer_instead_of_enum]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[status-value_outside_enum]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[approved-integer_instead_of_boolean]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[approved-string_instead_of_boolean]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[cancelled-integer_instead_of_boolean]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[cancelled-string_instead_of_boolean]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[missing_variable]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_invalid_state_is_rejected[unknown_variable]",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_state_must_be_an_object",
+      "classname": "tests.test_domain",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_model_file_matches_spec_hash",
+      "classname": "tests.test_provenance",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_rules_follow_model_transitions",
+      "classname": "tests.test_provenance",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_variables_follow_model",
+      "classname": "tests.test_provenance",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_requirement_references_exist",
+      "classname": "tests.test_provenance",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_tlc_trace_is_reproduced[NoCancelledExecution]",
+      "classname": "tests.test_traces",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_tlc_trace_is_reproduced[CanExecute]",
+      "classname": "tests.test_traces",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Approve_applies_effects_and_keeps_other_variables",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Approve_rejected_when_guard_is_false",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Cancel_applies_effects_and_keeps_other_variables",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Cancel_rejected_when_guard_is_false",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Execute_applies_effects_and_keeps_other_variables",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_Execute_rejected_when_guard_is_false",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r0-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r0-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r0-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r1-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r1-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r1-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r2-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r2-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r2-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r3-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r3-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r3-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r4-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r4-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r4-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r5-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r5-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[r5-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b0-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b0-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b0-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b1-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b1-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b1-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b2-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b2-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b2-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b3-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b3-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b3-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b4-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b4-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b4-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b5-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b5-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b5-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b6-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b6-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b6-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b7-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b7-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b7-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b8-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b8-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b8-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b9-Approve]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b9-Cancel]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_conformance_table[b9-Execute]",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     },
+     {
+      "name": "test_unknown_transition_is_rejected",
+      "classname": "tests.test_transitions",
+      "outcome": "passed",
+      "duration_seconds": 0.0,
+      "message": null
+     }
+    ],
+    "sandbox": {
+     "engine": "docker",
+     "image": "proveryalka-codegen-sandbox:4d76b97118d8df7e",
+     "network": "none",
+     "read_only_root": true,
+     "user": "10001:10001",
+     "capabilities": [],
+     "no_new_privileges": true,
+     "memory_mb": 512,
+     "swap_mb": 0,
+     "cpus": 1.0,
+     "pids_limit": 128,
+     "tmpfs_mb": 64,
+     "project_mount": "read-only",
+     "engine_version": "29.1.3",
+     "image_id": "sha256:e052badb7925dc75a36c07a7f952c038946f277f7dd96970baf3a3b74dbcd1d6",
+     "container_exit_code": 0,
+     "oom_killed": false
+    },
+    "log_available": true,
+    "log_truncated": false
+   }
+  ]
+ },
+ "logs": {
+  "trun_234ba9085a774e938d2e1596be707f98": "........................................................................ [ 91%]\n.......                                                                  [100%]\n------------------ generated xml file: /tmp/runner/junit.xml -------------------\n79 passed in 0.24s\n",
+  "trun_ee08a79bab5d4f04902b08d64203ceef": "........................................................................ [ 90%]\n........                                                                 [100%]\n------------------ generated xml file: /tmp/runner/junit.xml -------------------\n80 passed in 0.22s\n"
+ },
+ "failed_gate": {
+  "status": "failed",
+  "error_code": "TESTS_FAILED",
+  "message": "Не пройдено 5 и ошибок 0 из 78",
+  "exit_code": 1,
+  "counts": {
+   "total": 78,
+   "passed": 73,
+   "failed": 5,
+   "errors": 0,
+   "skipped": 0
+  },
+  "cases": [
+   {
+    "name": "test_model_endpoint_links_version_and_requirements",
+    "classname": "tests.test_api",
+    "outcome": "passed",
+    "duration_seconds": 0.005,
+    "message": null
+   },
+   {
+    "name": "test_initial_state",
+    "classname": "tests.test_api",
+    "outcome": "passed",
+    "duration_seconds": 0.003,
+    "message": null
+   },
+   {
+    "name": "test_event_sequence_over_http",
+    "classname": "tests.test_api",
+    "outcome": "passed",
+    "duration_seconds": 0.005,
+    "message": null
+   },
+   {
+    "name": "test_reset_returns_initial_state",
+    "classname": "tests.test_api",
+    "outcome": "passed",
+    "duration_seconds": 0.004,
+    "message": null
+   },
+   {
+    "name": "test_disabled_event_is_rejected_and_state_kept",
+    "classname": "tests.test_api",
+    "outcome": "passed",
+    "duration_seconds": 0.004,
+    "message": null
+   },
+   {
+    "name": "test_unknown_transition_returns_404",
+    "classname": "tests.test_api",
+    "outcome": "passed",
+    "duration_seconds": 0.002,
+    "message": null
+   },
+   {
+    "name": "test_revision_conflict_returns_409",
+    "classname": "tests.test_api",
+    "outcome": "passed",
+    "duration_seconds": 0.003,
+    "message": null
+   },
+   {
+    "name": "test_request_body_is_validated",
+    "classname": "tests.test_api",
+    "outcome": "passed",
+    "duration_seconds": 0.004,
+    "message": null
+   },
+   {
+    "name": "test_evaluate_rejects_invalid_state",
+    "classname": "tests.test_api",
+    "outcome": "passed",
+    "duration_seconds": 0.002,
+    "message": null
+   },
+   {
+    "name": "test_initial_state_matches_model",
+    "classname": "tests.test_domain",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_invalid_state_is_rejected[status-integer_instead_of_enum]",
+    "classname": "tests.test_domain",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_invalid_state_is_rejected[status-value_outside_enum]",
+    "classname": "tests.test_domain",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_invalid_state_is_rejected[approved-integer_instead_of_boolean]",
+    "classname": "tests.test_domain",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_invalid_state_is_rejected[approved-string_instead_of_boolean]",
+    "classname": "tests.test_domain",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_invalid_state_is_rejected[cancelled-integer_instead_of_boolean]",
+    "classname": "tests.test_domain",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_invalid_state_is_rejected[cancelled-string_instead_of_boolean]",
+    "classname": "tests.test_domain",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_invalid_state_is_rejected[missing_variable]",
+    "classname": "tests.test_domain",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_invalid_state_is_rejected[unknown_variable]",
+    "classname": "tests.test_domain",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_state_must_be_an_object",
+    "classname": "tests.test_domain",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_model_file_matches_spec_hash",
+    "classname": "tests.test_provenance",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_rules_follow_model_transitions",
+    "classname": "tests.test_provenance",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_variables_follow_model",
+    "classname": "tests.test_provenance",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_requirement_references_exist",
+    "classname": "tests.test_provenance",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_Approve_applies_effects_and_keeps_other_variables",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_Approve_rejected_when_guard_is_false",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_Cancel_applies_effects_and_keeps_other_variables",
+    "classname": "tests.test_transitions",
+    "outcome": "failed",
+    "duration_seconds": 0.0,
+    "message": "AssertionError: assert {'approved': ...: 'Cancelled'} == {'approved': ...: 'Cancelled'}\n  \n  Omitting 2 identical items, use -vv to show\n  Differing items:\n  {'approved': True} != {'approved': False}\n  Use -v to get more diff"
+   },
+   {
+    "name": "test_Cancel_rejected_when_guard_is_false",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_Execute_applies_effects_and_keeps_other_variables",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_Execute_rejected_when_guard_is_false",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[r0-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[r0-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[r0-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[r1-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[r1-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "failed",
+    "duration_seconds": 0.0,
+    "message": "AssertionError: assert {'approved': ...: 'Cancelled'} == {'approved': ...: 'Cancelled'}\n  \n  Omitting 2 identical items, use -vv to show\n  Differing items:\n  {'approved': True} != {'approved': False}\n  Use -v to get more diff"
+   },
+   {
+    "name": "test_conformance_table[r1-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[r2-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[r2-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[r2-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[r3-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[r3-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[r3-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b0-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b0-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b0-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b1-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b1-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "failed",
+    "duration_seconds": 0.0,
+    "message": "AssertionError: assert {'approved': ...: 'Cancelled'} == {'approved': ...: 'Cancelled'}\n  \n  Omitting 2 identical items, use -vv to show\n  Differing items:\n  {'approved': True} != {'approved': False}\n  Use -v to get more diff"
+   },
+   {
+    "name": "test_conformance_table[b1-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b2-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b2-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "failed",
+    "duration_seconds": 0.0,
+    "message": "AssertionError: assert {'approved': ...: 'Cancelled'} == {'approved': ...: 'Cancelled'}\n  \n  Omitting 2 identical items, use -vv to show\n  Differing items:\n  {'approved': True} != {'approved': False}\n  Use -v to get more diff"
+   },
+   {
+    "name": "test_conformance_table[b2-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b3-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b3-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b3-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b4-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b4-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b4-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b5-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b5-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "failed",
+    "duration_seconds": 0.0,
+    "message": "AssertionError: assert {'approved': ...: 'Cancelled'} == {'approved': ...: 'Cancelled'}\n  \n  Omitting 2 identical items, use -vv to show\n  Differing items:\n  {'approved': True} != {'approved': False}\n  Use -v to get more diff"
+   },
+   {
+    "name": "test_conformance_table[b5-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b6-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b6-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b6-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b7-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b7-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b7-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b8-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b8-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b8-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b9-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b9-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b9-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b10-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b10-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b10-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b11-Approve]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b11-Cancel]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_conformance_table[b11-Execute]",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   },
+   {
+    "name": "test_unknown_transition_is_rejected",
+    "classname": "tests.test_transitions",
+    "outcome": "passed",
+    "duration_seconds": 0.0,
+    "message": null
+   }
+  ],
+  "cases_truncated": false,
+  "python": "3.11.17",
+  "duration_seconds": 1.329,
+  "sandbox": {
+   "engine": "docker",
+   "image": "proveryalka-codegen-sandbox:4d76b97118d8df7e",
+   "network": "none",
+   "read_only_root": true,
+   "user": "10001:10001",
+   "capabilities": [],
+   "no_new_privileges": true,
+   "memory_mb": 512,
+   "swap_mb": 0,
+   "cpus": 1.0,
+   "pids_limit": 128,
+   "tmpfs_mb": 64,
+   "project_mount": "read-only",
+   "engine_version": "29.1.3",
+   "image_id": "sha256:e052badb7925dc75a36c07a7f952c038946f277f7dd96970baf3a3b74dbcd1d6",
+   "container_exit_code": 0,
+   "oom_killed": false
+  },
+  "log_truncated": false
+ }
+}
