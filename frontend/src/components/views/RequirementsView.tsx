@@ -29,14 +29,16 @@ function SourceText({ source, label, requirements, onPick, active }: {
       <figcaption className="source__label">{label}</figcaption>
       <p className="source__text">
         {spans.map((span) => {
-          const text = source.text.slice(span.start, span.end);
+          const text = Array.from(source.text).slice(span.start, span.end).join("");
           if (span.requirementIds.length === 0) return <span key={span.start}>{text}</span>;
           const first = span.requirementIds[0]!;
           const labels = span.requirementIds.map((id) => index.label(id)).join(", ");
           return (
-            <mark key={span.start} className={span.requirementIds.includes(active ?? "") ? "is-active" : undefined}
+            <mark key={span.start} className={span.requirementIds.includes(active ?? "") ? "is-active" : "source__quote"}
+              data-requirements={labels}
+              style={{"--quote-color": ["#326c91", "#8d582a", "#6c548d", "#34755d"][requirements.findIndex(r => r.id === first) % 4]} as import("react").CSSProperties}
               role="button" tabIndex={0} aria-label={`${labels}: ${text}`} title={labels}
-              onClick={() => onPick(first)}
+              onClick={() => onPick(span.requirementIds[(span.requirementIds.indexOf(active ?? "") + 1) % span.requirementIds.length]!)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onPick(first); } }}>
               {text}
             </mark>

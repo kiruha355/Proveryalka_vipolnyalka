@@ -5,6 +5,7 @@ import { ApiError } from "../api/errors";
 import type { Session } from "../api/types";
 import { loadLocal, updateLocal } from "../state/persist";
 import { Composer, type ComposerHandle } from "./chat/Composer";
+import { PaneSeparator, usePaneWidth } from "./PaneSeparator";
 import { ErrorNotice } from "./Notice";
 
 const NEW = "__new__";
@@ -27,6 +28,10 @@ interface Props {
 }
 
 export function NewChat({ api, capabilities, onCreated }: Props) {
+  const split = usePaneWidth("proveryalka:chat-width", .36, 250, 390, .65);
+  const inFlight = useRef(false);
+  const documentSession = useRef<{session: Session | null; sessionKey: string; uploadKey: string; file: File} | null>(null);
+  const [documentError, setDocumentError] = useState(false);
   const [draft, setDraft] = useState(() => loadLocal(api.id, NEW).outbox?.text ?? loadLocal(api.id, NEW).draft);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -35,12 +40,14 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
   const blocked = !capabilities
     ? "Нет подключения к серверу"
     : !capabilities.agent
-      ? "В демо-режиме агент не вызывается. Откройте демо-сессию слева или подключите сервер."
+      ? capabilities.adapter === "demo" ? "Записанные данные: выберите пример слева." : "Агент не настроен. Проверьте подключение."
       : null;
 
   const start = async () => {
     const text = draft.trim();
-    if (!text || busy) return;
+    if (!text || inFlight.current) return;
+    inFlight.current = true;
+    setDocumentError(false);
     const saved = loadLocal(api.id, NEW).outbox;
     const outbox = saved && saved.text === text && saved.sessionKey
       ? saved
@@ -58,12 +65,29 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
       if (!(failure instanceof ApiError && failure.retryable)) updateLocal(api.id, NEW, (local) => ({ ...local, outbox: null, draft: text }));
       setError(failure);
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };
 
+  const attach = async (file: File) => {
+    if (inFlight.current || !api.uploadDocument) return;
+    inFlight.current = true; setBusy(true); setError(null); setDocumentError(true);
+    const saved = documentSession.current;
+    const attempt = saved && saved.file === file ? saved : {session: saved?.session ?? null, sessionKey: newKey(), uploadKey: newKey(), file};
+    documentSession.current = attempt;
+    try {
+      if (!attempt.session) attempt.session = await api.createSession({title: titleFrom(file.name)}, attempt.sessionKey);
+      await api.uploadDocument(attempt.session.id, file, attempt.uploadKey);
+      updateLocal(api.id, attempt.session.id, local => ({...local, draft}));
+      updateLocal(api.id, NEW, local => ({...local, draft: "", outbox: null}));
+      onCreated(attempt.session);
+    } catch (failure) { setError(failure); }
+    finally {inFlight.current = false; setBusy(false);}
+  };
+
   return (
-    <div className="session">
+    <div className="session" ref={split.container} style={split.style}>
     <section className="chat chat--new" aria-labelledby="new-chat-title">
       <header className="chat__header">
         <h1 id="new-chat-title" className="chat__title">Новый чат</h1>
@@ -83,15 +107,17 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
       </div>
       <div className="chat__footer">
         {error !== null && (
-          <ErrorNotice error={error} title="Чат не создан"
-            action={<button type="button" className="button button--small" onClick={() => void start()}>Повторить</button>} />
+          <ErrorNotice error={error} title={documentError ? "Документ не загружен" : "Чат не создан"}
+            action={documentError ? undefined : <button type="button" className="button button--small" onClick={() => void start()}>Повторить</button>} />
         )}
         <Composer ref={composer} value={draft} label="Описание поведения"
           onChange={(value) => { setDraft(value); updateLocal(api.id, NEW, (local) => ({ ...local, draft: value })); }}
           onSubmit={() => void start()} busy={busy} blockedReason={blocked}
+          attach={capabilities?.documents ? {busy, onFile: file => void attach(file)} : null}
           placeholder="Например: заявку можно согласовать, отменить или исполнить…" />
       </div>
     </section>
+    <PaneSeparator pane={split} label="Ширина чата"/>
     <section className="workspace" aria-label="Рабочая область">
       <header className="workspace__header workspace__header--plain">
         <div className="workspace__title-row"><h2 className="workspace__title">Рабочая область</h2></div>
@@ -100,7 +126,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
         <div className="view view--empty">
           <div className="empty">
             <h3 className="empty__title">Модель появится здесь</h3>
-            <p className="empty__text">Агент построит её из описания; затем вы проверите таблицы и запустите TLC.</p>
+            <p className="empty__text">Агент построит её из описания; затем просмотрите процесс и правила и нажмите «Проверить».</p>
           </div>
         </div>
       </div>

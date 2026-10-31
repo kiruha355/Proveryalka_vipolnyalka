@@ -54,7 +54,7 @@ export function CheckView({ context }: WorkspaceViewProps) {
       <div className="view view--empty">
         <div className="empty">
           <h2 className="empty__title">Версия {version.number} ещё не проверялась</h2>
-          <p className="empty__text">Проверьте таблицы модели, затем запустите TLC для выбранных свойств.</p>
+          <p className="empty__text">Просмотрите процесс и проверяемые правила, затем нажмите «Проверить».</p>
           <button type="button" className="button button--primary" onClick={core.runCheck} disabled={core.selectedProperties.length === 0}>
             <Play size={16} /> Проверить версию {version.number}
           </button>
@@ -128,9 +128,17 @@ export function CheckView({ context }: WorkspaceViewProps) {
             </p>
           )}
 
+          {selected.explanation && ordered.length > 0 && selected.explanation.state !== "ready" && (
+            <div className="quiet" role="status">
+              {["queued", "running"].includes(selected.explanation.state) ? "Готовится объяснение" : <>
+                {selected.explanation.state === "not_requested" ? "Объяснение не запрошено" : `Объяснение недоступно: ${selected.explanation.error_code ?? selected.explanation.state}`}
+                <button type="button" className="button button--small" onClick={() => void core.workspace.retryExplanation(selected.runId)}>Объяснить</button>
+              </>}
+            </div>
+          )}
           {ordered.length > 0 && (
             <div className="results">
-              <ul className="results__list" aria-label="Свойства">
+              <ul className="results__list" aria-label="Проверяемые правила">
                 {ordered.map((r) => {
                   const property = version.spec.properties.find((p) => p.id === r.property_id);
                   return (
@@ -148,7 +156,7 @@ export function CheckView({ context }: WorkspaceViewProps) {
                 <ResultDetail version={version} result={result}
                   focus={trace && trace.result.property_id === result.property_id && trace.check.runId === selected.runId ? trace : null}
                   requirements={context.requirements}
-                  narrative={findNarrative(core.history?.verifications ?? [], result)}
+                  narrative={findNarrative(selected.explanation?.narrative ? [{report: {results: bound?.own ?? []}, explanation: selected.explanation.narrative}] : core.history?.verifications ?? [], result)}
                   onStep={context.setTraceStep} onSelect={context.select} />
               )}
             </div>

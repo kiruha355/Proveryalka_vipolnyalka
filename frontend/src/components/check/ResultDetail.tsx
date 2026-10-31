@@ -121,8 +121,8 @@ export function ResultDetail({ version, result, focus, requirements, narrative, 
         )}
       </section>
 
-      <section className="result__section result__meta">
-        <h4>Движок и лимиты</h4>
+      <details className="result__section result__meta">
+        <summary>Движок и лимиты</summary>
         <p className="engine-message">{result.message}</p>
         <dl className="stats">
           <div><dt>Состояний сгенерировано</dt><dd>{number(stats.states_generated)}</dd></div>
@@ -135,7 +135,7 @@ export function ResultDetail({ version, result, focus, requirements, narrative, 
           {" · "}лимиты: {limits.timeout_seconds} с, {limits.max_states.toLocaleString("ru-RU")} состояний
           {limits.max_depth === null ? "" : `, глубина ${limits.max_depth}`}
         </p>
-      </section>
+      </details>
     </article>
   );
 }

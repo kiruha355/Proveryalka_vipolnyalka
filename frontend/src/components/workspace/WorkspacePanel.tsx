@@ -3,12 +3,9 @@ import { useCore } from "../../app/core";
 import { workspaceViews, type WorkspaceViewDefinition } from "../../app/extensions";
 import type { WorkspaceContextValue } from "../../app/workspace";
 import { describeError } from "../../api/errors";
-import { isTerminal } from "../../api/types";
-import { summarizeResults } from "../../domain/status";
 import { ErrorNotice, QuietStatus } from "../Notice";
 import { Check } from "../icons";
 import { ModelIssues } from "../views/ModelView";
-import { boundResults } from "../views/CheckView";
 import { CheckLauncher } from "./CheckLauncher";
 import { Inspector } from "./Inspector";
 
@@ -29,7 +26,7 @@ function VersionPicker({ context }: { context: WorkspaceContextValue }) {
         {groups.map((group) => {
           const options = group.versions.map((v) => (
             <option key={v.id} value={v.id}>
-              {multiple ? `${group.model.name} · ` : ""}версия {v.number}{v.approved ? " · согласована" : ""}
+              {multiple ? `${group.model.name} · ` : ""}версия {v.number}{v.approved ? " · модель подтверждена" : ""}
             </option>
           ));
           return multiple ? <optgroup key={group.model.id} label={group.model.name}>{options}</optgroup> : options;
@@ -45,31 +42,20 @@ function Approval({ context }: { context: WorkspaceContextValue }) {
   const version = context.version;
   if (!version) return null;
   if (version.approved) {
-    return <span className="chip chip--holds"><Check size={14} /> Версия согласована</span>;
+    return <span className="chip chip--holds"><Check size={14} /> Модель отражает требования</span>;
   }
   if (!confirming) {
-    return <button type="button" className="button button--ghost button--small" onClick={() => setConfirming(true)}>Согласовать версию</button>;
+    return <button type="button" className="button button--ghost button--small" onClick={() => setConfirming(true)}>Подтвердить модель</button>;
   }
   return (
-    <span className="confirm" role="group" aria-label="Подтверждение согласования">
-      <span className="small">Согласование нельзя снять.</span>
+    <span className="confirm" role="group" aria-label="Подтверждение модели">
+      <span className="small">Модель v{version.number} отражает требования? Это подтверждение для генерации кода; результат проверки хранится отдельно. Снять подтверждение нельзя.</span>
       <button type="button" className="button button--small" autoFocus onClick={() => { setConfirming(false); void core.workspace.approve(version); }}>
-        Согласовать v{version.number}
+        Подтвердить v{version.number}
       </button>
       <button type="button" className="button button--small button--ghost" onClick={() => setConfirming(false)}>Отмена</button>
     </span>
   );
-}
-
-function Summary({ context }: { context: WorkspaceContextValue }) {
-  const version = context.version;
-  if (!version) return null;
-  const running = context.checks.find((c) => c.run && !isTerminal(c.run.state));
-  if (running) return <span className="chip chip--pending"><span className="spinner" aria-hidden="true" /> Идёт проверка</span>;
-  const latest = context.checks.find((c) => (c.results?.length ?? 0) > 0);
-  if (!latest) return null;
-  const summary = summarizeResults(boundResults(latest, version.id, version.spec_hash).own);
-  return <span className={`chip chip--${summary.tone}`}>{summary.label}</span>;
 }
 
 export function WorkspacePanel({ context, viewId }: Props) {
@@ -99,20 +85,20 @@ export function WorkspacePanel({ context, viewId }: Props) {
   return (
     <section className="workspace" aria-label="Рабочая область">
       <header className="workspace__header">
+        <div className="workspace__top">
         <div className="workspace__title-row">
           <h1 className="workspace__title">{title}</h1>
-          <Summary context={context} />
+
         </div>
         <div className="workspace__toolbar">
           <div className="workspace__version">
             <VersionPicker context={context} />
-            <Approval context={context} />
+            <Approval key={context.version?.id} context={context} />
           </div>
           {context.version && (
-            <CheckLauncher version={context.version} selected={core.selectedProperties} onSelect={core.setSelectedProperties}
-              limits={core.limits} onLimits={core.setLimits} customLimits={context.capabilities.customLimits}
-              busy={workspace.checkStart.starting} onRun={core.runCheck} />
+            <CheckLauncher version={context.version} busy={workspace.checkStart.starting} onRun={core.runCheck} />
           )}
+        </div>
         </div>
         {workspace.checkStart.error !== null && (
           <ErrorNotice error={workspace.checkStart.error} title="Проверка не запущена"
@@ -120,7 +106,7 @@ export function WorkspacePanel({ context, viewId }: Props) {
               ? <button type="button" className="button button--small" onClick={workspace.checkStart.retry}>Повторить запуск</button>
               : undefined} />
         )}
-        {workspace.approveError !== null && <p className="warn-text" role="alert">Версия не согласована: {describeError(workspace.approveError)}</p>}
+        {workspace.approveError !== null && <p className="warn-text" role="alert">Модель не подтверждена: {describeError(workspace.approveError)}</p>}
         {views.length > 0 && !nothing && (
           <div className="tabs" role="tablist" aria-label="Разделы рабочей области" onKeyDown={onTabKey}>
             {views.map((view) => {
@@ -148,7 +134,7 @@ export function WorkspacePanel({ context, viewId }: Props) {
           <div className="view view--empty">
             <div className="empty">
               <h2 className="empty__title">Модель появится здесь</h2>
-              <p className="empty__text">Агент построит её из описания; затем вы проверите таблицы и запустите TLC.</p>
+              <p className="empty__text">Агент построит её из описания; затем просмотрите процесс и правила и нажмите «Проверить».</p>
             </div>
           </div>
         )}

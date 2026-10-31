@@ -3,10 +3,10 @@ import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
 import { newKey } from "../api/api";
 import { ApiError, isAbort } from "../api/errors";
 import type {
-  CheckLimits, DocumentSource, ModelVersion, Question, Run, RunEvent, SessionDetail, VerificationResult,
+  CheckLimits, DialogueView, ExplanationView, DocumentSource, ModelVersion, Question, Run, RunEvent, SessionDetail, VerificationResult,
 } from "../api/types";
 import { DEFAULT_LIMITS, isTerminal } from "../api/types";
-import { parseHistory, type ParsedHistory } from "../domain/dialogue";
+import { parseHistory, publicHistory, type ParsedHistory } from "../domain/dialogue";
 import { loadLocal, updateLocal, type AgentRunRecord, type CheckRunRecord, type Outbox } from "./persist";
 import { mergeEvents, RunTracker, type StreamStatus } from "./runTracker";
 import type { AgentRunView, CheckRunView, Loadable, ModelGroup, RunFailure } from "./types";
@@ -31,6 +31,7 @@ type Action =
   | { type: "check/stream"; runId: string; stream: StreamStatus }
   | { type: "check/run"; run: Run }
   | { type: "check/results"; runId: string; results: VerificationResult[] | null; error: unknown | null; run?: Run }
+  | { type: "check/explanation"; runId: string; explanation: ExplanationView }
   | { type: "check/artifacts"; runId: string; artifacts: CheckRunView["artifacts"] }
   | { type: "check/cancel"; runId: string };
 
@@ -120,6 +121,10 @@ function reducer(state: RunsState, action: Action): RunsState {
       if (action.run?.error_code && !next.failure) next.failure = { code: action.run.error_code, message: "" };
       return { ...state, checks: { ...state.checks, [action.runId]: next } };
     }
+    case "check/explanation": {
+      const view = state.checks[action.runId];
+      return view ? {...state, checks: {...state.checks, [action.runId]: {...view, explanation: action.explanation}}} : state;
+    }
     case "check/artifacts": {
       const view = state.checks[action.runId];
       return view ? { ...state, checks: { ...state.checks, [action.runId]: { ...view, artifacts: action.artifacts } } } : state;
@@ -173,6 +178,10 @@ export interface UploadState {
 
 export interface SessionWorkspace {
   detail: Loadable<SessionDetail>;
+  dialogue: DialogueView | null;
+  discardPending(): Promise<void>;
+  analyzeDocument(document: DocumentSource): Promise<boolean>;
+  retryExplanation(runId: string): Promise<void>;
   history: ParsedHistory | null;
   models: Loadable<ModelGroup[]>;
   versions: ModelVersion[];
@@ -194,7 +203,7 @@ export interface SessionWorkspace {
   approve(version: ModelVersion): Promise<void>;
   approveError: unknown | null;
   reloadDetail(): void;
-  reloadModels(): void;
+  reloadModels(): Promise<void>;
   loadArtifacts(runId: string): void;
   upload: UploadState;
   uploadDocument(file: File): Promise<DocumentSource | null>;
@@ -212,6 +221,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const runsRef = useRef(runs);
   runsRef.current = runs;
   const [detail, setDetail] = useState<Loadable<SessionDetail>>({ data: null, error: null, loading: true });
+  const [dialogue, setDialogue] = useState<DialogueView | null>(null);
   const [models, setModels] = useState<Loadable<ModelGroup[]>>({ data: null, error: null, loading: true });
   const [send, setSend] = useState<SendState>(() => ({ sending: false, outbox: loadLocal(api.id, sessionId).outbox, error: null }));
   const [checkStart, setCheckStart] = useState<CheckStartState>({ starting: false, error: null, retry: null });
@@ -222,6 +232,8 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const trackers = useRef(new Map<string, RunTracker>());
   const sendingRef = useRef(false);
   const startingRef = useRef(false);
+  const uploadingRef = useRef(false);
+  const explainingRef = useRef(new Set<string>());
   const detailSeq = useRef(0);
   const modelsSeq = useRef(0);
   const proposedRef = useRef(onModelProposed);
@@ -233,11 +245,18 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const reloadDetail = useCallback(() => {
     const seq = ++detailSeq.current;
     setDetail((d) => ({ ...d, loading: true }));
-    api.getSession(sessionId, root.current.signal).then(
-      (data) => { if (seq === detailSeq.current) setDetail({ data, error: null, loading: false }); },
+    const signal = root.current.signal;
+    Promise.all([api.getSession(sessionId, signal), capabilities.dialogue && api.getDialogue ? api.getDialogue(sessionId, signal) : Promise.resolve(null)]).then(
+      ([data, publicView]) => {
+        if (signal.aborted || seq !== detailSeq.current) return;
+        setDetail({ data, error: null, loading: false }); setDialogue(publicView);
+        setUpload(u => ({...u, documents: (data.documents ?? []).map(d => ({id: d.source_id, session_id: sessionId,
+          filename: d.filename, media_type: d.media_type, size: d.size_bytes, status: "extracted" as const,
+          text: data.sources.find(source => source.id === d.source_id)?.text ?? null, error: null}))}));
+      },
       (error: unknown) => { if (!isAbort(error) && seq === detailSeq.current) setDetail((d) => ({ data: d.data, error, loading: false })); },
     );
-  }, [api, sessionId]);
+  }, [api, sessionId, capabilities.dialogue]);
 
   const discoverChecks = useCallback(async (groups: ModelGroup[]) => {
     if (!capabilities.checkDiscovery || !api.listCheckRuns) return;
@@ -256,13 +275,14 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const reloadModels = useCallback(() => {
     const seq = ++modelsSeq.current;
     setModels((m) => ({ ...m, loading: true }));
-    (async () => {
+    const signal = root.current.signal;
+    return (async () => {
       const list = await api.listModels(sessionId, root.current.signal);
       const groups = await Promise.all(list.map(async (model) => ({ model, versions: await api.listVersions(model.id, root.current.signal) })));
       return groups;
     })().then(
       (groups) => {
-        if (seq !== modelsSeq.current) return;
+        if (signal.aborted || seq !== modelsSeq.current) return;
         setModels({ data: groups, error: null, loading: false });
         void discoverChecks(groups);
       },
@@ -272,14 +292,36 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
 
   // ---- run tracking
 
+  const checkRequestSeq = useRef(new Map<string, number>());
+  const fetchCheckRef = useRef<(id: string) => void>(() => undefined);
+  const followExplanation = useCallback((checkId: string, explanation?: ExplanationView) => {
+    if (!explanation) return;
+    dispatch({type: "check/explanation", runId: checkId, explanation});
+    if (!["queued", "running"].includes(explanation.state) || !explanation.run_id) return;
+    const id = explanation.run_id;
+    if (trackers.current.has(id) || root.current.signal.aborted) return;
+    const tracker = new RunTracker({api, runId: id,
+      onStatus: status => { if (status.kind === "lost") dispatch({type: "check/explanation", runId: checkId,
+        explanation: {...explanation, state: "failed", error_code: "CONNECTION_LOST"}}); },
+      onEvent: event => { if (event.type === "run_finished" || event.type === "explanation_ready") fetchCheckRef.current(checkId); },
+    });
+    trackers.current.set(id, tracker); tracker.start();
+  }, [api]);
+
   const fetchCheck = useCallback((runId: string) => {
-    api.getCheck(runId, root.current.signal).then(
+    const sequence = (checkRequestSeq.current.get(runId) ?? 0) + 1;
+    checkRequestSeq.current.set(runId, sequence);
+    const signal = root.current.signal;
+    api.getCheck(runId, signal).then(
       (check) => {
+        if (signal.aborted || checkRequestSeq.current.get(runId) !== sequence) return;
         dispatch({ type: "check/results", runId, results: check.results, error: null, run: check.run });
+        followExplanation(runId, check.explanation);
       },
       (error: unknown) => { if (!isAbort(error)) dispatch({ type: "check/results", runId, results: null, error }); },
     );
-  }, [api]);
+  }, [api, followExplanation]);
+  fetchCheckRef.current = fetchCheck;
 
   const loadArtifacts = useCallback((runId: string) => {
     if (!capabilities.artifacts) return;
@@ -345,7 +387,9 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     dispatch({ type: "check/add", view: checkView(record) });
     api.getCheck(record.runId, root.current.signal).then(
       (check) => {
+        if (root.current.signal.aborted) return;
         dispatch({ type: "check/results", runId: record.runId, results: check.results, error: null, run: check.run });
+        followExplanation(record.runId, check.explanation);
         if (!isTerminal(check.run.state)) track("check", record.runId);
         else {
           dispatch({ type: "check/stream", runId: record.runId, stream: { kind: "closed" } });
@@ -358,7 +402,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
         dispatch({ type: "check/stream", runId: record.runId, stream: { kind: "lost", error } });
       },
     );
-  }, [api, loadArtifacts, track]);
+  }, [api, loadArtifacts, track, followExplanation]);
   addCheckRef.current = addCheck;
 
   // ---- mount / unmount
@@ -397,6 +441,15 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     // Mount-only: the owning component is keyed by session id.
   }, []);
 
+  useEffect(() => {
+    const pending = dialogue?.pending;
+    if (!pending?.run_id || !pending.run_state || isTerminal(pending.run_state) || runsRef.current.agent[pending.run_id]) return;
+    const record = {runId: pending.run_id, text: pending.text, questionId: pending.question_id, startedAt: ""};
+    dispatch({type: "agent/add", view: {...agentView(record, sessionId), run: {run_id: pending.run_id,
+      session_id: sessionId, state: pending.run_state, version_id: null, error_code: null}}});
+    track("agent", pending.run_id);
+  }, [dialogue, sessionId, track]);
+
   // ---- sending
 
   const dispatchSend = useCallback(async (outbox: Outbox): Promise<boolean> => {
@@ -405,8 +458,11 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     updateLocal(api.id, sessionId, (local) => ({ ...local, outbox }));
     setSend({ sending: true, outbox, error: null });
     try {
-      const body = outbox.questionId ? { text: outbox.text, question_id: outbox.questionId } : { text: outbox.text };
-      const run = await api.sendMessage(sessionId, body, outbox.key, root.current.signal);
+      const body = outbox.sourceId ? {source_id: outbox.sourceId} : outbox.questionId ? { text: outbox.text, question_id: outbox.questionId } : { text: outbox.text };
+      const run = outbox.pendingRetry && api.retryPending
+        ? await api.retryPending(sessionId, outbox.key, root.current.signal)
+        : await api.sendMessage(sessionId, body, outbox.key, root.current.signal);
+      if (root.current.signal.aborted) return false;
       const record: AgentRunRecord = { runId: run.run_id, text: outbox.text, questionId: outbox.questionId, startedAt: new Date().toISOString() };
       updateLocal(api.id, sessionId, (local) => ({
         ...local, outbox: null, draft: "",
@@ -458,14 +514,32 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     return () => clearTimeout(timer);
   }, []);
 
-  const history = useMemo(() => (detail.data ? parseHistory(detail.data.messages) : null), [detail.data]);
+  const history = useMemo(() => detail.data ? (capabilities.dialogue ? (dialogue ? publicHistory(dialogue, detail.data) : null) : parseHistory(detail.data.messages)) : null, [detail.data, dialogue, capabilities.dialogue]);
 
   const retryPending = useCallback(() => {
     const pending = history?.pending;
     if (!pending) return Promise.resolve(false);
     // The server resumes an unfinished turn only for the same text and a new key.
-    return dispatchSend({ text: pending.text, questionId: pending.questionId, key: newKey() });
-  }, [dispatchSend, history?.pending]);
+    return dispatchSend({ text: pending.text, questionId: pending.questionId, key: newKey(), pendingRetry: capabilities.dialogue });
+  }, [dispatchSend, history?.pending, capabilities.dialogue]);
+
+  const discardPending = useCallback(async () => {
+    if (!api.discardPending) return;
+    try { setDialogue(await api.discardPending(sessionId, root.current.signal)); reloadDetail(); }
+    catch (error) { if (!isAbort(error)) setSend(s => ({...s, error})); }
+  }, [api, sessionId, reloadDetail]);
+  const analyzeDocument = useCallback((document: DocumentSource) => dispatchSend({text: document.text ?? document.filename,
+    questionId: null, sourceId: document.id, key: newKey()}), [dispatchSend]);
+  const retryExplanation = useCallback(async (runId: string) => {
+    if (!api.retryExplanation || explainingRef.current.has(runId)) return;
+    explainingRef.current.add(runId);
+    try {
+      const run = await api.retryExplanation(runId, newKey(), root.current.signal);
+      followExplanation(runId, {state: "queued", run_id: run.run_id, error_code: null, narrative: null});
+    } catch (error) { if (!isAbort(error)) dispatch({type: "check/explanation", runId,
+      explanation: {state: "failed", run_id: null, error_code: error instanceof ApiError ? error.code ?? error.message : String(error), narrative: null}}); }
+    finally { explainingRef.current.delete(runId); }
+  }, [api, followExplanation]);
 
   const agentRuns = runs.agentOrder.map((id) => runs.agent[id]).filter((v): v is AgentRunView => Boolean(v));
   const activeAgentRun = [...agentRuns].reverse().find((v) => !v.run || !isTerminal(v.run.state)) ?? null;
@@ -490,8 +564,11 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     startingRef.current = true;
     const key = newKey();
     const custom = limits.timeout_seconds !== DEFAULT_LIMITS.timeout_seconds || limits.max_states !== DEFAULT_LIMITS.max_states || limits.max_depth !== DEFAULT_LIMITS.max_depth;
-    const body = { property_ids: propertyIds, ...(custom ? { limits } : {}) };
+    const body = { property_ids: propertyIds, ...(custom ? { limits } : {}), ...(capabilities.explanations ? {explain: true} : {}) };
+    let inFlight = false;
     const attempt = async (): Promise<string | null> => {
+      if (inFlight) return null;
+      inFlight = true;
       startingRef.current = true;
       setCheckStart({ starting: true, error: null, retry: null });
       try {
@@ -514,10 +591,11 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
         return null;
       } finally {
         startingRef.current = false;
+        inFlight = false;
       }
     };
     return attempt();
-  }, [api, sessionId, track]);
+  }, [api, sessionId, track, capabilities.explanations]);
 
   const cancelCheck = useCallback(async (runId: string) => {
     dispatch({ type: "check/cancel", runId });
@@ -549,7 +627,8 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   }, [api]);
 
   const uploadDocument = useCallback(async (file: File) => {
-    if (!capabilities.documents || !api.uploadDocument) return null;
+    if (!capabilities.documents || !api.uploadDocument || uploadingRef.current) return null;
+    uploadingRef.current = true;
     setUpload((u) => ({ ...u, uploading: file.name, error: null }));
     try {
       const document = await api.uploadDocument(sessionId, file, newKey(), root.current.signal);
@@ -560,13 +639,14 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
       if (!isAbort(error)) setUpload((u) => ({ ...u, uploading: null, error }));
       return null;
     }
+    finally { uploadingRef.current = false; }
   }, [api, capabilities.documents, reloadDetail, sessionId]);
 
   const versions = useMemo(() => (models.data ?? []).flatMap((g) => g.versions), [models.data]);
   const checks = runs.checkOrder.map((id) => runs.checks[id]).filter((v): v is CheckRunView => Boolean(v)).reverse();
 
   return {
-    detail, history, models, versions, agentRuns, activeAgentRun, lastAgentRun, checks,
+    detail, dialogue, discardPending, analyzeDocument, retryExplanation, history, models, versions, agentRuns, activeAgentRun, lastAgentRun, checks,
     send, sendMessage, retryOutbox, discardOutbox, retryPending, cancelAgent,
     checkStart, startCheck, cancelCheck, reconnect, approve, approveError,
     reloadDetail, reloadModels, loadArtifacts, upload, uploadDocument,

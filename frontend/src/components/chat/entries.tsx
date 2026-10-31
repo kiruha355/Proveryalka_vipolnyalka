@@ -97,10 +97,6 @@ export function AnalysisEntry({ state, isLatest, time, versions, context, replyQ
     <AgentBlock time={time}>
       {analysis.subject && <p className="msg__lead">{analysis.subject}</p>}
       <p className={`dialogue-status dialogue-status--${state.status}`}>{DIALOGUE_STATUS[state.status]}</p>
-      <p className="msg__facts">
-        Требований: {analysis.requirements.length}
-        {model && <> · переменных {model.variables.length} · переходов {model.transitions.length} · свойств {model.properties.length}</>}
-      </p>
       {analysis.assumptions.length > 0 && <p className="small">Предположений, ждущих решения: {analysis.assumptions.length}</p>}
       {!model && analysis.model_issues.length > 0 && (
         <p className="small warn-text">Модель не собрана: {analysis.model_issues.length} замечани{analysis.model_issues.length === 1 ? "е" : "й"}</p>

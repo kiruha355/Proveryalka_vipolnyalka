@@ -106,7 +106,8 @@ export class DemoApi implements ProveryalkaApi {
     const firstSpec = seed.models[0]?.versions[0]?.spec;
     this.sessions.set(seed.id, {
       id: seed.id, title: seed.title, mode: "analyzer", created_at: seed.createdAt,
-      messages: [], requirements: [],
+      messages: (firstSpec?.sources ?? []).map((source, sequence) => ({id: `recorded_${source.id}`, session_id: seed.id,
+        sequence, created_at: seed.createdAt, message_data: {role: "user", content: source.text}})), requirements: [],
       sources: (firstSpec?.sources ?? []).map((s) => ({ ...s, session_id: seed.id })),
     });
     for (const model of seed.models) {

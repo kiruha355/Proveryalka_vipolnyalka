@@ -9,6 +9,7 @@ import { ConnectionDialog } from "./components/ConnectionDialog";
 import { NewChat } from "./components/NewChat";
 import { ErrorNotice, QuietStatus } from "./components/Notice";
 import { SessionView } from "./components/SessionView";
+import { PaneSeparator, usePaneWidth } from "./components/PaneSeparator";
 import { Sidebar } from "./components/Sidebar";
 import { loadPrefs, savePrefs, type Prefs } from "./state/persist";
 import type { Loadable } from "./state/types";
@@ -27,7 +28,7 @@ function useLoad<T>(load: (signal: AbortSignal) => Promise<T>, deps: unknown[]):
     const controller = new AbortController();
     setState((s) => ({ ...s, loading: true }));
     load(controller.signal).then(
-      (data) => setState({ data, error: null, loading: false }),
+      (data) => { if (!controller.signal.aborted) setState({ data, error: null, loading: false }); },
       (error: unknown) => { if (!isAbort(error) && !controller.signal.aborted) setState((s) => ({ data: s.data, error, loading: false })); },
     );
     return () => controller.abort();
@@ -36,6 +37,7 @@ function useLoad<T>(load: (signal: AbortSignal) => Promise<T>, deps: unknown[]):
 }
 
 export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
+  const sidebarPane = usePaneWidth("proveryalka:sidebar-width", .18, 170, 660, .32);
   const [prefs, setPrefs] = useState<Prefs>(() => loadPrefs(DEFAULT_PREFS));
   const api = useMemo<ProveryalkaApi>(
     () => initialApi ?? (prefs.adapter === "demo" ? new DemoApi() : new HttpApi(prefs.baseUrl)),
@@ -101,23 +103,24 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
     );
   } else if (route.sessionId) {
     main = (
-      <SessionView key={`${api.id}:${route.sessionId}`} api={api} capabilities={caps} sessionId={route.sessionId}
+      <SessionView key={`${api.id}:${route.sessionId}`} api={api} capabilities={{...caps, agent: caps.agent && ready.data?.agent_configured !== false}} sessionId={route.sessionId}
         listed={sessions.data?.find((s) => s.id === route.sessionId)} route={route} navigate={navigate} />
     );
   } else {
     main = (
-      <NewChat key={api.id} api={api} capabilities={caps}
+      <NewChat key={api.id} api={api} capabilities={{...caps, agent: caps.agent && ready.data?.agent_configured !== false}}
         onCreated={(session) => { reloadSessions(); navigate({ sessionId: session.id }); }} />
     );
   }
 
   return (
-    <div className={`app${sidebarOpen ? " app--sidebar" : ""}${prefs.adapter === "demo" ? " app--demo" : ""}`}>
+    <div ref={sidebarPane.container} style={sidebarPane.style} className={`app${sidebarOpen ? " app--sidebar" : ""}${prefs.adapter === "demo" ? " app--demo" : ""}`}>
       <Sidebar open={sidebarOpen} onToggle={() => (narrow ? setOverlayOpen((v) => !v) : update({ sidebarOpen: !prefs.sidebarOpen }))}
         sessions={sessions} currentId={route.sessionId} onRetry={reloadSessions}
         onSelect={(id) => { setOverlayOpen(false); navigate({ sessionId: id }); }}
         onNew={() => { setOverlayOpen(false); navigate({ sessionId: null }); }}
         connectionLabel={connectionLabel} connectionTone={tone} onConnection={() => setConnectionOpen(true)} />
+      {sidebarOpen && <PaneSeparator pane={sidebarPane} label="Ширина списка сессий"/>}
       <main className="main">{main}</main>
       {connectionOpen && (
         <ConnectionDialog adapter={prefs.adapter} baseUrl={prefs.baseUrl} ready={ready} onCheckReady={recheckReady}

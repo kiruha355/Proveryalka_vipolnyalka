@@ -1,5 +1,5 @@
 import type {
-  ArtifactEntry, DocumentSource, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session, SessionDetail,
+  ArtifactEntry, DocumentSource, DialogueView, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session, SessionDetail,
 } from "./types";
 
 export interface ApiCapabilities {
@@ -17,12 +17,15 @@ export interface ApiCapabilities {
   checkDiscovery: boolean;
   /** TXT/MD/DOCX upload with server-side text extraction. */
   documents: boolean;
+  dialogue?: boolean;
+  explanations?: boolean;
 }
 
 export const DOCUMENT_TYPES = [".txt", ".md", ".docx"] as const;
 
 export interface MessageBody {
-  text: string;
+  text?: string;
+  source_id?: string;
   question_id?: string;
 }
 
@@ -41,6 +44,11 @@ export interface ProveryalkaApi {
   getSession(sessionId: string, signal?: AbortSignal): Promise<SessionDetail>;
   sendMessage(sessionId: string, body: MessageBody, key: string, signal?: AbortSignal): Promise<Run>;
 
+  getDialogue?(sessionId: string, signal?: AbortSignal): Promise<DialogueView>;
+  retryPending?(sessionId: string, key: string, signal?: AbortSignal): Promise<Run>;
+  discardPending?(sessionId: string, signal?: AbortSignal): Promise<DialogueView>;
+  retryExplanation?(runId: string, key: string, signal?: AbortSignal): Promise<Run>;
+
   getRun(runId: string, signal?: AbortSignal): Promise<Run>;
   cancelRun(runId: string, signal?: AbortSignal): Promise<Run>;
   /** Replays events with event_id > after, then follows the live stream until the server closes it. */
@@ -48,6 +56,7 @@ export interface ProveryalkaApi {
 
   listModels(sessionId: string, signal?: AbortSignal): Promise<Model[]>;
   listVersions(modelId: string, signal?: AbortSignal): Promise<ModelVersion[]>;
+  createVersion?(modelId: string, body: {spec: ModelVersion["spec"]; parent_id?: string | null}, key: string, signal?: AbortSignal): Promise<ModelVersion>;
   approveVersion(modelId: string, number: number, signal?: AbortSignal): Promise<ModelVersion>;
 
   createCheck(modelId: string, number: number, body: CheckRequest, key: string, signal?: AbortSignal): Promise<Run>;

@@ -4,6 +4,6 @@ import { cleanup } from "@testing-library/react";
 
 afterEach(() => {
   cleanup();
-  localStorage.clear();
-  window.location.hash = "";
+  if (typeof localStorage !== "undefined") localStorage.clear();
+  if (typeof window !== "undefined") window.location.hash = "";
 });

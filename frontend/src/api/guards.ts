@@ -1,6 +1,6 @@
 import { ApiError } from "./errors";
 import type {
-  ArtifactEntry, CheckRun, Model, ModelVersion, Run, RunEvent, Session, SessionDetail,
+  ArtifactEntry, CheckRun, DialogueView, DocumentUpload, Model, ModelVersion, Run, RunEvent, Session, SessionDetail,
 } from "./types";
 
 // Shallow structural checks: a response missing fields the UI depends on is
@@ -49,3 +49,15 @@ export function expectList<T>(value: unknown, guard: Guard<T>, what: string): T[
   if (!Array.isArray(value) || !value.every(guard)) throw new ApiError("malformed", what);
   return value;
 }
+
+export const isDialogueView: Guard<DialogueView> = (v): v is DialogueView =>
+  isObject(v) && isString(v.session_id) && ["not_started", "needs_clarification", "model_incomplete", "ready", "limit_reached"].includes(String(v.status))
+  && Array.isArray(v.questions) && Array.isArray(v.requirements) && Array.isArray(v.open_question_ids) && Array.isArray(v.corrections)
+  && (v.analysis === null || (isObject(v.analysis) && Array.isArray(v.analysis.assumptions) && Array.isArray(v.analysis.model_issues)))
+  && (v.entries === undefined || (Array.isArray(v.entries) && v.entries.every(e => isObject(e) && isString(e.id) && isString(e.text)
+    && typeof e.sequence === "number" && isString(e.created_at) && ["user", "assistant"].includes(String(e.kind)))))
+  && (v.pending === null || (isObject(v.pending) && isString(v.pending.text) && isString(v.pending.source_id)));
+export const isDocumentUpload: Guard<DocumentUpload> = (v): v is DocumentUpload =>
+  isObject(v) && isObject(v.source) && isString(v.source.id) && isString(v.source.text) && v.source.text.trim().length > 0
+  && isObject(v.document) && v.document.source_id === v.source.id && isString(v.document.filename)
+  && typeof v.document.size_bytes === "number" && typeof v.document.characters === "number";

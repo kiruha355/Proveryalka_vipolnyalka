@@ -1,6 +1,4 @@
-// Mirrors the backend contracts at 62c12b8 (src/proveryalka/contracts.py,
-// behavior/contracts.py, verification/contracts.py, agent/clarification.py).
-// Optional fields marked "planned" are read only when the server reports them.
+// Public HTTP DTOs and BehavioralModel 1.0. See api/README.md in the backend.
 
 export type SessionMode = "analyzer" | "debugger" | "overview" | "codegen";
 
@@ -38,6 +36,7 @@ export interface SessionDetail extends Session {
   messages: Message[];
   sources: Source[];
   requirements: SessionRequirement[];
+  documents?: DocumentInfo[];
 }
 
 export type RunState = "queued" | "running" | "cancelling" | "cancelled" | "completed" | "failed";
@@ -202,6 +201,7 @@ export interface VerificationResult {
 export interface CheckRun {
   run: Run;
   results: VerificationResult[];
+  explanation?: ExplanationView;
 }
 
 export interface ArtifactEntry {
@@ -211,7 +211,8 @@ export interface ArtifactEntry {
 }
 
 export interface CheckRequest {
-  property_ids: string[] | null;
+  property_ids?: string[] | null;
+  explain?: boolean;
   limits?: Partial<CheckLimits>;
 }
 
@@ -219,6 +220,7 @@ export interface CheckRequest {
 
 export type RunEventType =
   | "message_delta" | "tool_call" | "clarification_requested" | "model_proposed"
+  | "dialogue_updated" | "explanation_queued" | "explanation_started" | "explanation_ready"
   | "check_started" | "check_finished" | "file_written" | "run_finished" | "error";
 
 export interface RunEvent {
@@ -355,4 +357,29 @@ export interface ReadyInfo {
   status: string;
   checker?: string;
   agent_configured?: boolean;
+}
+
+export interface DocumentInfo {
+  source_id: string; filename: string; format: "txt" | "md" | "docx";
+  media_type: string; size_bytes: number; sha256: string; characters: number;
+}
+export interface DocumentUpload { source: Source; document: DocumentInfo }
+export interface DialogueEntry {
+  id: string; sequence: number; created_at: string; kind: "user" | "assistant"; text: string;
+  source_id?: string | null; question_id?: string | null; status?: "processed" | "pending" | "discarded" | null;
+  questions?: Question[];
+}
+export interface DialogueView {
+  entries?: DialogueEntry[];
+  session_id: string; status: DialogueStatus | "not_started";
+  round: number | null; max_rounds: number | null; reply: string | null;
+  requirements: (ExtractedRequirement & {code: string})[];
+  questions: Question[]; open_question_ids: string[]; corrections: AppliedCorrection[];
+  analysis: Analysis | null;
+  model: {model_id: string; version_id: string; number: number; spec_hash: string} | null;
+  pending: {source_id: string; text: string; question_id: string | null; run_id: string | null; run_state: RunState | null} | null;
+}
+export interface ExplanationView {
+  state: "not_requested" | "queued" | "running" | "ready" | "failed" | "cancelled";
+  run_id: string | null; error_code: string | null; narrative: VerificationNarrative | null;
 }

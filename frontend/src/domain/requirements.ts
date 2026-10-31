@@ -35,7 +35,7 @@ export function highlightSpans(source: Source, requirements: ExtractedRequiremen
       marks.push({ at: ref.start, id: requirement.id, open: true }, { at: ref.end, id: requirement.id, open: false });
     }
   }
-  const points = [...new Set([0, source.text.length, ...marks.map((m) => m.at)])].sort((a, b) => a - b);
+  const points = [...new Set([0, Array.from(source.text).length, ...marks.map((m) => m.at)])].sort((a, b) => a - b);
   const spans: Highlight[] = [];
   for (let i = 0; i < points.length - 1; i += 1) {
     const start = points[i] as number;
@@ -50,5 +50,5 @@ export function highlightSpans(source: Source, requirements: ExtractedRequiremen
 
 /** The server validates quotes; a mismatch here means the source changed and offsets are untrustworthy. */
 export function refMatches(source: Source, ref: SourceRef): boolean {
-  return source.text.slice(ref.start, ref.end) === ref.quote;
+  return Array.from(source.text).slice(ref.start, ref.end).join("") === ref.quote;
 }

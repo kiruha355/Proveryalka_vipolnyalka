@@ -282,7 +282,9 @@ class ApplicationBackend(SQLiteBackend):
 
     def get_dialogue(self, session_id):
         state, pending = self.dialogue_items(session_id)
-        view = {"session_id": session_id, "status": "not_started"}
+        from .history import dialogue_entries
+        view = {"session_id": session_id, "status": "not_started",
+                "entries": dialogue_entries(self.store.history_rows(session_id), render_turn)}
         if state is not None:
             behavior = state.analysis.behavior
             view.update(
@@ -294,6 +296,11 @@ class ApplicationBackend(SQLiteBackend):
                 analysis=state.analysis.model_dump(mode="json"),
                 model=self.store.analyst_version(session_id, spec_hash(behavior)) if behavior is not None else None,
             )
+        if pending is None:
+            # Explicit cancellation may already be durable before its history marker.
+            for entry in view["entries"]:
+                if entry.get("status") == "pending":
+                    entry["status"] = "discarded"
         if pending is not None:
             run = self.store.get_run(pending.run_id) if pending.run_id else None
             view["pending"] = {"source_id": pending.source.id, "text": pending.source.text, "question_id": pending.question_id,

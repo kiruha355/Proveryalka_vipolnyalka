@@ -219,6 +219,12 @@ class SQLiteStore(VersionStore, RunStore):
                 number += 1
             connection.execute("UPDATE sessions SET next_message=? WHERE id=?", (number, session_id))
 
+    def history_rows(self, session_id):
+        """Persisted identity/order for public history projections; no raw mutation."""
+        with self.transaction() as connection:
+            self._session(connection, session_id)
+            return self._messages(connection, session_id)
+
     def history(self, session_id, limit=None):
         with self.transaction() as connection:
             self._session(connection, session_id)

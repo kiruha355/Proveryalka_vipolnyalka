@@ -5,6 +5,7 @@ import type { DialogueState, Message, VerificationOutcome } from "../api/types";
 // parsed here and never shown to the reader as raw JSON.
 
 export type HistoryEntry =
+  | {kind: "reply"; key: string; text: string; questions: import("../api/types").Question[]; createdAt: string; sequence: number; isLatest: boolean}
   | { kind: "user"; key: string; text: string; createdAt: string; sequence: number; status: "processed" | "pending" | "discarded" }
   | { kind: "analysis"; key: string; state: DialogueState; createdAt: string; sequence: number; isLatest: boolean }
   | { kind: "verification"; key: string; outcome: VerificationOutcome; createdAt: string; sequence: number }
@@ -125,3 +126,25 @@ export const DIALOGUE_STATUS: Record<DialogueState["status"], string> = {
   model_incomplete: "Модель неполная",
   limit_reached: "Лимит уточнений исчерпан",
 };
+
+/** Public DTO projection. Never reads SDK message_data in live mode. */
+export function publicHistory(view: import("../api/types").DialogueView, session: import("../api/types").SessionDetail): ParsedHistory {
+  const sources = session.sources;
+  const publicEntries = [...(view.entries ?? [])].sort((a,b) => a.sequence-b.sequence);
+  const latestAssistant = publicEntries.filter(entry => entry.kind === "assistant").at(-1)?.id;
+  const entries: HistoryEntry[] = publicEntries.map(entry => entry.kind === "user" ? {
+    kind: "user", key: entry.id, text: entry.text, sequence: entry.sequence, createdAt: entry.created_at,
+    status: entry.status ?? "processed",
+  } : {kind: "reply", key: entry.id, text: entry.text, questions: entry.questions ?? [], sequence: entry.sequence,
+    createdAt: entry.created_at, isLatest: entry.id === latestAssistant});
+  const dialogue: DialogueState | null = view.analysis && view.status !== "not_started" ? {
+    schema_version: "2.0", sources, analysis: {...view.analysis, requirements: view.requirements},
+    questions: view.questions, answers: [], corrections: view.corrections, property_approvals: {},
+    round: view.round ?? 0, max_rounds: view.max_rounds ?? 0, status: view.status,
+  } : null;
+  // Compatibility with public DTOs predating entries: show only actual latest reply,
+  // never reconstruct fictitious user turns from sources in live mode.
+  if (!view.entries && view.reply) entries.push({kind: "reply", key: "public-reply", text: view.reply,
+    questions: view.questions.filter(q => q.status === "open"), sequence: 0, createdAt: "", isLatest: true});
+  return {entries, dialogue, pending: view.pending ? {text: view.pending.text, questionId: view.pending.question_id} : null, verifications: []};
+}

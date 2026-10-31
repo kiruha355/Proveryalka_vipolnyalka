@@ -155,7 +155,20 @@ class ModelRef(Contract):
     spec_hash: str
 
 
+class DialogueEntry(Contract):
+    id: str
+    sequence: int
+    created_at: str
+    kind: Literal["user", "assistant"]
+    text: str
+    source_id: Optional[str] = None
+    question_id: Optional[str] = None
+    status: Optional[Literal["processed", "pending", "discarded"]] = None
+    questions: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class DialogueView(Contract):
+    entries: list[DialogueEntry] = Field(default_factory=list)
     session_id: str
     status: Literal["not_started", "needs_clarification", "model_incomplete", "ready", "limit_reached"]
     round: Optional[int] = None

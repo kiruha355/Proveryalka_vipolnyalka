@@ -52,12 +52,6 @@ export function ModelView({ context }: WorkspaceViewProps) {
   const changedIds = new Set(changes.map((c) => `${c.section}:${c.id}`));
   const select = (element: ElementRef) => context.select(element);
   const req = (ids: string[]) => <RequirementChips ids={ids} index={requirements} onSelect={(id) => select({ kind: "requirement", id })} />;
-  const toggle = (id: string, on: boolean) => {
-    const set = new Set(core.selectedProperties);
-    if (on) set.add(id);
-    else set.delete(id);
-    core.setSelectedProperties(spec.properties.map((p) => p.id).filter((p) => set.has(p)));
-  };
   const dialogue = core.history?.dialogue;
   const latestAnalysis = dialogue?.analysis.behavior;
   const newerAnalysis = dialogue && latestAnalysis && !sameJson(latestAnalysis, spec) && version.id === versions[versions.length - 1]?.id;
@@ -161,15 +155,13 @@ export function ModelView({ context }: WorkspaceViewProps) {
       </section>
 
       <section className="model-section" aria-labelledby="props-title">
-        <h3 id="props-title">Свойства для проверки</h3>
-        {spec.properties.length === 0 ? <p className="muted">В модели нет свойств: проверять нечего.</p> : (
+        <h3 id="props-title">Проверяемые правила</h3>
+        {spec.properties.length === 0 ? <p className="muted">В модели нет проверяемых правил.</p> : (
           <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
-                  <th scope="col" className="col-check"><span className="visually-hidden">Включить в проверку</span></th>
-                  <th scope="col">Свойство</th>
-                  <th scope="col">Тип</th>
+                  <th scope="col">Правило</th>
                   <th scope="col">Условие</th>
                   <th scope="col">Смысл</th>
                   <th scope="col">Требования</th>
@@ -178,10 +170,6 @@ export function ModelView({ context }: WorkspaceViewProps) {
               <tbody>
                 {spec.properties.map((p) => (
                   <tr key={p.id} className={`${isSelected(selection.element, "property", p.id) ? "is-selected" : ""}${changedIds.has(`properties:${p.id}`) ? " is-changed" : ""}`}>
-                    <td className="col-check">
-                      <input type="checkbox" checked={core.selectedProperties.includes(p.id)} onChange={(e) => toggle(p.id, e.target.checked)}
-                        aria-label={`Проверять «${p.name}»`} />
-                    </td>
                     <th scope="row">
                       <button type="button" className="link-button" onClick={() => select({ kind: "property", id: p.id })}>{p.name}</button>
                       <code className="cell-id">{p.id}</code>
@@ -191,9 +179,16 @@ export function ModelView({ context }: WorkspaceViewProps) {
                         </span>
                       )}
                     </th>
-                    <td title={PROPERTY_KIND[p.kind].meaning}>{PROPERTY_KIND[p.kind].label}</td>
-                    <td><Expr value={p.predicate} /></td>
-                    <td>{p.explanation}</td>
+                                        <td><Expr value={p.predicate} /></td>
+                    <td>{p.explanation}
+                      <details><summary>Источник и формальное правило</summary>
+                        <p>{PROPERTY_KIND[p.kind].label}</p>
+                        {p.origin === "proposal" && <p>{p.approved_by ? "Предположение агента подтверждено:" : "Предположение агента — ожидает подтверждения"}</p>}
+                        {p.approved_by && <q>{p.approved_by.quote}</q>}
+                        {p.origin !== "proposal" && p.requirement_ids.flatMap(id => spec.requirements.find(r => r.id === id)?.source_refs ?? []).map((ref,i) => <p key={i}><q>{ref.quote}</q> <code>{ref.source_id}</code></p>)}
+                        {p.origin !== "proposal" && p.requirement_ids.length === 0 && <p className="warn-text">Источник правила не указан</p>}
+                      </details>
+                    </td>
                     <td>{req(p.requirement_ids)}</td>
                   </tr>
                 ))}

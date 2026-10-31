@@ -21,6 +21,8 @@ export interface CheckRunRecord {
 }
 
 export interface Outbox {
+  sourceId?: string;
+  pendingRetry?: boolean;
   text: string;
   questionId: string | null;
   /** Reused on retry so a lost response cannot start a second run. */

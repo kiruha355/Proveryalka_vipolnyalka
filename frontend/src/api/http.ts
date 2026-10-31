@@ -1,7 +1,7 @@
 import type { ApiCapabilities, MessageBody, ProveryalkaApi } from "./api";
 import { ApiError } from "./errors";
 import {
-  expect, expectList, isArtifactEntry, isCheckRun, isModel, isModelVersion, isRun, isRunEvent, isSession, isSessionDetail,
+  expect, expectList, isDialogueView, isDocumentUpload, isArtifactEntry, isCheckRun, isModel, isModelVersion, isRun, isRunEvent, isSession, isSessionDetail,
 } from "./guards";
 import { readSse } from "./sse";
 import type { CheckRequest, ReadyInfo, RunEvent } from "./types";
@@ -61,13 +61,30 @@ export class HttpApi implements ProveryalkaApi {
   }
 
   async sendMessage(sessionId: string, body: MessageBody, key: string, signal?: AbortSignal) {
-    const payload: MessageBody = { text: body.text };
-    if (body.question_id) {
-      const caps = await this.capabilities(signal);
-      // Sending an unsupported field yields 422 extra_forbidden; drop it instead.
-      if (caps.questionId) payload.question_id = body.question_id;
-    }
+    const payload: MessageBody = { ...body };
     return expect(await this.request("POST", `/api/sessions/${segment(sessionId)}/messages`, { body: payload, key, signal }), isRun, "Запуск агента");
+  }
+
+  async getDialogue(sessionId: string, signal?: AbortSignal) {
+    return expect(await this.request("GET", `/api/sessions/${segment(sessionId)}/dialogue`, { signal }), isDialogueView, "Диалог");
+  }
+  async retryPending(sessionId: string, key: string, signal?: AbortSignal) {
+    return expect(await this.request("POST", `/api/sessions/${segment(sessionId)}/pending/retry`, {key, signal}), isRun, "Повтор анализа");
+  }
+  async discardPending(sessionId: string, signal?: AbortSignal) {
+    return expect(await this.request("POST", `/api/sessions/${segment(sessionId)}/pending/discard`, {signal}), isDialogueView, "Диалог");
+  }
+  async retryExplanation(runId: string, key: string, signal?: AbortSignal) {
+    return expect(await this.request("POST", `/api/checks/${segment(runId)}/explanation`, {key, signal}), isRun, "Объяснение");
+  }
+  async uploadDocument(sessionId: string, file: File, key: string, signal?: AbortSignal) {
+    const body = new FormData(); body.append("file", file);
+    const response = await this.send("POST", `/api/sessions/${segment(sessionId)}/documents`, {body, key, signal});
+    if (!response.ok) throw await errorFrom(response);
+    const data = expect(await response.json(), isDocumentUpload, "Загруженный документ");
+    return {id: data.source.id, session_id: sessionId, filename: data.document.filename,
+      media_type: data.document.media_type, size: data.document.size_bytes, status: "extracted" as const,
+      text: data.source.text, error: null};
   }
 
   async getRun(runId: string, signal?: AbortSignal) {
@@ -106,12 +123,17 @@ export class HttpApi implements ProveryalkaApi {
     return expectList(await this.request("GET", `/api/models/${segment(modelId)}/versions`, { signal }), isModelVersion, "Список версий");
   }
 
+  async createVersion(modelId: string, body: {spec: import("./types").BehavioralModel; parent_id?: string | null}, key: string, signal?: AbortSignal) {
+    return expect(await this.request("POST", `/api/models/${segment(modelId)}/versions`, {body, key, signal}), isModelVersion, "Новая версия модели");
+  }
+
   async approveVersion(modelId: string, number: number, signal?: AbortSignal) {
     return expect(await this.request("POST", `/api/models/${segment(modelId)}/versions/${number}/approve`, { signal }), isModelVersion, "Версия");
   }
 
   async createCheck(modelId: string, number: number, body: CheckRequest, key: string, signal?: AbortSignal) {
     const payload: Record<string, unknown> = { property_ids: body.property_ids };
+    if (body.explain !== undefined) payload.explain = body.explain;
     if (body.limits) payload.limits = body.limits;
     return expect(await this.request("POST", `/api/models/${segment(modelId)}/versions/${number}/checks`, { body: payload, key, signal }), isRun, "Запуск проверки");
   }
@@ -132,13 +154,13 @@ export class HttpApi implements ProveryalkaApi {
 
   private async send(method: string, path: string, options: RequestOptions): Promise<Response> {
     const headers: Record<string, string> = { ...(options.headers ?? {}) };
-    if (options.body !== undefined) headers["Content-Type"] = "application/json";
+    if (options.body !== undefined && !(options.body instanceof FormData)) headers["Content-Type"] = "application/json";
     if (options.key) headers["Idempotency-Key"] = options.key;
     try {
       return await this.fetcher(`${this.base}${path}`, {
         method,
         headers,
-        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        body: options.body === undefined ? undefined : options.body instanceof FormData ? options.body : JSON.stringify(options.body),
         signal: options.signal,
       });
     } catch (error) {
@@ -194,6 +216,8 @@ export function detectCapabilities(doc: unknown): ApiCapabilities {
     customLimits: true,
     artifacts: "/api/checks/{run_id}/artifacts" in paths,
     checkDiscovery: false,
-    documents: false,
+    documents: "/api/sessions/{session_id}/documents" in paths,
+    dialogue: "/api/sessions/{session_id}/dialogue" in paths,
+    explanations: "/api/checks/{run_id}/explanation" in paths,
   };
 }

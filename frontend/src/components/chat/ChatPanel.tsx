@@ -7,8 +7,8 @@ import { RUN_STATE } from "../../domain/status";
 import { loadLocal, updateLocal } from "../../state/persist";
 import { ErrorNotice, QuietStatus } from "../Notice";
 import { Composer, type ComposerHandle } from "./Composer";
-import { AgentBlock, AnalysisEntry, CheckCard, clock, UserBubble } from "./entries";
-import { Retry, Stop } from "../icons";
+import { AgentBlock, AnalysisEntry, CheckCard, clock, UserBubble, QuestionCard } from "./entries";
+import { Stop } from "../icons";
 
 const MODE_LABEL: Record<string, string> = { analyzer: "Анализатор", debugger: "Дебаггер", overview: "Обзор проекта", codegen: "Генератор кода" };
 
@@ -62,9 +62,9 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
   };
 
   let blocked: string | null = null;
-  if (!capabilities.agent) blocked = "В демо-режиме агент не вызывается: таблицы и проверки показаны по записанным данным.";
+  if (!capabilities.agent) blocked = capabilities.adapter === "demo" ? "Записанные данные: агент не вызывается." : "Агент не настроен. Проверьте подключение.";
   else if (active) blocked = "Агент ещё работает в этой сессии.";
-  else if (pending) blocked = "Сначала повторите необработанное сообщение: сервер не примет новое, пока оно не разобрано.";
+  else if (pending) blocked = "Повторите или отмените незавершённый разбор.";
   else if (history?.dialogue?.status === "limit_reached") blocked = "Лимит уточняющих раундов исчерпан. Начните новый чат с уточнённым описанием.";
 
   // Chronological timeline: stored history, then checks started from this browser.
@@ -77,6 +77,7 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
         at: entry.createdAt, key: entry.key,
         node: (
           <UserBubble key={entry.key} text={entry.text} time={clock(entry.createdAt)}>
+            {capabilities.adapter === "demo" && <p className="msg__note">Исходный текст записанного примера</p>}
             {entry.status === "discarded" && <p className="msg__note">Сообщение отменено и не разобрано</p>}
             {isPending && (
               <div className="msg__note msg__note--pending">
@@ -85,11 +86,7 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
                     ? "Анализ остановлен до ответа"
                     : `Не разобрано${failure ? `: ${describeCode(failure.code) ?? failure.code}` : ""}`}
                 </span>
-                {capabilities.agent && (
-                  <button type="button" className="button button--small" onClick={() => void workspace.retryPending()} disabled={workspace.send.sending}>
-                    <Retry size={14} /> Повторить анализ
-                  </button>
-                )}
+
               </div>
             )}
           </UserBubble>
@@ -104,6 +101,14 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
             canAnswer={capabilities.agent && !active && !pending} onAnswer={answer} />
         ),
       });
+    } else if (entry.kind === "reply") {
+      items.push({at: entry.createdAt, key: entry.key, node: <AgentBlock key={entry.key} time={clock(entry.createdAt)}>
+        <p className="msg__text">{entry.text}</p>
+        {entry.questions.map(question => <QuestionCard key={question.id}
+          question={history?.dialogue?.questions.find(q => q.id === question.id) ?? question}
+          active={replyQuestionId === question.id} canAnswer={entry.isLatest && capabilities.agent && !active && !pending}
+          onAnswer={answer}/>)}
+      </AgentBlock>});
     } else if (entry.kind === "assistant_text") {
       items.push({ at: entry.createdAt, key: entry.key, node: <AgentBlock key={entry.key} time={clock(entry.createdAt)}><p className="msg__text">{entry.text}</p></AgentBlock> });
     } else if (entry.kind === "corrupt") {
@@ -201,6 +206,15 @@ export function ChatPanel({ context, replyQuestionId, onReply, composerRef }: Pr
               </>
             ) : undefined} />
         )}
+        {workspace.upload.error !== null && <ErrorNotice error={workspace.upload.error} title="Документ не загружен"/>}
+        {pending && !active && <div className="quiet">
+          <button type="button" className="button button--small" disabled={workspace.send.sending} onClick={() => void workspace.retryPending()}>Повторить разбор</button>
+          <button type="button" className="button button--small button--ghost" disabled={workspace.send.sending} onClick={() => void workspace.discardPending()}>Отменить разбор</button>
+        </div>}
+        {workspace.upload.documents.map(document => <div key={document.id} className="document-line">
+          <span>{document.filename}</span>
+          <button type="button" className="button button--small" disabled={Boolean(blocked) || workspace.send.sending} onClick={() => void workspace.analyzeDocument(document)}>Разобрать документ</button>
+        </div>)}
         {workspace.upload.uploading && <QuietStatus busy>Загрузка {workspace.upload.uploading}</QuietStatus>}
         <Composer ref={composerRef} value={draft} onChange={setDraftPersist} onSubmit={() => void submit()}
           label="Сообщение агенту" placeholder={openQuestions.length > 0 ? "Ответьте на уточнение или добавьте правило…" : "Добавить правило или уточнение…"}

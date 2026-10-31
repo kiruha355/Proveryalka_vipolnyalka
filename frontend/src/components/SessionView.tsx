@@ -13,6 +13,7 @@ import type { ModelGroup } from "../state/types";
 import { ChatPanel } from "./chat/ChatPanel";
 import type { ComposerHandle } from "./chat/Composer";
 import { ErrorNotice, QuietStatus } from "./Notice";
+import { PaneSeparator, usePaneWidth } from "./PaneSeparator";
 import { WorkspacePanel } from "./workspace/WorkspacePanel";
 
 interface Props {
@@ -45,6 +46,7 @@ export function resolveTrace(version: ModelVersion | null, checks: WorkspaceCont
 }
 
 export function SessionView({ api, capabilities, sessionId, listed, route, navigate }: Props) {
+  const chatPane = usePaneWidth("proveryalka:chat-width", .36, 250, 390, .65);
   const routeRef = useRef(route);
   routeRef.current = route;
   const [pane, setPane] = useState<"chat" | "workspace">("chat");
@@ -60,7 +62,7 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
 
   const workspace = useSessionWorkspace({
     api, capabilities, sessionId,
-    onModelProposed: (proposal) => go({ modelId: proposal.model_id, version: proposal.number }),
+    onModelProposed: (proposal) => { setElement(null); go({ modelId: proposal.model_id, version: proposal.number, check: undefined, property: undefined, step: undefined }); },
   });
 
   const groups = workspace.models.data ?? [];
@@ -101,6 +103,13 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
         if (!trace) return;
         go({ step: Math.max(0, Math.min(step, trace.steps.length - 1)) });
       },
+      createVersion: capabilities.adapter === "http" && api.createVersion ? async (modelId, body, key) => {
+        const created = await api.createVersion!(modelId, body, key);
+        await workspace.reloadModels();
+        setElement(null);
+        go({modelId: created.model_id, version: created.number, check: undefined, property: undefined, step: undefined});
+        return created;
+      } : undefined,
       selectVersion: (versionId) => {
         const target = workspace.versions.find((v) => v.id === versionId);
         if (!target || target.id === version?.id) return;
@@ -108,7 +117,8 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
         go({ modelId: target.model_id, version: target.number, check: undefined, property: undefined, step: undefined });
       },
       openView: (viewId) => {
-        go({ view: viewId });
+        setElement(null);
+        go({ view: viewId, check: undefined, property: undefined, step: undefined });
         setPane("workspace");
       },
     };
@@ -123,7 +133,7 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
     setLimits,
     runCheck: () => {
       if (!version || selectedProperties.length === 0) return;
-      void workspace.startCheck(version, selectedProperties, limits).then((runId) => {
+      void workspace.startCheck(version, null, DEFAULT_LIMITS).then((runId) => {
         if (runId) go({ modelId: version.model_id, version: version.number, view: "check", check: runId, property: undefined, step: undefined });
       });
       setPane("workspace");
@@ -149,12 +159,13 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   return (
     <CoreContext.Provider value={core}>
       <WorkspaceContext.Provider value={context}>
-        <div className={`session session--${pane}`}>
+        <div ref={chatPane.container} style={chatPane.style} className={`session session--${pane}`}>
           <div className="pane-switch" role="group" aria-label="Панель">
             <button type="button" aria-pressed={pane === "chat"} onClick={() => setPane("chat")}>Чат</button>
             <button type="button" aria-pressed={pane === "workspace"} onClick={() => setPane("workspace")}>Модель и проверка</button>
           </div>
           <ChatPanel context={context} replyQuestionId={reply} onReply={setReply} composerRef={composer} />
+          <PaneSeparator pane={chatPane} label="Ширина чата"/>
           <WorkspacePanel context={context} viewId={route.view} />
         </div>
       </WorkspaceContext.Provider>
