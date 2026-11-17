@@ -37,6 +37,8 @@ def create_app(
     repository_host_policy=None,
     repository_credential_provider=None,
     mcp_policy=None,
+    auth_settings=None,
+    auth_delivery=None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
     store = SQLiteStore(settings.database_path) if backend is None else None
@@ -60,6 +62,13 @@ def create_app(
                 await adapter.close()
 
     app = FastAPI(title="Проверялка API", version="0.1.0", lifespan=lifespan)
+    from ..auth.config import AuthSettings
+    from ..auth.service import AuthService
+    from ..auth.router import create_auth_router
+    auth_settings = auth_settings or AuthSettings.from_env()
+    app.state.auth = AuthService(store, auth_settings, auth_delivery) if store is not None and auth_settings.enabled else None
+    if app.state.auth is not None:
+        app.include_router(create_auth_router(app.state.auth))
     app.state.settings = settings
     app.state.backend = adapter
     app.state.repositories = repositories

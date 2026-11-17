@@ -46,9 +46,9 @@ class SQLiteStore(VersionStore, RunStore):
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("BEGIN IMMEDIATE")
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version > 8:
+            if version > 9:
                 raise RuntimeError("Database schema is newer than this application")
-            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql"), (5, "005_documents_explanations.sql"), (6, "006_codegen.sql"), (7, "007_images.sql"), (8, "008_repository_snapshots.sql")]:
+            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql"), (5, "005_documents_explanations.sql"), (6, "006_codegen.sql"), (7, "007_images.sql"), (8, "008_repository_snapshots.sql"), (9, "009_auth.sql")]:
                 if version >= target:
                     continue
                 migration = Path(__file__).with_name("migrations") / filename
