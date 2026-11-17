@@ -68,7 +68,14 @@ def create_app(
     auth_settings = auth_settings or AuthSettings.from_env()
     app.state.auth = AuthService(store, auth_settings, auth_delivery) if store is not None and auth_settings.enabled else None
     if app.state.auth is not None:
+        from fastapi import Depends
+        from ..auth.middleware import authorize_resource
+        app.router.dependencies.append(Depends(authorize_resource))
         app.include_router(create_auth_router(app.state.auth))
+        from ..auth.middleware import OwnershipMiddleware
+        from ..auth.tokens import create_token_router
+        app.include_router(create_token_router(app.state.auth))
+        app.add_middleware(OwnershipMiddleware, auth=app.state.auth, router=app.router)
     app.state.settings = settings
     app.state.backend = adapter
     app.state.repositories = repositories

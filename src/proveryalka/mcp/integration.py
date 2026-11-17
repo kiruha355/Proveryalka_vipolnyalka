@@ -14,7 +14,7 @@ def install_mcp(app, backend, codegen, policy):
     """
     if hasattr(app.state, "mcp"):
         raise ValueError("MCP is already installed")
-    integration = MCPIntegration(backend, codegen, policy)
+    integration = MCPIntegration(backend, codegen, policy, auth=getattr(app.state, "auth", None))
     host_lifespan = app.router.lifespan_context
 
     @asynccontextmanager

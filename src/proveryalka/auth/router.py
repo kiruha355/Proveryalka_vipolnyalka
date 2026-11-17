@@ -45,6 +45,8 @@ def create_auth_router(auth):
     def signed_in(request,write=False):
         token=request.cookies.get(COOKIE,'')
         user=auth.authenticate(token)
+        if user['kind'] != 'cookie':
+            raise ServiceError(401,'AUTH_REQUIRED','Browser session required')
         if write:
             origin(request)
             if not hmac.compare_digest(request.headers.get('x-csrf-token',''),csrf_token(token)):

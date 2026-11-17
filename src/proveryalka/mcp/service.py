@@ -23,7 +23,8 @@ COMPARISON_LIMITS = [
 
 
 class MCPService:
-    def __init__(self, backend, codegen, policy):
+    def __init__(self, backend, codegen, policy, auth=None):
+        self.auth = auth
         self.backend, self.codegen, self.policy = backend, codegen, policy
         self.active = 0
 
@@ -38,7 +39,18 @@ class MCPService:
 
     async def call(self, name, request):
         ref = None
-        if name not in self.policy.tools or request.model.model_id not in self.policy.model_ids:
+        if self.auth is not None:
+            from ..auth.access import principal, require_owner
+            user = principal.get()
+            try:
+                require_owner(self.auth.store,'model_id',request.model.model_id,user)
+                with self.auth.store.transaction() as c:
+                    allowed = c.execute("SELECT 1 FROM mcp_grants g JOIN user_sessions s USING(token_hash) WHERE g.token_hash=? AND g.model_id=? AND s.user_id=? AND s.expires>? AND s.kind='mcp'",(user['token_hash'],request.model.model_id,user['id'],self.auth.clock())).fetchone()
+                if not allowed:
+                    raise ServiceError(403,'ACCESS_DENIED','Project not granted')
+            except ServiceError:
+                return self.result(None,'error',error={'code':'ACCESS_DENIED','message':'Project access denied'})
+        if name not in self.policy.tools or self.auth is None and request.model.model_id not in self.policy.model_ids:
             return self.result(None, "error", error={"code": "ACCESS_DENIED", "message": "Tool or model is outside the local allowlist"})
         if self.active >= self.policy.parallel:
             return self.result(None, "error", error={"code": "BUSY", "message": "Parallel tool limit reached"})

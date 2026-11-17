@@ -142,9 +142,9 @@ class LocalBoundary:
 
 
 class MCPIntegration:
-    def __init__(self, backend, codegen=None, policy=None, path="/mcp"):
+    def __init__(self, backend, codegen=None, policy=None, path="/mcp", auth=None):
         self.policy = policy or LocalAccessPolicy()
-        self.service = MCPService(backend, codegen, self.policy)
+        self.service = MCPService(backend, codegen, self.policy, auth=auth)
 
         async def list_tools(context, params):
             return types.ListToolsResult(tools=[types.Tool(
@@ -170,13 +170,15 @@ class MCPIntegration:
 
         self.server = Server("proveryalka", version="1.0.0", on_list_tools=list_tools, on_call_tool=call_tool)
         self.transport = self.server.streamable_http_app(
-            streamable_http_path=path, max_request_body_size=self.policy.max_body_bytes,
+            streamable_http_path=path, stateless_http=auth is not None, max_request_body_size=self.policy.max_body_bytes,
             session_idle_timeout=self.policy.session_idle_seconds, max_sessions=self.policy.max_sessions,
             transport_security=TransportSecuritySettings(
                 allowed_hosts=[v for h in self.policy.hosts for v in ((f"[{h}]", f"[{h}]:*") if ":" in h else (h, f"{h}:*"))],
                 allowed_origins=list(self.policy.origins)),
         )
-        self.app = LocalBoundary(self.transport, self.policy)
+        from dataclasses import replace
+        boundary_policy = replace(self.policy, bearer_token=None) if auth else self.policy
+        self.app = LocalBoundary(self.transport, boundary_policy)
 
     def lifespan(self):
         """Host lifespan must enter this exactly once, after backend/codegen start."""
