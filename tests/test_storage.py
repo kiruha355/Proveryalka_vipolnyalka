@@ -165,7 +165,7 @@ def test_parallel_pop_does_not_return_same_item_twice(store):
 
 def test_initialize_applies_codegen_and_source_migrations(store):
     with store.transaction() as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 10
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 11
         tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {"codegen_generations", "codegen_files", "codegen_test_runs"} <= tables
     assert {"image_sources", "image_analyses", "repository_snapshots", "repository_files", "repository_source_contexts"} <= tables
@@ -174,11 +174,11 @@ def test_initialize_applies_codegen_and_source_migrations(store):
 
 def test_migration_refuses_future_schema_without_modifying_it(store):
     with store.transaction(write=True) as connection:
-        connection.execute("PRAGMA user_version=11")
+        connection.execute("PRAGMA user_version=12")
     with pytest.raises(RuntimeError, match="newer"):
         store.initialize()
     with store.transaction() as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 11
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 12
 
 
 def test_unavailable_database_has_safe_service_error(tmp_path):

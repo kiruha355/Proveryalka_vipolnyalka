@@ -126,8 +126,7 @@ class SafeHTTPS:
                         next_host = urlsplit(next_url).hostname
                     except ValueError:
                         raise ServiceError(422, "REPOSITORY_REDIRECT_DENIED", "Repository redirect is not allowed") from None
-                    if next_host != parsed.hostname:
-                        authorization = None  # Never forward credentials to the archive host.
+                    authorization = None  # No credential forwarding, even on same-host redirects.
                     url = next_url
                     continue
                 if response.status in (401, 404):
@@ -167,27 +166,53 @@ class GitHubArchiveTransport:
         self.credential_provider = credential_provider
         self.http = SafeHTTPS(host_policy)
 
-    def fetch(self, remote_url, ref, credential_ref, limits, deadline):
+    def authorization(self, credential_ref, canonical):
+        if not credential_ref:
+            return None
+        if self.credential_provider is None:
+            raise ServiceError(403, "REPOSITORY_CREDENTIAL_UNAVAILABLE", "No repository credential provider is configured")
+        try:
+            authorization = self.credential_provider.authorization(credential_ref, canonical)
+        except Exception:
+            raise ServiceError(403, "REPOSITORY_CREDENTIAL_UNAVAILABLE", "Repository credential reference is unavailable") from None
+        if not authorization or "\r" in authorization or "\n" in authorization:
+            raise ServiceError(403, "REPOSITORY_CREDENTIAL_UNAVAILABLE", "Repository credential reference is unavailable")
+        return authorization
+
+    def api(self, remote_url):
         canonical, owner, name = remote_parts(remote_url, self.host_policy)
-        authorization = None
-        if credential_ref:
-            if self.credential_provider is None:
-                raise ServiceError(403, "REPOSITORY_CREDENTIAL_UNAVAILABLE", "No repository credential provider is configured")
-            try:
-                authorization = self.credential_provider.authorization(credential_ref, canonical)
-            except Exception:
-                raise ServiceError(403, "REPOSITORY_CREDENTIAL_UNAVAILABLE", "Repository credential reference is unavailable") from None
-            if not authorization or "\r" in authorization or "\n" in authorization:
-                raise ServiceError(403, "REPOSITORY_CREDENTIAL_UNAVAILABLE", "Repository credential reference is unavailable")
-        api = f"https://{self.host_policy.api_host}/repos/{owner}/{name}"
+        if self.host_policy.provider == 'gitlab':
+            return canonical, f"https://{self.host_policy.api_host}/api/v4/projects/{quote(owner+'/'+name,safe='')}/repository"
+        return canonical, f"https://{self.host_policy.api_host}/repos/{owner}/{name}"
+
+    def resolve_commit(self, remote_url, ref, credential_ref, deadline):
+        canonical, api = self.api(remote_url)
+        authorization = self.authorization(credential_ref,canonical)
         metadata = self.http.get(f"{api}/commits/{quote(ref, safe='')}", deadline, 256 * 1024, authorization)
         try:
-            commit = json.loads(metadata)["sha"]
+            commit = json.loads(metadata)['id' if self.host_policy.provider == 'gitlab' else 'sha']
             if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
                 raise ValueError()
         except (ValueError, KeyError, TypeError):
             raise ServiceError(502, "REPOSITORY_INVALID_COMMIT", "Provider did not return a full commit SHA") from None
         if re.fullmatch(r"[0-9a-f]{40}", ref) and ref != commit:
             raise ServiceError(409, "REPOSITORY_COMMIT_MISMATCH", "Provider commit differs from requested SHA")
-        data = self.http.get(f"{api}/tarball/{commit}", deadline, limits.download_bytes, authorization)
+        return commit
+
+    def fetch(self, remote_url, ref, credential_ref, limits, deadline):
+        canonical, api = self.api(remote_url)
+        commit = self.resolve_commit(canonical,ref,credential_ref,deadline)
+        # Re-check local revocation before the archive request; secrets are not cached.
+        authorization = self.authorization(credential_ref,canonical)
+        url = f"{api}/archive.tar.gz?sha={commit}" if self.host_policy.provider == 'gitlab' else f"{api}/tarball/{commit}"
+        data = self.http.get(url, deadline, limits.download_bytes, authorization)
         return RepositoryArchive(commit, data)
+
+
+class UserRepositoryTransport:
+    def __init__(self, provider):
+        self.provider=provider
+
+    def fetch(self, remote_url, ref, credential_ref, limits, deadline):
+        from ...auth.connections import hosting
+        return GitHubArchiveTransport(hosting(remote_url),self.provider).fetch(remote_url,ref,credential_ref,limits,deadline)

@@ -33,6 +33,7 @@ class RepositoryHost:
     remote_host: str = "github.com"
     api_host: str = "api.github.com"
     archive_hosts: tuple[str, ...] = ("codeload.github.com",)
+    provider: str = "github"
 
     @property
     def allowed_hosts(self):
@@ -59,8 +60,9 @@ def remote_parts(url, host):
         valid = False
     if not valid:
         raise ServiceError(422, "REPOSITORY_URL_DENIED", "Only a configured public HTTPS repository URL is allowed")
-    match = re.fullmatch(r"/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?", parsed.path)
-    if not match or any(part in (".", "..") for part in match.groups()):
+    pattern = r"/([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*)/([A-Za-z0-9_.-]+?)(?:\.git)?/?" if host.provider == 'gitlab' else r"/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?"
+    match = re.fullmatch(pattern, parsed.path)
+    if not match or any(part in (".", "..") for group in match.groups() for part in group.split("/")):
         raise ServiceError(422, "REPOSITORY_URL_DENIED", "Expected an owner/repository URL without credentials")
     owner, name = match.groups()
     return f"https://{host.remote_host}/{owner}/{name}", owner, name

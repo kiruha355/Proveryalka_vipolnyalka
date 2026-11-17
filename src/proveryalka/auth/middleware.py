@@ -7,8 +7,8 @@ from .router import COOKIE
 from .service import csrf_token, digest
 
 class OwnershipMiddleware:
-    def __init__(self, app, auth, router):
-        self.app, self.auth, self.router = app, auth, router
+    def __init__(self, app, auth):
+        self.app, self.auth = app, auth
 
     async def __call__(self, scope, receive, send):
         if scope['type'] != 'http':

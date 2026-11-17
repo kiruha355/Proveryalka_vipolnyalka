@@ -19,13 +19,19 @@ class RepositoryService:
         # transport injection is a server-side test seam, never an HTTP option or host path.
         self.transport = transport or GitHubArchiveTransport(self.host_policy, credential_provider)
         self._imports = threading.BoundedSemaphore(2)
+        self.user_connections = False
 
     def initialize(self):
         self.repositories.initialize()
 
     def import_snapshot(self, session_id, body, key, parent_snapshot_id=None):
         body = RepositoryImport.model_validate(body)
-        canonical, _, _ = remote_parts(body.remote_url, self.host_policy)
+        if self.user_connections:
+            from ...auth.connections import hosting
+            policy = hosting(body.remote_url)
+        else:
+            policy = self.host_policy
+        canonical, _, _ = remote_parts(body.remote_url, policy)
         request = {**body.model_dump(), "remote_url": canonical, "parent_snapshot_id": parent_snapshot_id}
         # Validate membership and key before any network/credential-provider side effect.
         with self.store.transaction() as connection:

@@ -66,7 +66,9 @@ def create_app(
     from ..auth.service import AuthService
     from ..auth.router import create_auth_router
     auth_settings = auth_settings or AuthSettings.from_env()
-    app.state.auth = AuthService(store, auth_settings, auth_delivery) if store is not None and auth_settings.enabled else None
+    if auth_settings.enabled and store is None:
+        raise ValueError("User authentication requires the persistent application backend")
+    app.state.auth = AuthService(store, auth_settings, auth_delivery) if auth_settings.enabled else None
     if app.state.auth is not None:
         from fastapi import Depends
         from ..auth.middleware import authorize_resource
@@ -75,7 +77,13 @@ def create_app(
         from ..auth.middleware import OwnershipMiddleware
         from ..auth.tokens import create_token_router
         app.include_router(create_token_router(app.state.auth))
-        app.add_middleware(OwnershipMiddleware, auth=app.state.auth, router=app.router)
+        from ..auth.connections import ConnectionService, create_connections_router
+        from ..sources.repositories.transport import UserRepositoryTransport
+        app.state.connections = ConnectionService(store)
+        app.include_router(create_connections_router(app.state.connections))
+        repositories.transport = UserRepositoryTransport(app.state.connections)
+        repositories.user_connections = True
+        app.add_middleware(OwnershipMiddleware, auth=app.state.auth)
     app.state.settings = settings
     app.state.backend = adapter
     app.state.repositories = repositories
