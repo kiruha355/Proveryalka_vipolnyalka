@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
 # Загружает закреплённую сборку tla2tools.jar и проверяет sha256.
 # Версию меняют только здесь: TLA_VERSION + TLA_SHA256 (digest ассета на странице релиза).
-# v1.8.0 — prerelease: 30.10.2026 ассет заменён сборкой TLC 2026.10.30.154139 rev 090e85c,
-# прежний digest fc6878c6… больше не скачивается. Новый digest сверен с локальным jar,
-# на котором пройдены тесты с настоящим TLC (Java 25, Python 3.12).
+# v1.8.0 asset обновлён upstream 15.11.2026 (GitHub asset 749260120).
+# SHA-256 сверен 18.11.2026 с digest официального GitHub Releases API.
+# Проверка остаётся fail-closed при очередной замене release asset.
 set -eu
 
 TLA_VERSION="v1.8.0"
-TLA_SHA256="011267fca25d0752cf18894dd585cd28b96960c112ea8a20b823ea770e7e10cd"
+TLA_SHA256="7e53aa636dac8a3cb0533f343115c0548e03fc0ce5edc7739becf58d3d0fb84f"
 URL="https://github.com/tlaplus/tlaplus/releases/download/${TLA_VERSION}/tla2tools.jar"
 DEST="${1:-tools/tla2tools.jar}"
 
