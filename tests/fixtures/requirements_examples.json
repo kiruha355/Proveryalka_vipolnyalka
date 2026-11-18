@@ -1,0 +1,14 @@
+[
+  {
+    "name": "order_with_cancellation_bug",
+    "text": "Заявка изначально имеет status=Created, approved=false, cancelled=false. Действие Approve устанавливает status=Approved и approved=true. Действие Cancel устанавливает status=Cancelled и cancelled=true, но не изменяет approved. Действие Execute разрешено, если approved=true, и устанавливает status=Executed. Запрещено состояние, в котором cancelled=true и status=Executed."
+  },
+  {
+    "name": "incomplete_order",
+    "text": "Заявку можно отменить."
+  },
+  {
+    "name": "contradictory_execution_rules",
+    "text": "Отменённую заявку нельзя исполнять. Отменённую заявку разрешено исполнять."
+  }
+]

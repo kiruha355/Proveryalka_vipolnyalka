@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from .contracts import SessionCreate, TextSourceCreate
-from .services import ServiceError, UnavailableBackend
+from ..contracts import SessionCreate, TextSourceCreate
+from ..services import ServiceError, UnavailableBackend
 
 
 def encode(value):
@@ -22,7 +22,10 @@ def identifier(prefix):
     return f"{prefix}_{uuid4().hex}"
 
 
-class SQLiteStore:
+from .versions import VersionStore
+
+
+class SQLiteStore(VersionStore):
     def __init__(self, path):
         self.path = Path(path)
 
@@ -42,14 +45,16 @@ class SQLiteStore:
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("BEGIN IMMEDIATE")
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version > 1:
+            if version > 2:
                 raise RuntimeError("Database schema is newer than this application")
-            if version == 0:
-                migration = Path(__file__).with_name("migrations") / "001_sessions.sql"
+            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql")]:
+                if version >= target:
+                    continue
+                migration = Path(__file__).with_name("migrations") / filename
                 for statement in migration.read_text().split(";"):
                     if statement.strip():
                         connection.execute(statement)
-                connection.execute("PRAGMA user_version=1")
+                connection.execute(f"PRAGMA user_version={target}")
             connection.commit()
         except BaseException:
             connection.rollback()
@@ -221,6 +226,7 @@ class SQLiteBackend(UnavailableBackend):
             "list_sessions": self.store.list_sessions,
             "get_session": self.store.get_session,
             "create_source": self.store.create_source,
+            **{name: getattr(self.store, name) for name in ("create_model", "list_models", "create_version", "list_versions", "get_version", "approve_version")},
         }
         if operation in handlers:
             return handlers[operation](**arguments)

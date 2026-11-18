@@ -1,0 +1,174 @@
+{
+  "schema_version": "1.0",
+  "name": "Склад",
+  "sources": [
+    {
+      "id": "source1",
+      "session_id": "session1",
+      "kind": "text",
+      "text": "Число свободных проекторов free — целое от 0 до 5, изначально free=5. Выдать проектор можно только при free>0; действие уменьшает free на один. Вернуть проектор можно только при free<5; действие увеличивает free на один. Число свободных проекторов не должно быть отрицательным."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "req_c3e557e5aa1950d0afc6b9a9e7b3fe0d",
+      "text": "Число свободных проекторов free — целое от 0 до 5, изначально free=5.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Число свободных проекторов free — целое от 0 до 5, изначально free=5.",
+          "start": 0,
+          "end": 69
+        }
+      ]
+    },
+    {
+      "id": "req_3a359eb5484755b1975274cf37180da0",
+      "text": "Выдать проектор можно только при free>0; действие уменьшает free на один.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Выдать проектор можно только при free>0; действие уменьшает free на один.",
+          "start": 70,
+          "end": 143
+        }
+      ]
+    },
+    {
+      "id": "req_c5d82aa9e5cd5a07bf90ca5e380ebb06",
+      "text": "Вернуть проектор можно только при free<5; действие увеличивает free на один.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Вернуть проектор можно только при free<5; действие увеличивает free на один.",
+          "start": 144,
+          "end": 220
+        }
+      ]
+    },
+    {
+      "id": "req_9030b7d8a24d5db6a767403f1cc21e41",
+      "text": "Число свободных проекторов не должно быть отрицательным.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Число свободных проекторов не должно быть отрицательным.",
+          "start": 221,
+          "end": 277
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "id": "free",
+      "name": "Свободные проекторы",
+      "requirement_ids": [
+        "req_c3e557e5aa1950d0afc6b9a9e7b3fe0d"
+      ],
+      "domain": {
+        "kind": "integer",
+        "minimum": 0,
+        "maximum": 5
+      },
+      "initial_value": 5
+    }
+  ],
+  "transitions": [
+    {
+      "id": "Take",
+      "name": "Выдать",
+      "requirement_ids": [
+        "req_3a359eb5484755b1975274cf37180da0"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "gt",
+        "left": {
+          "kind": "variable",
+          "name": "free"
+        },
+        "right": {
+          "kind": "literal",
+          "value": 0
+        }
+      },
+      "effects": [
+        {
+          "variable": "free",
+          "value": {
+            "kind": "binary",
+            "op": "sub",
+            "left": {
+              "kind": "variable",
+              "name": "free"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "Return",
+      "name": "Вернуть",
+      "requirement_ids": [
+        "req_c5d82aa9e5cd5a07bf90ca5e380ebb06"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "lt",
+        "left": {
+          "kind": "variable",
+          "name": "free"
+        },
+        "right": {
+          "kind": "literal",
+          "value": 5
+        }
+      },
+      "effects": [
+        {
+          "variable": "free",
+          "value": {
+            "kind": "binary",
+            "op": "add",
+            "left": {
+              "kind": "variable",
+              "name": "free"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 1
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "id": "Nonnegative",
+      "name": "Неотрицательное число свободных",
+      "requirement_ids": [
+        "req_9030b7d8a24d5db6a767403f1cc21e41"
+      ],
+      "kind": "invariant",
+      "predicate": {
+        "kind": "binary",
+        "op": "ge",
+        "left": {
+          "kind": "variable",
+          "name": "free"
+        },
+        "right": {
+          "kind": "literal",
+          "value": 0
+        }
+      },
+      "explanation": "Неотрицательное число свободных"
+    }
+  ]
+}

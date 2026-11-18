@@ -1,0 +1,371 @@
+[
+  {
+    "id": "order",
+    "source": {
+      "id": "source1",
+      "session_id": "session1",
+      "text": "Статус заявки имеет конечные значения Created, Approved, Cancelled, Executed; approved и cancelled — логические признаки. Изначально status=Created, approved=false, cancelled=false. Approve доступен в любом состоянии и устанавливает status=Approved, approved=true. Cancel доступен в любом состоянии и устанавливает status=Cancelled, cancelled=true, сохраняя approved. Execute разрешён, если approved=true, и устанавливает status=Executed. Запрещено состояние cancelled=true одновременно со status=Executed."
+    },
+    "draft": {
+      "subject": "Заявка",
+      "requirements": [
+        {
+          "text": "Статус заявки имеет конечные значения Created, Approved, Cancelled, Executed; approved и cancelled — логические признаки. Изначально status=Created, approved=false, cancelled=false.",
+          "quote": "Статус заявки имеет конечные значения Created, Approved, Cancelled, Executed; approved и cancelled — логические признаки. Изначально status=Created, approved=false, cancelled=false.",
+          "source_id": "source1",
+          "previous_id": null
+        },
+        {
+          "text": "Approve доступен в любом состоянии и устанавливает status=Approved, approved=true.",
+          "quote": "Approve доступен в любом состоянии и устанавливает status=Approved, approved=true.",
+          "source_id": "source1",
+          "previous_id": null
+        },
+        {
+          "text": "Cancel доступен в любом состоянии и устанавливает status=Cancelled, cancelled=true, сохраняя approved.",
+          "quote": "Cancel доступен в любом состоянии и устанавливает status=Cancelled, cancelled=true, сохраняя approved.",
+          "source_id": "source1",
+          "previous_id": null
+        },
+        {
+          "text": "Execute разрешён, если approved=true, и устанавливает status=Executed.",
+          "quote": "Execute разрешён, если approved=true, и устанавливает status=Executed.",
+          "source_id": "source1",
+          "previous_id": null
+        },
+        {
+          "text": "Запрещено состояние cancelled=true одновременно со status=Executed.",
+          "quote": "Запрещено состояние cancelled=true одновременно со status=Executed.",
+          "source_id": "source1",
+          "previous_id": null
+        }
+      ],
+      "entities": [],
+      "participants": [],
+      "variables": [
+        {
+          "id": "status",
+          "name": "Статус заявки",
+          "domain": {
+            "kind": "enum",
+            "values": [
+              "Created",
+              "Approved",
+              "Cancelled",
+              "Executed"
+            ]
+          },
+          "initial_value": "Created",
+          "quote": "Статус заявки имеет конечные значения Created, Approved, Cancelled, Executed; approved и cancelled — логические признаки. Изначально status=Created, approved=false, cancelled=false.",
+          "requirement_ids": [
+            "R1"
+          ]
+        },
+        {
+          "id": "approved",
+          "name": "Согласование",
+          "domain": {
+            "kind": "boolean"
+          },
+          "initial_value": false,
+          "quote": "Статус заявки имеет конечные значения Created, Approved, Cancelled, Executed; approved и cancelled — логические признаки. Изначально status=Created, approved=false, cancelled=false.",
+          "requirement_ids": [
+            "R1"
+          ]
+        },
+        {
+          "id": "cancelled",
+          "name": "Отмена",
+          "domain": {
+            "kind": "boolean"
+          },
+          "initial_value": false,
+          "quote": "Статус заявки имеет конечные значения Created, Approved, Cancelled, Executed; approved и cancelled — логические признаки. Изначально status=Created, approved=false, cancelled=false.",
+          "requirement_ids": [
+            "R1"
+          ]
+        }
+      ],
+      "initial_state": [],
+      "events": [
+        {
+          "id": "Approve",
+          "name": "Согласовать",
+          "guard": {
+            "kind": "literal",
+            "value": true
+          },
+          "effects": [
+            {
+              "variable": "status",
+              "value": {
+                "kind": "literal",
+                "value": "Approved"
+              }
+            },
+            {
+              "variable": "approved",
+              "value": {
+                "kind": "literal",
+                "value": true
+              }
+            }
+          ],
+          "quote": "Approve доступен в любом состоянии и устанавливает status=Approved, approved=true.",
+          "requirement_ids": [
+            "R2"
+          ]
+        },
+        {
+          "id": "Cancel",
+          "name": "Отменить",
+          "guard": {
+            "kind": "literal",
+            "value": true
+          },
+          "effects": [
+            {
+              "variable": "status",
+              "value": {
+                "kind": "literal",
+                "value": "Cancelled"
+              }
+            },
+            {
+              "variable": "cancelled",
+              "value": {
+                "kind": "literal",
+                "value": true
+              }
+            }
+          ],
+          "quote": "Cancel доступен в любом состоянии и устанавливает status=Cancelled, cancelled=true, сохраняя approved.",
+          "requirement_ids": [
+            "R3"
+          ]
+        },
+        {
+          "id": "Execute",
+          "name": "Исполнить",
+          "guard": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "approved"
+            },
+            "right": {
+              "kind": "literal",
+              "value": true
+            }
+          },
+          "effects": [
+            {
+              "variable": "status",
+              "value": {
+                "kind": "literal",
+                "value": "Executed"
+              }
+            }
+          ],
+          "quote": "Execute разрешён, если approved=true, и устанавливает status=Executed.",
+          "requirement_ids": [
+            "R4"
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "id": "NoCancelledExecution",
+          "name": "Запрет исполнения отменённой заявки",
+          "kind": "forbidden_state",
+          "predicate": {
+            "kind": "binary",
+            "op": "and",
+            "left": {
+              "kind": "variable",
+              "name": "cancelled"
+            },
+            "right": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "status"
+              },
+              "right": {
+                "kind": "literal",
+                "value": "Executed"
+              }
+            }
+          },
+          "quote": "Запрещено состояние cancelled=true одновременно со status=Executed.",
+          "requirement_ids": [
+            "R5"
+          ],
+          "explanation": "Запрет исполнения отменённой заявки"
+        }
+      ],
+      "assumptions": [],
+      "contradictions": []
+    }
+  },
+  {
+    "id": "stock",
+    "source": {
+      "id": "source1",
+      "session_id": "session1",
+      "text": "Число свободных проекторов free — целое от 0 до 5, изначально free=5. Выдать проектор можно только при free>0; действие уменьшает free на один. Вернуть проектор можно только при free<5; действие увеличивает free на один. Число свободных проекторов не должно быть отрицательным."
+    },
+    "draft": {
+      "subject": "Склад",
+      "requirements": [
+        {
+          "text": "Число свободных проекторов free — целое от 0 до 5, изначально free=5.",
+          "quote": "Число свободных проекторов free — целое от 0 до 5, изначально free=5.",
+          "source_id": "source1",
+          "previous_id": null
+        },
+        {
+          "text": "Выдать проектор можно только при free>0; действие уменьшает free на один.",
+          "quote": "Выдать проектор можно только при free>0; действие уменьшает free на один.",
+          "source_id": "source1",
+          "previous_id": null
+        },
+        {
+          "text": "Вернуть проектор можно только при free<5; действие увеличивает free на один.",
+          "quote": "Вернуть проектор можно только при free<5; действие увеличивает free на один.",
+          "source_id": "source1",
+          "previous_id": null
+        },
+        {
+          "text": "Число свободных проекторов не должно быть отрицательным.",
+          "quote": "Число свободных проекторов не должно быть отрицательным.",
+          "source_id": "source1",
+          "previous_id": null
+        }
+      ],
+      "entities": [],
+      "participants": [],
+      "variables": [
+        {
+          "id": "free",
+          "name": "Свободные проекторы",
+          "domain": {
+            "kind": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "initial_value": 5,
+          "quote": "Число свободных проекторов free — целое от 0 до 5, изначально free=5.",
+          "requirement_ids": [
+            "R1"
+          ]
+        }
+      ],
+      "initial_state": [],
+      "events": [
+        {
+          "id": "Take",
+          "name": "Выдать",
+          "guard": {
+            "kind": "binary",
+            "op": "gt",
+            "left": {
+              "kind": "variable",
+              "name": "free"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 0
+            }
+          },
+          "effects": [
+            {
+              "variable": "free",
+              "value": {
+                "kind": "binary",
+                "op": "sub",
+                "left": {
+                  "kind": "variable",
+                  "name": "free"
+                },
+                "right": {
+                  "kind": "literal",
+                  "value": 1
+                }
+              }
+            }
+          ],
+          "quote": "Выдать проектор можно только при free>0; действие уменьшает free на один.",
+          "requirement_ids": [
+            "R2"
+          ]
+        },
+        {
+          "id": "Return",
+          "name": "Вернуть",
+          "guard": {
+            "kind": "binary",
+            "op": "lt",
+            "left": {
+              "kind": "variable",
+              "name": "free"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 5
+            }
+          },
+          "effects": [
+            {
+              "variable": "free",
+              "value": {
+                "kind": "binary",
+                "op": "add",
+                "left": {
+                  "kind": "variable",
+                  "name": "free"
+                },
+                "right": {
+                  "kind": "literal",
+                  "value": 1
+                }
+              }
+            }
+          ],
+          "quote": "Вернуть проектор можно только при free<5; действие увеличивает free на один.",
+          "requirement_ids": [
+            "R3"
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "id": "Nonnegative",
+          "name": "Неотрицательное число свободных",
+          "kind": "invariant",
+          "predicate": {
+            "kind": "binary",
+            "op": "ge",
+            "left": {
+              "kind": "variable",
+              "name": "free"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 0
+            }
+          },
+          "quote": "Число свободных проекторов не должно быть отрицательным.",
+          "requirement_ids": [
+            "R4"
+          ],
+          "explanation": "Неотрицательное число свободных"
+        }
+      ],
+      "assumptions": [],
+      "contradictions": []
+    }
+  }
+]

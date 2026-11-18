@@ -1,0 +1,230 @@
+{
+  "schema_version": "1.0",
+  "name": "Заявка",
+  "sources": [
+    {
+      "id": "source1",
+      "session_id": "session1",
+      "kind": "text",
+      "text": "Статус заявки имеет конечные значения Created, Approved, Cancelled, Executed; approved и cancelled — логические признаки. Изначально status=Created, approved=false, cancelled=false. Approve доступен в любом состоянии и устанавливает status=Approved, approved=true. Cancel доступен в любом состоянии и устанавливает status=Cancelled, cancelled=true, сохраняя approved. Execute разрешён, если approved=true, и устанавливает status=Executed. Запрещено состояние cancelled=true одновременно со status=Executed."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "req_dfe58accaa9258d0a1705adb8369737a",
+      "text": "Статус заявки имеет конечные значения Created, Approved, Cancelled, Executed; approved и cancelled — логические признаки. Изначально status=Created, approved=false, cancelled=false.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Статус заявки имеет конечные значения Created, Approved, Cancelled, Executed; approved и cancelled — логические признаки. Изначально status=Created, approved=false, cancelled=false.",
+          "start": 0,
+          "end": 181
+        }
+      ]
+    },
+    {
+      "id": "req_c7be276c688d50d0814cf76e176702fc",
+      "text": "Approve доступен в любом состоянии и устанавливает status=Approved, approved=true.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Approve доступен в любом состоянии и устанавливает status=Approved, approved=true.",
+          "start": 182,
+          "end": 264
+        }
+      ]
+    },
+    {
+      "id": "req_1afeb3cbb9715ac9a15bca3f32a157b0",
+      "text": "Cancel доступен в любом состоянии и устанавливает status=Cancelled, cancelled=true, сохраняя approved.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Cancel доступен в любом состоянии и устанавливает status=Cancelled, cancelled=true, сохраняя approved.",
+          "start": 265,
+          "end": 367
+        }
+      ]
+    },
+    {
+      "id": "req_def4ab2c1ce25ed08c188d91767b9759",
+      "text": "Execute разрешён, если approved=true, и устанавливает status=Executed.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Execute разрешён, если approved=true, и устанавливает status=Executed.",
+          "start": 368,
+          "end": 438
+        }
+      ]
+    },
+    {
+      "id": "req_8427338949245b83843928cedba3be9f",
+      "text": "Запрещено состояние cancelled=true одновременно со status=Executed.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Запрещено состояние cancelled=true одновременно со status=Executed.",
+          "start": 439,
+          "end": 506
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "id": "status",
+      "name": "Статус заявки",
+      "requirement_ids": [
+        "req_dfe58accaa9258d0a1705adb8369737a"
+      ],
+      "domain": {
+        "kind": "enum",
+        "values": [
+          "Created",
+          "Approved",
+          "Cancelled",
+          "Executed"
+        ]
+      },
+      "initial_value": "Created"
+    },
+    {
+      "id": "approved",
+      "name": "Согласование",
+      "requirement_ids": [
+        "req_dfe58accaa9258d0a1705adb8369737a"
+      ],
+      "domain": {
+        "kind": "boolean"
+      },
+      "initial_value": false
+    },
+    {
+      "id": "cancelled",
+      "name": "Отмена",
+      "requirement_ids": [
+        "req_dfe58accaa9258d0a1705adb8369737a"
+      ],
+      "domain": {
+        "kind": "boolean"
+      },
+      "initial_value": false
+    }
+  ],
+  "transitions": [
+    {
+      "id": "Approve",
+      "name": "Согласовать",
+      "requirement_ids": [
+        "req_c7be276c688d50d0814cf76e176702fc"
+      ],
+      "guard": {
+        "kind": "literal",
+        "value": true
+      },
+      "effects": [
+        {
+          "variable": "status",
+          "value": {
+            "kind": "literal",
+            "value": "Approved"
+          }
+        },
+        {
+          "variable": "approved",
+          "value": {
+            "kind": "literal",
+            "value": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "Cancel",
+      "name": "Отменить",
+      "requirement_ids": [
+        "req_1afeb3cbb9715ac9a15bca3f32a157b0"
+      ],
+      "guard": {
+        "kind": "literal",
+        "value": true
+      },
+      "effects": [
+        {
+          "variable": "status",
+          "value": {
+            "kind": "literal",
+            "value": "Cancelled"
+          }
+        },
+        {
+          "variable": "cancelled",
+          "value": {
+            "kind": "literal",
+            "value": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "Execute",
+      "name": "Исполнить",
+      "requirement_ids": [
+        "req_def4ab2c1ce25ed08c188d91767b9759"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "eq",
+        "left": {
+          "kind": "variable",
+          "name": "approved"
+        },
+        "right": {
+          "kind": "literal",
+          "value": true
+        }
+      },
+      "effects": [
+        {
+          "variable": "status",
+          "value": {
+            "kind": "literal",
+            "value": "Executed"
+          }
+        }
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "id": "NoCancelledExecution",
+      "name": "Запрет исполнения отменённой заявки",
+      "requirement_ids": [
+        "req_8427338949245b83843928cedba3be9f"
+      ],
+      "kind": "forbidden_state",
+      "predicate": {
+        "kind": "binary",
+        "op": "and",
+        "left": {
+          "kind": "variable",
+          "name": "cancelled"
+        },
+        "right": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "status"
+          },
+          "right": {
+            "kind": "literal",
+            "value": "Executed"
+          }
+        }
+      },
+      "explanation": "Запрет исполнения отменённой заявки"
+    }
+  ]
+}
