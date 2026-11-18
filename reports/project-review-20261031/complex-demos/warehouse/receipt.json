@@ -1,0 +1,204 @@
+{
+  "session_id": "s_667780e868ab40ccbc04850e04043026",
+  "model_id": "m_b5c7cfc255a147aa94a6b651c954bfb6",
+  "links": {
+    "violation": "http://127.0.0.1:5300/?ui=9#/s/s_667780e868ab40ccbc04850e04043026?m=m_b5c7cfc255a147aa94a6b651c954bfb6&v=1&view=diagram&check=chk_85ab308e95a54722acffaca426b16db3&p=stock_conservation&step=2",
+    "fixed": "http://127.0.0.1:5300/?ui=9#/s/s_667780e868ab40ccbc04850e04043026?m=m_b5c7cfc255a147aa94a6b651c954bfb6&v=2&view=check&check=chk_6855eb4a0119493a9189ae1328c81799&p=stock_conservation",
+    "files": "http://127.0.0.1:5300/?ui=9#/s/s_667780e868ab40ccbc04850e04043026?m=m_b5c7cfc255a147aa94a6b651c954bfb6&v=2&view=files"
+  },
+  "versions": [
+    {
+      "id": "v_8f5098ef6acf494498688b651763ce23",
+      "number": 1,
+      "spec_hash": "e1921fce43b2e810fefcd8c2852c2a498fef0788c14eb51d6b7900477f93cdf9",
+      "approved": false
+    },
+    {
+      "id": "v_2a9cb60dcb45449a81b0149d445dea91",
+      "number": 2,
+      "spec_hash": "a2021739f33d8b1933893d3f40096081cbbb249babd67a7d9eb769bb952efaaf",
+      "approved": true
+    }
+  ],
+  "checks": [
+    {
+      "run_id": "chk_85ab308e95a54722acffaca426b16db3",
+      "results": [
+        {
+          "property_id": "stock_conservation",
+          "status": "PROPERTY_VIOLATED",
+          "statistics": {
+            "states_generated": 4,
+            "distinct_states": 4,
+            "depth": 2,
+            "elapsed_seconds": 0.282
+          },
+          "trace": [
+            {
+              "number": 0,
+              "transition_id": null,
+              "state": {
+                "available": 3,
+                "reserved": 0,
+                "shipped": 0,
+                "status": "Draft",
+                "paid": false
+              }
+            },
+            {
+              "number": 1,
+              "transition_id": "Reserve",
+              "state": {
+                "available": 1,
+                "reserved": 2,
+                "shipped": 0,
+                "status": "Reserved",
+                "paid": false
+              }
+            },
+            {
+              "number": 2,
+              "transition_id": "Cancel",
+              "state": {
+                "available": 1,
+                "reserved": 0,
+                "shipped": 0,
+                "status": "Cancelled",
+                "paid": false
+              }
+            }
+          ]
+        },
+        {
+          "property_id": "cancelled_without_shipment",
+          "status": "PROPERTY_HOLDS",
+          "statistics": {
+            "states_generated": 6,
+            "distinct_states": 6,
+            "depth": 3,
+            "elapsed_seconds": 0.272
+          },
+          "trace": []
+        },
+        {
+          "property_id": "shipment_requires_payment",
+          "status": "PROPERTY_HOLDS",
+          "statistics": {
+            "states_generated": 6,
+            "distinct_states": 6,
+            "depth": 3,
+            "elapsed_seconds": 0.212
+          },
+          "trace": []
+        }
+      ],
+      "explanation_state": "ready",
+      "explanation_run_id": "exp_3b39fd849581424299aa7b2fee4104c8"
+    },
+    {
+      "run_id": "chk_6855eb4a0119493a9189ae1328c81799",
+      "results": [
+        {
+          "property_id": "stock_conservation",
+          "status": "PROPERTY_HOLDS",
+          "statistics": {
+            "states_generated": 6,
+            "distinct_states": 6,
+            "depth": 3,
+            "elapsed_seconds": 0.288
+          },
+          "trace": []
+        },
+        {
+          "property_id": "cancelled_without_shipment",
+          "status": "PROPERTY_HOLDS",
+          "statistics": {
+            "states_generated": 6,
+            "distinct_states": 6,
+            "depth": 3,
+            "elapsed_seconds": 0.282
+          },
+          "trace": []
+        },
+        {
+          "property_id": "shipment_requires_payment",
+          "status": "PROPERTY_HOLDS",
+          "statistics": {
+            "states_generated": 6,
+            "distinct_states": 6,
+            "depth": 3,
+            "elapsed_seconds": 0.211
+          },
+          "trace": []
+        }
+      ],
+      "explanation_state": "ready",
+      "explanation_run_id": "exp_3fd19bfbf3a74b6eab1834e43f5f82ae"
+    }
+  ],
+  "followup": {
+    "question_id": "q_2ec940587dca53018f916aab4fffaf87",
+    "text": "Каково начальное значение paid: false или true?",
+    "answer": "Изначально paid=false: заказ ещё не оплачен. Подтверждаю все три критерия проверки из исходного описания. Учебную ошибку Cancel пока сохраняем: available не меняется, reserved обнуляется.",
+    "addressed_through_UI": true
+  },
+  "analyst_runs": [
+    {
+      "run_id": "agent_1bb0e3f0189348b8ba09a105799c9ba9",
+      "state": "completed",
+      "model_requests": [
+        {
+          "phase": "model_request",
+          "attempt": 1,
+          "purpose": "analysis"
+        }
+      ]
+    },
+    {
+      "run_id": "agent_3f0a83e6b55a40719130d2242b3b3962",
+      "state": "completed",
+      "model_requests": [
+        {
+          "phase": "model_request",
+          "attempt": 1,
+          "purpose": "analysis"
+        }
+      ]
+    },
+    {
+      "run_id": "agent_aa9b24a5626e4a71a45abf7a2231ee09",
+      "state": "completed",
+      "model_requests": [
+        {
+          "phase": "model_request",
+          "attempt": 1,
+          "purpose": "analysis"
+        }
+      ]
+    }
+  ],
+  "correction_scope": {
+    "only_Cancel_changed": true,
+    "properties_identical": true
+  },
+  "generation": {
+    "generation_id": "gen_34f32d8d795445359e867e858bec7f04",
+    "code_hash": "3104c794565aaab6894b8ab089b991d68d3ad014b01f8b9cdd6578b6a07623f5",
+    "file_count": 16,
+    "spec_hash": "a2021739f33d8b1933893d3f40096081cbbb249babd67a7d9eb769bb952efaaf",
+    "zip_bytes": 26539,
+    "zip_sha256": "b58950d55e65f4483fb6abbd287af4064ff42e9b9361dd989c3d1050b41fb064",
+    "all_file_hashes_verified": 16
+  },
+  "boundaries": {
+    "app_mutations": "native UI only",
+    "model": "real GPT subscription",
+    "checker": "real TLC",
+    "generated_code_executed": false,
+    "docker_tests": "NOT_RUN by this worker",
+    "native_screenshot": "FAIL timeout15000ms; no screenshot proof claimed",
+    "zip": "read-only HTTP export; native download button clicked but browser download receipt absent",
+    "app_edits": false,
+    "commits_push": false
+  }
+}

@@ -3,6 +3,7 @@ import type { Session } from "../api/types";
 import type { Loadable } from "../state/types";
 import { ErrorNotice } from "./Notice";
 import { Chat, Menu, Plug, Plus } from "./icons";
+import { InterfaceUpdate } from "./InterfaceUpdate";
 
 interface Props {
   open: boolean;
@@ -96,6 +97,7 @@ export function Sidebar(props: Props) {
       )}
 
       <div className="sidebar__bottom">
+        <InterfaceUpdate compact={!open} />
         <button type="button" className={`connection connection--${props.connectionTone}${open ? "" : " connection--rail"}`}
           onClick={props.onConnection} aria-label={`Подключение: ${props.connectionLabel}`} title={props.connectionLabel}>
           <Plug size={16} />

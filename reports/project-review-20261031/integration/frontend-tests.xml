@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="37" failures="0" errors="0" time="0.932355876">
+    <testsuite name="src/api/http.test.ts" timestamp="2026-10-31T10:06:50.465Z" hostname="MacBook-Pro-a.local" tests="11" failures="0" errors="0" skipped="0" time="0.0113315">
+        <testcase classname="src/api/http.test.ts" name="public HTTP contract &gt; detects dialogue/documents/explanation from OpenAPI" time="0.001252584">
+        </testcase>
+        <testcase classname="src/api/http.test.ts" name="public HTTP contract &gt; preserves addressed replies and source_id, uses distinct pending/explanation routes" time="0.002965583">
+        </testcase>
+        <testcase classname="src/api/http.test.ts" name="public HTTP contract &gt; checks all rules with explain:true and server defaults" time="0.000301959">
+        </testcase>
+        <testcase classname="src/api/http.test.ts" name="public HTTP contract &gt; uploads multipart without auto analysis, retains source identity and metadata" time="0.000868417">
+        </testcase>
+        <testcase classname="src/api/http.test.ts" name="public HTTP contract &gt; preserves document error 415" time="0.00053975">
+        </testcase>
+        <testcase classname="src/api/http.test.ts" name="public HTTP contract &gt; preserves document error 422" time="0.000184292">
+        </testcase>
+        <testcase classname="src/api/http.test.ts" name="public HTTP contract &gt; preserves document error 413" time="0.00018125">
+        </testcase>
+        <testcase classname="src/api/http.test.ts" name="public HTTP contract &gt; rejects malformed public dialogue instead of treating it as empty" time="0.000237333">
+        </testcase>
+        <testcase classname="src/api/http.test.ts" name="public HTTP contract &gt; passes replay cursor and parses fragmented named SSE events" time="0.003029917">
+        </testcase>
+        <testcase classname="src/api/http.test.ts" name="sends file identity as typed context, never as a business source" time="0.000336417">
+        </testcase>
+        <testcase classname="src/api/http.test.ts" name="shared OpenAPI discovery survives the first StrictMode consumer abort" time="0.000223125">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/api/live-http.test.ts" timestamp="2026-10-31T10:06:50.467Z" hostname="MacBook-Pro-a.local" tests="1" failures="0" errors="0" skipped="1" time="0">
+        <testcase classname="src/api/live-http.test.ts" name="real HttpApi + multipart + immutable model + SSE + TLC counterexample" time="0">
+            <skipped/>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/domain/recorded-discussion.test.tsx" timestamp="2026-10-31T10:06:50.467Z" hostname="MacBook-Pro-a.local" tests="3" failures="0" errors="0" skipped="0" time="0.236364167">
+        <testcase classname="src/domain/recorded-discussion.test.tsx" name="serves the exact saved dialogue, reports and boolean models as a distinct recorded session" time="0.006670833">
+        </testcase>
+        <testcase classname="src/domain/recorded-discussion.test.tsx" name="keeps checks between the actual recorded turns, including after refresh" time="0.127695792">
+        </testcase>
+        <testcase classname="src/domain/recorded-discussion.test.tsx" name="prefills discussion with selected old report and preserves draft without sending or changing the model" time="0.100897167">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/domain/workflow.test.tsx" timestamp="2026-10-31T10:06:50.467Z" hostname="MacBook-Pro-a.local" tests="13" failures="0" errors="0" skipped="0" time="0.153734334">
+        <testcase classname="src/domain/workflow.test.tsx" name="keeps PROPERTY_HOLDS conclusive semantics" time="0.000897167">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="keeps PROPERTY_VIOLATED conclusive semantics" time="0.000098666">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="keeps MODEL_INVALID conclusive semantics" time="0.000094458">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="keeps TIMEOUT conclusive semantics" time="0.000088875">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="keeps STATE_LIMIT_REACHED conclusive semantics" time="0.000076333">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="keeps ENGINE_ERROR conclusive semantics" time="0.000053417">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="initial violation and reachable witness keep exact values; nullable statistics remain null" time="0.042676">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="does not attach another version/hash report or narrative to selected version" time="0.00049625">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="launches all rules through a single button, no selectors or limit inputs" time="0.042711584">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="resizes with keyboard, enforces endpoints and persists percentages" time="0.011165833">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="highlights only exact source_refs using Unicode codepoint offsets" time="0.000322166">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="keeps actual public entry order, archived questions and pending status after refresh" time="0.000841125">
+        </testcase>
+        <testcase classname="src/domain/workflow.test.tsx" name="drops duplicate/out-of-order/foreign SSE, reconnects from the cursor and stops at run_finished" time="0.053158666">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/state/workspace.test.tsx" timestamp="2026-10-31T10:06:50.467Z" hostname="MacBook-Pro-a.local" tests="9" failures="0" errors="0" skipped="0" time="0.530925875">
+        <testcase classname="src/state/workspace.test.tsx" name="double send is one request, network retry reuses the key and addressed question" time="0.064954125">
+        </testcase>
+        <testcase classname="src/state/workspace.test.tsx" name="invalid upload preserves draft; successful upload waits for explicit source analysis" time="0.0569955">
+        </testcase>
+        <testcase classname="src/state/workspace.test.tsx" name="keeps technical results while explanation runs after check run_finished; retry never checks again" time="0.063348916">
+        </testcase>
+        <testcase classname="src/state/workspace.test.tsx" name="pending retry and discard use explicit endpoints" time="0.056249834">
+        </testcase>
+        <testcase classname="src/state/workspace.test.tsx" name="demo shows recorded initial user text and keeps tabs and inspector selection coherent" time="0.13087875">
+        </testcase>
+        <testcase classname="src/state/workspace.test.tsx" name="late response from previous adapter cannot replace current session list" time="0.013929042">
+        </testcase>
+        <testcase classname="src/state/workspace.test.tsx" name="host createVersion posts, refreshes and selects new immutable version" time="0.031550166">
+        </testcase>
+        <testcase classname="src/state/workspace.test.tsx" name="late check acceptance after session unmount cannot navigate back or persist into current session" time="0.055355167">
+        </testcase>
+        <testcase classname="src/state/workspace.test.tsx" name="file context survives an indeterminate send and retries with the same key" time="0.056275208">
+        </testcase>
+    </testsuite>
+</testsuites>

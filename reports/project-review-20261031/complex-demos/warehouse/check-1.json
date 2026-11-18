@@ -1,0 +1,185 @@
+{
+  "run": {
+    "run_id": "chk_85ab308e95a54722acffaca426b16db3",
+    "session_id": "s_667780e868ab40ccbc04850e04043026",
+    "state": "completed",
+    "version_id": "v_8f5098ef6acf494498688b651763ce23",
+    "error_code": null
+  },
+  "results": [
+    {
+      "schema_version": "1.0",
+      "spec_hash": "e1921fce43b2e810fefcd8c2852c2a498fef0788c14eb51d6b7900477f93cdf9",
+      "version_id": "v_8f5098ef6acf494498688b651763ce23",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "stock_conservation",
+      "status": "PROPERTY_VIOLATED",
+      "conclusive": true,
+      "message": "Найдено нарушение за 2 шаг(ов)",
+      "trace": [
+        {
+          "number": 0,
+          "transition_id": null,
+          "state": {
+            "available": 3,
+            "reserved": 0,
+            "shipped": 0,
+            "status": "Draft",
+            "paid": false
+          }
+        },
+        {
+          "number": 1,
+          "transition_id": "Reserve",
+          "state": {
+            "available": 1,
+            "reserved": 2,
+            "shipped": 0,
+            "status": "Reserved",
+            "paid": false
+          }
+        },
+        {
+          "number": 2,
+          "transition_id": "Cancel",
+          "state": {
+            "available": 1,
+            "reserved": 0,
+            "shipped": 0,
+            "status": "Cancelled",
+            "paid": false
+          }
+        }
+      ],
+      "statistics": {
+        "states_generated": 4,
+        "distinct_states": 4,
+        "depth": 2,
+        "elapsed_seconds": 0.282
+      },
+      "related_requirements": [
+        "req_6f773e210e525ff9bf14dd6dfc53cae0",
+        "req_01189db190aa5159bdcdc73494608354",
+        "req_017b5a256cd65981a858434852c2d191",
+        "req_588c5a93353c513eb5afb57508df4fb0",
+        "req_48259ccb945e54d8989e4f57a0444772",
+        "req_53f0aacca8a655fda64bd98d97cf9689",
+        "req_7c99c5073dc851a4ae034766bc5a5a0e"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "spec_hash": "e1921fce43b2e810fefcd8c2852c2a498fef0788c14eb51d6b7900477f93cdf9",
+      "version_id": "v_8f5098ef6acf494498688b651763ce23",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "cancelled_without_shipment",
+      "status": "PROPERTY_HOLDS",
+      "conclusive": true,
+      "message": "Свойство выполняется: полностью исследовано 6 различных состояний",
+      "trace": [],
+      "statistics": {
+        "states_generated": 6,
+        "distinct_states": 6,
+        "depth": 3,
+        "elapsed_seconds": 0.272
+      },
+      "related_requirements": [
+        "req_2ddcf9d9be615ddfa344b007ac1a694e",
+        "req_7c99c5073dc851a4ae034766bc5a5a0e"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "spec_hash": "e1921fce43b2e810fefcd8c2852c2a498fef0788c14eb51d6b7900477f93cdf9",
+      "version_id": "v_8f5098ef6acf494498688b651763ce23",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "shipment_requires_payment",
+      "status": "PROPERTY_HOLDS",
+      "conclusive": true,
+      "message": "Свойство выполняется: полностью исследовано 6 различных состояний",
+      "trace": [],
+      "statistics": {
+        "states_generated": 6,
+        "distinct_states": 6,
+        "depth": 3,
+        "elapsed_seconds": 0.212
+      },
+      "related_requirements": [
+        "req_f72c5632436250608131945ae1e69140",
+        "req_7c99c5073dc851a4ae034766bc5a5a0e"
+      ]
+    }
+  ],
+  "explanation": {
+    "state": "ready",
+    "run_id": "exp_3b39fd849581424299aa7b2fee4104c8",
+    "error_code": null,
+    "narrative": {
+      "summary": "Найдено нарушение сохранения количества товара при отмене заказа. Два остальных свойства выполняются в данной конечной модели.",
+      "properties": [
+        {
+          "property_id": "stock_conservation",
+          "explanation": "При отмене резерв обнуляется, а доступное количество не меняется. Поэтому сумма доступного, зарезервированного и отгруженного товара становится 1 вместо требуемых 3.",
+          "steps": [
+            {
+              "number": 0,
+              "explanation": "Изначально доступны 3 единицы товара, резерв и отгрузка равны 0."
+            },
+            {
+              "number": 1,
+              "explanation": "Резервирование уменьшает доступное количество до 1 и устанавливает резерв 2; общая сумма остаётся 3."
+            },
+            {
+              "number": 2,
+              "explanation": "Отмена переводит заказ в Cancelled и обнуляет резерв, сохраняя доступное количество 1 и отгрузку 0; общая сумма становится 1."
+            }
+          ],
+          "hypotheses": []
+        },
+        {
+          "property_id": "cancelled_without_shipment",
+          "explanation": "Во всех достижимых состояниях модели у отменённого заказа количество отгруженного товара равно 0.",
+          "steps": [],
+          "hypotheses": []
+        },
+        {
+          "property_id": "shipment_requires_payment",
+          "explanation": "Во всех достижимых состояниях модели отгруженный товар есть только у оплаченного заказа.",
+          "steps": [],
+          "hypotheses": []
+        }
+      ],
+      "question": "Оставить учебную ошибку в правиле Cancel или изменить это правило?"
+    }
+  }
+}

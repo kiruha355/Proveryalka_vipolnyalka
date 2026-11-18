@@ -1,0 +1,1 @@
+Native T3 UI actions/read-only DOM work. One v1 diagram snapshot attempt returned: Preview snapshot failed: Preview automation snapshot timed out after 15000ms. Same documented T3 snapshot boundary as earlier runs; no screenshot success claimed. Server/browser host/profile not restarted.

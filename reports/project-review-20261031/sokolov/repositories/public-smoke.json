@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-31",
+  "remote_url": "https://github.com/kiruha355/Proveryalka_vipolnyalka",
+  "transport": "GitHubArchiveTransport/SafeHTTPS production implementation",
+  "credential_ref": null,
+  "status": "PASS",
+  "commit_sha": "66d55c6b5acab9353ce21ae3c0ccfbd251f186f4",
+  "manifest_sha256": "f28ed2d4ffcf6669b2dbfbf1643fad19b3de36e2426283fd38acfd83788f035d",
+  "files": 66,
+  "indexed_bytes": 521139,
+  "excluded": {
+    "secret_pattern": 2,
+    "sensitive_or_service_path": 1,
+    "unsupported_type": 3
+  },
+  "note_ru": "Однократный live public smoke. Manifest относится к версии политики на момент smoke, до добавления дополнительных deny-paths/IPv6 transition checks; это датированное наблюдение, не golden hash будущих импортов. Temporary SQLite удалён своим TemporaryDirectory. LLM не вызывался."
+}

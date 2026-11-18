@@ -1,0 +1,630 @@
+[
+  {
+    "path": "GENERATION.json",
+    "size": 8528,
+    "sha256": "06d8fc8ca7458c7a17832f0e61a37c48019784c11c4694957bd66acfa936aa07",
+    "role": "manifest",
+    "media_type": "application/json",
+    "explanation": "Происхождение: генератор, version_id, spec_hash, снимок проверки TLC, SHA-256 и требования файлов.",
+    "requirement_ids": [],
+    "elements": []
+  },
+  {
+    "path": "README.md",
+    "size": 9819,
+    "sha256": "afd806aab835a139be4e06e8587515f73e13ebee4393b6c3aafa6831e1b6ca0e",
+    "role": "doc",
+    "media_type": "text/markdown",
+    "explanation": "Описание проекта: версия модели, запуск, API, связь переходов с требованиями, результаты TLC, границы тестов.",
+    "requirement_ids": [
+      "req_03deace4698956baa1d158bae7144b21",
+      "req_6f773e210e525ff9bf14dd6dfc53cae0",
+      "req_80d0d74789ad59458d4d1af903bbac6a",
+      "req_62082f2c4316547a92b7284402c07ef9",
+      "req_efd35998b8fb512280b43b68a3f3ccc5",
+      "req_82d4ebac821b548d97d7571e6032c1da",
+      "req_d5b51c5f67025ea083664a4cec1162f3",
+      "req_2e3e4f8cab7350b8b5d5a198a6fb1261",
+      "req_338a353901a053cca219f1d9ad1c623b",
+      "req_01189db190aa5159bdcdc73494608354",
+      "req_cedc5f58642c5065b13d45623abd271a",
+      "req_e15ae391f9305927803d48f74e33b06b",
+      "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+      "req_588c5a93353c513eb5afb57508df4fb0",
+      "req_48259ccb945e54d8989e4f57a0444772",
+      "req_53f0aacca8a655fda64bd98d97cf9689",
+      "req_2ddcf9d9be615ddfa344b007ac1a694e",
+      "req_f72c5632436250608131945ae1e69140",
+      "req_7c99c5073dc851a4ae034766bc5a5a0e",
+      "req_9b6c87c4a9e05c3885202d50fde7e21e"
+    ],
+    "elements": []
+  },
+  {
+    "path": "app/__init__.py",
+    "size": 33,
+    "sha256": "5d14b7f33a41a3493a4fc784447992d12b370bc569251a241197c26f41cb3103",
+    "role": "source",
+    "media_type": "text/x-python",
+    "explanation": "Пакет сервиса.",
+    "requirement_ids": [],
+    "elements": []
+  },
+  {
+    "path": "app/api.py",
+    "size": 4327,
+    "sha256": "dbf6ad6a51c2023f8201cf945b36f7972cf489fadc3ba2877ad9bd0c1c287ee7",
+    "role": "source",
+    "media_type": "text/x-python",
+    "explanation": "FastAPI: GET /model, GET /state, POST /events, POST /evaluate, POST /reset.",
+    "requirement_ids": [],
+    "elements": []
+  },
+  {
+    "path": "app/domain.py",
+    "size": 1958,
+    "sha256": "ce091aaed9cd14f9a26525444f5657aa1d2196b188ecf1c7b42033c20321ea96",
+    "role": "source",
+    "media_type": "text/x-python",
+    "explanation": "Проверка типов и конечных областей значений состояния.",
+    "requirement_ids": [],
+    "elements": []
+  },
+  {
+    "path": "app/engine.py",
+    "size": 2047,
+    "sha256": "54245db4b67120c9d93d09e6a45ca8319f657ed1fc2386868cfd4592791436a7",
+    "role": "source",
+    "media_type": "text/x-python",
+    "explanation": "Применение события: проверка состояния, условие, одновременное присваивание, проверка областей.",
+    "requirement_ids": [],
+    "elements": []
+  },
+  {
+    "path": "app/rules.py",
+    "size": 4822,
+    "sha256": "5018cbbf666854c51103b13b891768bca6d3bc2bcb9dc4ae047f1ac60c0e08d1",
+    "role": "source",
+    "media_type": "text/x-python",
+    "explanation": "Условия и одновременные присваивания переходов (Reserve, Pay, Ship, Cancel); у каждого перехода указаны требования.",
+    "requirement_ids": [
+      "req_01189db190aa5159bdcdc73494608354",
+      "req_cedc5f58642c5065b13d45623abd271a",
+      "req_e15ae391f9305927803d48f74e33b06b",
+      "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+      "req_588c5a93353c513eb5afb57508df4fb0",
+      "req_48259ccb945e54d8989e4f57a0444772",
+      "req_7c99c5073dc851a4ae034766bc5a5a0e"
+    ],
+    "elements": [
+      {
+        "kind": "transition",
+        "id": "Reserve",
+        "name": "Резервирование товара",
+        "requirement_ids": [
+          "req_01189db190aa5159bdcdc73494608354",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "start_line": 21,
+        "end_line": 32
+      },
+      {
+        "kind": "transition",
+        "id": "Pay",
+        "name": "Оплата заказа",
+        "requirement_ids": [
+          "req_cedc5f58642c5065b13d45623abd271a",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "start_line": 35,
+        "end_line": 44
+      },
+      {
+        "kind": "transition",
+        "id": "Ship",
+        "name": "Отгрузка товара",
+        "requirement_ids": [
+          "req_e15ae391f9305927803d48f74e33b06b",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "start_line": 47,
+        "end_line": 58
+      },
+      {
+        "kind": "transition",
+        "id": "Cancel",
+        "name": "Отмена заказа",
+        "requirement_ids": [
+          "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "start_line": 61,
+        "end_line": 72
+      }
+    ]
+  },
+  {
+    "path": "app/spec.py",
+    "size": 6678,
+    "sha256": "aefa96e9294502fdc08500cbe8c2bb50cf55ca82014b5fa02b52fa0efdff004e",
+    "role": "source",
+    "media_type": "text/x-python",
+    "explanation": "Данные модели: требования, переменные с областями значений, начальное состояние, version_id и spec_hash.",
+    "requirement_ids": [
+      "req_03deace4698956baa1d158bae7144b21",
+      "req_6f773e210e525ff9bf14dd6dfc53cae0",
+      "req_80d0d74789ad59458d4d1af903bbac6a",
+      "req_62082f2c4316547a92b7284402c07ef9",
+      "req_efd35998b8fb512280b43b68a3f3ccc5",
+      "req_82d4ebac821b548d97d7571e6032c1da",
+      "req_d5b51c5f67025ea083664a4cec1162f3",
+      "req_2e3e4f8cab7350b8b5d5a198a6fb1261",
+      "req_338a353901a053cca219f1d9ad1c623b",
+      "req_01189db190aa5159bdcdc73494608354",
+      "req_cedc5f58642c5065b13d45623abd271a",
+      "req_e15ae391f9305927803d48f74e33b06b",
+      "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+      "req_588c5a93353c513eb5afb57508df4fb0",
+      "req_48259ccb945e54d8989e4f57a0444772",
+      "req_53f0aacca8a655fda64bd98d97cf9689",
+      "req_2ddcf9d9be615ddfa344b007ac1a694e",
+      "req_f72c5632436250608131945ae1e69140",
+      "req_7c99c5073dc851a4ae034766bc5a5a0e",
+      "req_9b6c87c4a9e05c3885202d50fde7e21e"
+    ],
+    "elements": [
+      {
+        "kind": "requirement",
+        "id": "req_03deace4698956baa1d158bae7144b21",
+        "name": "req_03deace4698956baa1d158bae7144b21",
+        "requirement_ids": [
+          "req_03deace4698956baa1d158bae7144b21"
+        ],
+        "start_line": 12,
+        "end_line": 12
+      },
+      {
+        "kind": "requirement",
+        "id": "req_6f773e210e525ff9bf14dd6dfc53cae0",
+        "name": "req_6f773e210e525ff9bf14dd6dfc53cae0",
+        "requirement_ids": [
+          "req_6f773e210e525ff9bf14dd6dfc53cae0"
+        ],
+        "start_line": 13,
+        "end_line": 13
+      },
+      {
+        "kind": "requirement",
+        "id": "req_80d0d74789ad59458d4d1af903bbac6a",
+        "name": "req_80d0d74789ad59458d4d1af903bbac6a",
+        "requirement_ids": [
+          "req_80d0d74789ad59458d4d1af903bbac6a"
+        ],
+        "start_line": 14,
+        "end_line": 14
+      },
+      {
+        "kind": "requirement",
+        "id": "req_62082f2c4316547a92b7284402c07ef9",
+        "name": "req_62082f2c4316547a92b7284402c07ef9",
+        "requirement_ids": [
+          "req_62082f2c4316547a92b7284402c07ef9"
+        ],
+        "start_line": 15,
+        "end_line": 15
+      },
+      {
+        "kind": "requirement",
+        "id": "req_efd35998b8fb512280b43b68a3f3ccc5",
+        "name": "req_efd35998b8fb512280b43b68a3f3ccc5",
+        "requirement_ids": [
+          "req_efd35998b8fb512280b43b68a3f3ccc5"
+        ],
+        "start_line": 16,
+        "end_line": 16
+      },
+      {
+        "kind": "requirement",
+        "id": "req_82d4ebac821b548d97d7571e6032c1da",
+        "name": "req_82d4ebac821b548d97d7571e6032c1da",
+        "requirement_ids": [
+          "req_82d4ebac821b548d97d7571e6032c1da"
+        ],
+        "start_line": 17,
+        "end_line": 17
+      },
+      {
+        "kind": "requirement",
+        "id": "req_d5b51c5f67025ea083664a4cec1162f3",
+        "name": "req_d5b51c5f67025ea083664a4cec1162f3",
+        "requirement_ids": [
+          "req_d5b51c5f67025ea083664a4cec1162f3"
+        ],
+        "start_line": 18,
+        "end_line": 18
+      },
+      {
+        "kind": "requirement",
+        "id": "req_2e3e4f8cab7350b8b5d5a198a6fb1261",
+        "name": "req_2e3e4f8cab7350b8b5d5a198a6fb1261",
+        "requirement_ids": [
+          "req_2e3e4f8cab7350b8b5d5a198a6fb1261"
+        ],
+        "start_line": 19,
+        "end_line": 19
+      },
+      {
+        "kind": "requirement",
+        "id": "req_338a353901a053cca219f1d9ad1c623b",
+        "name": "req_338a353901a053cca219f1d9ad1c623b",
+        "requirement_ids": [
+          "req_338a353901a053cca219f1d9ad1c623b"
+        ],
+        "start_line": 20,
+        "end_line": 20
+      },
+      {
+        "kind": "requirement",
+        "id": "req_01189db190aa5159bdcdc73494608354",
+        "name": "req_01189db190aa5159bdcdc73494608354",
+        "requirement_ids": [
+          "req_01189db190aa5159bdcdc73494608354"
+        ],
+        "start_line": 21,
+        "end_line": 21
+      },
+      {
+        "kind": "requirement",
+        "id": "req_cedc5f58642c5065b13d45623abd271a",
+        "name": "req_cedc5f58642c5065b13d45623abd271a",
+        "requirement_ids": [
+          "req_cedc5f58642c5065b13d45623abd271a"
+        ],
+        "start_line": 22,
+        "end_line": 22
+      },
+      {
+        "kind": "requirement",
+        "id": "req_e15ae391f9305927803d48f74e33b06b",
+        "name": "req_e15ae391f9305927803d48f74e33b06b",
+        "requirement_ids": [
+          "req_e15ae391f9305927803d48f74e33b06b"
+        ],
+        "start_line": 23,
+        "end_line": 23
+      },
+      {
+        "kind": "requirement",
+        "id": "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+        "name": "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+        "requirement_ids": [
+          "req_b7d1273bbb4a5e5fab60f9aec513dd0d"
+        ],
+        "start_line": 24,
+        "end_line": 24
+      },
+      {
+        "kind": "requirement",
+        "id": "req_588c5a93353c513eb5afb57508df4fb0",
+        "name": "req_588c5a93353c513eb5afb57508df4fb0",
+        "requirement_ids": [
+          "req_588c5a93353c513eb5afb57508df4fb0"
+        ],
+        "start_line": 25,
+        "end_line": 25
+      },
+      {
+        "kind": "requirement",
+        "id": "req_48259ccb945e54d8989e4f57a0444772",
+        "name": "req_48259ccb945e54d8989e4f57a0444772",
+        "requirement_ids": [
+          "req_48259ccb945e54d8989e4f57a0444772"
+        ],
+        "start_line": 26,
+        "end_line": 26
+      },
+      {
+        "kind": "requirement",
+        "id": "req_53f0aacca8a655fda64bd98d97cf9689",
+        "name": "req_53f0aacca8a655fda64bd98d97cf9689",
+        "requirement_ids": [
+          "req_53f0aacca8a655fda64bd98d97cf9689"
+        ],
+        "start_line": 27,
+        "end_line": 27
+      },
+      {
+        "kind": "requirement",
+        "id": "req_2ddcf9d9be615ddfa344b007ac1a694e",
+        "name": "req_2ddcf9d9be615ddfa344b007ac1a694e",
+        "requirement_ids": [
+          "req_2ddcf9d9be615ddfa344b007ac1a694e"
+        ],
+        "start_line": 28,
+        "end_line": 28
+      },
+      {
+        "kind": "requirement",
+        "id": "req_f72c5632436250608131945ae1e69140",
+        "name": "req_f72c5632436250608131945ae1e69140",
+        "requirement_ids": [
+          "req_f72c5632436250608131945ae1e69140"
+        ],
+        "start_line": 29,
+        "end_line": 29
+      },
+      {
+        "kind": "requirement",
+        "id": "req_7c99c5073dc851a4ae034766bc5a5a0e",
+        "name": "req_7c99c5073dc851a4ae034766bc5a5a0e",
+        "requirement_ids": [
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "start_line": 30,
+        "end_line": 30
+      },
+      {
+        "kind": "requirement",
+        "id": "req_9b6c87c4a9e05c3885202d50fde7e21e",
+        "name": "req_9b6c87c4a9e05c3885202d50fde7e21e",
+        "requirement_ids": [
+          "req_9b6c87c4a9e05c3885202d50fde7e21e"
+        ],
+        "start_line": 31,
+        "end_line": 31
+      },
+      {
+        "kind": "variable",
+        "id": "available",
+        "name": "Доступное количество товара",
+        "requirement_ids": [
+          "req_6f773e210e525ff9bf14dd6dfc53cae0",
+          "req_62082f2c4316547a92b7284402c07ef9",
+          "req_338a353901a053cca219f1d9ad1c623b",
+          "req_01189db190aa5159bdcdc73494608354",
+          "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+          "req_588c5a93353c513eb5afb57508df4fb0"
+        ],
+        "start_line": 35,
+        "end_line": 36
+      },
+      {
+        "kind": "variable",
+        "id": "reserved",
+        "name": "Зарезервированное количество товара",
+        "requirement_ids": [
+          "req_efd35998b8fb512280b43b68a3f3ccc5",
+          "req_338a353901a053cca219f1d9ad1c623b",
+          "req_01189db190aa5159bdcdc73494608354",
+          "req_e15ae391f9305927803d48f74e33b06b",
+          "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+          "req_588c5a93353c513eb5afb57508df4fb0"
+        ],
+        "start_line": 37,
+        "end_line": 38
+      },
+      {
+        "kind": "variable",
+        "id": "shipped",
+        "name": "Отгруженное количество товара",
+        "requirement_ids": [
+          "req_82d4ebac821b548d97d7571e6032c1da",
+          "req_338a353901a053cca219f1d9ad1c623b",
+          "req_e15ae391f9305927803d48f74e33b06b",
+          "req_588c5a93353c513eb5afb57508df4fb0"
+        ],
+        "start_line": 39,
+        "end_line": 40
+      },
+      {
+        "kind": "variable",
+        "id": "status",
+        "name": "Статус заказа",
+        "requirement_ids": [
+          "req_d5b51c5f67025ea083664a4cec1162f3",
+          "req_338a353901a053cca219f1d9ad1c623b",
+          "req_01189db190aa5159bdcdc73494608354",
+          "req_cedc5f58642c5065b13d45623abd271a",
+          "req_e15ae391f9305927803d48f74e33b06b",
+          "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772"
+        ],
+        "start_line": 41,
+        "end_line": 42
+      },
+      {
+        "kind": "variable",
+        "id": "paid",
+        "name": "Заказ оплачен",
+        "requirement_ids": [
+          "req_2e3e4f8cab7350b8b5d5a198a6fb1261",
+          "req_cedc5f58642c5065b13d45623abd271a",
+          "req_e15ae391f9305927803d48f74e33b06b",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_9b6c87c4a9e05c3885202d50fde7e21e"
+        ],
+        "start_line": 43,
+        "end_line": 44
+      }
+    ]
+  },
+  {
+    "path": "model/behavioral_model.json",
+    "size": 24588,
+    "sha256": "ee506a375ecf0398f3900d7916741533970038890e9ad5e6ee4a9754b4d3cc30",
+    "role": "model",
+    "media_type": "application/json",
+    "explanation": "Согласованная модель BehavioralModel 1.0 этой версии; её канонический SHA-256 равен spec_hash.",
+    "requirement_ids": [
+      "req_03deace4698956baa1d158bae7144b21",
+      "req_6f773e210e525ff9bf14dd6dfc53cae0",
+      "req_80d0d74789ad59458d4d1af903bbac6a",
+      "req_62082f2c4316547a92b7284402c07ef9",
+      "req_efd35998b8fb512280b43b68a3f3ccc5",
+      "req_82d4ebac821b548d97d7571e6032c1da",
+      "req_d5b51c5f67025ea083664a4cec1162f3",
+      "req_2e3e4f8cab7350b8b5d5a198a6fb1261",
+      "req_338a353901a053cca219f1d9ad1c623b",
+      "req_01189db190aa5159bdcdc73494608354",
+      "req_cedc5f58642c5065b13d45623abd271a",
+      "req_e15ae391f9305927803d48f74e33b06b",
+      "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+      "req_588c5a93353c513eb5afb57508df4fb0",
+      "req_48259ccb945e54d8989e4f57a0444772",
+      "req_53f0aacca8a655fda64bd98d97cf9689",
+      "req_2ddcf9d9be615ddfa344b007ac1a694e",
+      "req_f72c5632436250608131945ae1e69140",
+      "req_7c99c5073dc851a4ae034766bc5a5a0e",
+      "req_9b6c87c4a9e05c3885202d50fde7e21e"
+    ],
+    "elements": []
+  },
+  {
+    "path": "pytest.ini",
+    "size": 72,
+    "sha256": "900ad5ede42030e383e74fc5276d43bf10c5c256bfbd9066dc52675fe533240b",
+    "role": "config",
+    "media_type": "text/plain",
+    "explanation": "Настройка pytest: каталог тестов и путь импорта.",
+    "requirement_ids": [],
+    "elements": []
+  },
+  {
+    "path": "requirements.txt",
+    "size": 374,
+    "sha256": "6cd9003888caa0cd71c88e5a0e9a26cf695f8f98424d44443b112b160c378a8f",
+    "role": "config",
+    "media_type": "text/plain",
+    "explanation": "Зафиксированные версии всех зависимостей (Python ≥3.11).",
+    "requirement_ids": [],
+    "elements": []
+  },
+  {
+    "path": "tests/data/conformance.json",
+    "size": 90012,
+    "sha256": "e65c746e31691cdc432b94f9da158e45b4dd73a44d1d4cec300375cb6021f710",
+    "role": "test_data",
+    "media_type": "application/json",
+    "explanation": "Ожидаемые исходы переходов, недопустимые состояния и трассы TLC; вычислены по семантике модели при генерации.",
+    "requirement_ids": [
+      "req_01189db190aa5159bdcdc73494608354",
+      "req_cedc5f58642c5065b13d45623abd271a",
+      "req_e15ae391f9305927803d48f74e33b06b",
+      "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+      "req_588c5a93353c513eb5afb57508df4fb0",
+      "req_48259ccb945e54d8989e4f57a0444772",
+      "req_7c99c5073dc851a4ae034766bc5a5a0e"
+    ],
+    "elements": []
+  },
+  {
+    "path": "tests/test_api.py",
+    "size": 3769,
+    "sha256": "09110867708224c2766cebe8a22cdc4ac6f46dbc65841ab2cedb9f7f7f9a0fb9",
+    "role": "test",
+    "media_type": "text/x-python",
+    "explanation": "Тесты HTTP API: последовательность событий, отказы 404/409/422, сброс.",
+    "requirement_ids": [],
+    "elements": []
+  },
+  {
+    "path": "tests/test_domain.py",
+    "size": 906,
+    "sha256": "a7bdb2f414305a122f3fd452f8feaad7f93e744dd1db49243856c5b06c7fbf47",
+    "role": "test",
+    "media_type": "text/x-python",
+    "explanation": "Тесты типов и конечных областей значений.",
+    "requirement_ids": [],
+    "elements": []
+  },
+  {
+    "path": "tests/test_provenance.py",
+    "size": 1582,
+    "sha256": "a84e0e75f055c742cc2fa37607a94601ed92724493fc2f38cc64a1ba146576d4",
+    "role": "test",
+    "media_type": "text/x-python",
+    "explanation": "Связь кода с моделью: spec_hash, состав переходов и переменных, ссылки на требования.",
+    "requirement_ids": [],
+    "elements": []
+  },
+  {
+    "path": "tests/test_transitions.py",
+    "size": 5658,
+    "sha256": "d30a08a412578ba573117d275ebf7b26f532ce80e6f232fa8e6aa57c0c6702d9",
+    "role": "test",
+    "media_type": "text/x-python",
+    "explanation": "Тесты переходов: применение, неизменные переменные, одновременность, ложное условие, выход за область, таблица исходов.",
+    "requirement_ids": [
+      "req_01189db190aa5159bdcdc73494608354",
+      "req_cedc5f58642c5065b13d45623abd271a",
+      "req_e15ae391f9305927803d48f74e33b06b",
+      "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+      "req_588c5a93353c513eb5afb57508df4fb0",
+      "req_48259ccb945e54d8989e4f57a0444772",
+      "req_7c99c5073dc851a4ae034766bc5a5a0e"
+    ],
+    "elements": [
+      {
+        "kind": "transition",
+        "id": "Reserve",
+        "name": "Резервирование товара",
+        "requirement_ids": [
+          "req_01189db190aa5159bdcdc73494608354",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "start_line": 18,
+        "end_line": 33
+      },
+      {
+        "kind": "transition",
+        "id": "Pay",
+        "name": "Оплата заказа",
+        "requirement_ids": [
+          "req_cedc5f58642c5065b13d45623abd271a",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "start_line": 36,
+        "end_line": 51
+      },
+      {
+        "kind": "transition",
+        "id": "Ship",
+        "name": "Отгрузка товара",
+        "requirement_ids": [
+          "req_e15ae391f9305927803d48f74e33b06b",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "start_line": 54,
+        "end_line": 69
+      },
+      {
+        "kind": "transition",
+        "id": "Cancel",
+        "name": "Отмена заказа",
+        "requirement_ids": [
+          "req_b7d1273bbb4a5e5fab60f9aec513dd0d",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "start_line": 72,
+        "end_line": 87
+      }
+    ]
+  }
+]

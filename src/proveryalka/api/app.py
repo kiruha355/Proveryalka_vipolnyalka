@@ -13,7 +13,7 @@ from ..config import Settings
 from ..behavior import BehavioralModel
 from ..verification import VerificationResult
 from ..contracts import (
-    CheckCreate, Contract, DialogueView, DocumentUpload, ErrorResponse, Event, ExplanationView,
+    AgentRunTracePage, CheckCreate, Contract, DialogueView, DocumentUpload, ErrorResponse, Event, ExplanationView,
     MessageCreate, Run, Session, SessionCreate, SessionDetail, Source, TextSourceCreate,
 )
 from ..services import Backend, ServiceError
@@ -31,15 +31,27 @@ def create_app(
     explainer=None,
     codegen_settings=None,
     codegen_sandbox=None,
+    image_limits=None,
+    image_provider=None,
+    repository_limits=None,
+    repository_host_policy=None,
+    repository_credential_provider=None,
+    mcp_policy=None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
     store = SQLiteStore(settings.database_path) if backend is None else None
     adapter = backend if backend is not None else ApplicationBackend(store, settings, checker, analyst, explainer)
+    from ..sources.repositories import RepositoryService
+    repositories = RepositoryService(
+        store, limits=repository_limits, host_policy=repository_host_policy,
+        credential_provider=repository_credential_provider,
+    ) if store is not None else None
 
     @asynccontextmanager
     async def lifespan(app):
         if store is not None:
             store.initialize()
+            repositories.initialize()
             await adapter.start()
         try:
             yield
@@ -50,6 +62,10 @@ def create_app(
     app = FastAPI(title="Проверялка API", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.backend = adapter
+    app.state.repositories = repositories
+    if repositories is not None:
+        from .repositories import create_repository_router
+        app.include_router(create_repository_router(repositories, adapter))
     Spec = behavioral_model
     Result = verification_result
     VersionCreate = create_model("VersionCreate", __base__=Contract, spec=(Spec, ...), parent_id=(Optional[str], None))
@@ -165,6 +181,10 @@ def create_app(
     def get_dialogue(session_id: str):
         return adapter.call("get_dialogue", session_id=session_id)
 
+    @app.get("/api/sessions/{session_id}/agent-runs", response_model=AgentRunTracePage, responses=errors)
+    def get_agent_runs(session_id: str, before: Optional[int] = Query(None, ge=1), limit: int = Query(50, ge=1, le=100)):
+        return adapter.call("agent_runs", session_id=session_id, before=before, limit=limit)
+
     @app.post("/api/sessions/{session_id}/pending/retry", response_model=Run, status_code=202, responses=errors)
     def retry_pending(session_id: str, idempotency_key: str = Header(min_length=1, max_length=128)):
         return adapter.call("retry_pending", session_id=session_id, key=idempotency_key)
@@ -254,6 +274,15 @@ def create_app(
         router = create_codegen_router(store, codegen_settings or CodegenSettings.from_env(), codegen_sandbox)
         app.state.codegen = router.codegen
         app.include_router(router)
+        from ..images import create_images_router
+        images_router = create_images_router(store, image_limits, image_provider)
+        app.state.images = images_router.images
+        app.include_router(images_router)
+        import os
+        if mcp_policy is not None or os.getenv("PROVERYALKA_MCP_ENABLED") == "1":
+            from ..mcp import LocalAccessPolicy
+            from ..mcp.integration import install_mcp
+            install_mcp(app, adapter, app.state.codegen, mcp_policy or LocalAccessPolicy.from_env())
     return app
 
 

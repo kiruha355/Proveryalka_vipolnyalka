@@ -1,0 +1,134 @@
+{
+  "run": {
+    "run_id": "chk_6855eb4a0119493a9189ae1328c81799",
+    "session_id": "s_667780e868ab40ccbc04850e04043026",
+    "state": "completed",
+    "version_id": "v_2a9cb60dcb45449a81b0149d445dea91",
+    "error_code": null
+  },
+  "results": [
+    {
+      "schema_version": "1.0",
+      "spec_hash": "a2021739f33d8b1933893d3f40096081cbbb249babd67a7d9eb769bb952efaaf",
+      "version_id": "v_2a9cb60dcb45449a81b0149d445dea91",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "stock_conservation",
+      "status": "PROPERTY_HOLDS",
+      "conclusive": true,
+      "message": "Свойство выполняется: полностью исследовано 6 различных состояний",
+      "trace": [],
+      "statistics": {
+        "states_generated": 6,
+        "distinct_states": 6,
+        "depth": 3,
+        "elapsed_seconds": 0.288
+      },
+      "related_requirements": [
+        "req_6f773e210e525ff9bf14dd6dfc53cae0",
+        "req_53f0aacca8a655fda64bd98d97cf9689",
+        "req_7c99c5073dc851a4ae034766bc5a5a0e"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "spec_hash": "a2021739f33d8b1933893d3f40096081cbbb249babd67a7d9eb769bb952efaaf",
+      "version_id": "v_2a9cb60dcb45449a81b0149d445dea91",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "cancelled_without_shipment",
+      "status": "PROPERTY_HOLDS",
+      "conclusive": true,
+      "message": "Свойство выполняется: полностью исследовано 6 различных состояний",
+      "trace": [],
+      "statistics": {
+        "states_generated": 6,
+        "distinct_states": 6,
+        "depth": 3,
+        "elapsed_seconds": 0.282
+      },
+      "related_requirements": [
+        "req_2ddcf9d9be615ddfa344b007ac1a694e",
+        "req_7c99c5073dc851a4ae034766bc5a5a0e"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "spec_hash": "a2021739f33d8b1933893d3f40096081cbbb249babd67a7d9eb769bb952efaaf",
+      "version_id": "v_2a9cb60dcb45449a81b0149d445dea91",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "shipment_requires_payment",
+      "status": "PROPERTY_HOLDS",
+      "conclusive": true,
+      "message": "Свойство выполняется: полностью исследовано 6 различных состояний",
+      "trace": [],
+      "statistics": {
+        "states_generated": 6,
+        "distinct_states": 6,
+        "depth": 3,
+        "elapsed_seconds": 0.211
+      },
+      "related_requirements": [
+        "req_f72c5632436250608131945ae1e69140",
+        "req_7c99c5073dc851a4ae034766bc5a5a0e"
+      ]
+    }
+  ],
+  "explanation": {
+    "state": "ready",
+    "run_id": "exp_3fd19bfbf3a74b6eab1834e43f5f82ae",
+    "error_code": null,
+    "narrative": {
+      "summary": "TLC подтвердил все три свойства для переданной конечной модели в заданных областях значений.",
+      "properties": [
+        {
+          "property_id": "stock_conservation",
+          "explanation": "Во всех достижимых состояниях сумма доступного, зарезервированного и отгруженного товара равна 3.",
+          "steps": [],
+          "hypotheses": []
+        },
+        {
+          "property_id": "cancelled_without_shipment",
+          "explanation": "У отменённого заказа количество отгруженного товара всегда равно 0.",
+          "steps": [],
+          "hypotheses": []
+        },
+        {
+          "property_id": "shipment_requires_payment",
+          "explanation": "Состояния с отгруженным товаром без оплаты недостижимы: отгрузка разрешена только после оплаты, и признак оплаты сохраняется.",
+          "steps": [],
+          "hypotheses": []
+        }
+      ],
+      "question": null
+    }
+  }
+}

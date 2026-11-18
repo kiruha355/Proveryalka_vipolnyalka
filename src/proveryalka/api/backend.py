@@ -129,40 +129,60 @@ class ApplicationBackend(SQLiteBackend):
         if row is None:
             return
         try:
-            body = json.loads(row["request_json"])
-            body["source_key"] = run_id
-            body["run_id"] = run_id
-            from .file_dialogue import discuss_file, pending_file
-            if body.get("file_context") or (body.get("retry_pending") and pending_file(self.store, row["session_id"])):
-                context, text = await asyncio.wait_for(discuss_file(self.store, row["session_id"], body), timeout=self.settings.agent_timeout_seconds)
-                await asyncio.to_thread(self.store.event, run_id, "message_delta", {"text": text})
-                await asyncio.to_thread(self.store.complete_agent, run_id, context["version_id"])
-                return
-            state = await asyncio.wait_for(self.analyst(self.store, row["session_id"], body), timeout=self.settings.agent_timeout_seconds)
-            await asyncio.to_thread(self.store.save_dialogue_sources, row["session_id"], state.sources)
-            version, changed = None, False
-            if state.analysis.behavior is not None:
-                version, changed = await asyncio.to_thread(self.save_version, row["session_id"], state.analysis.behavior, run_id)
-            await asyncio.to_thread(self.store.event, run_id, "dialogue_updated", {
-                "status": state.status, "round": getattr(state, "round", None),
-                "open_question_ids": [question.id for question in state.pending_questions],
-                "version_id": version["id"] if version else None,
-            })
-            for question in state.pending_questions:
-                await asyncio.to_thread(self.store.event, run_id, "clarification_requested", question.model_dump(mode="json"))
-            if version is not None:
-                await asyncio.to_thread(self.store.event, run_id, "model_proposed", {
-                    "model_id": version["model_id"], "version_id": version["id"], "number": version["number"],
-                    "spec_hash": version["spec_hash"], "changed": changed,
-                })
-            # The analyst returns a complete structured turn, not token streaming.
-            text = getattr(state, "reply", None) or render_turn(state)
-            await asyncio.to_thread(self.store.event, run_id, "message_delta", {"text": text})
-            await asyncio.to_thread(self.store.complete_agent, run_id, version["id"] if version else None)
+            from ..agent.activity import observe_activity
+            async def record_activity(phase, facts):
+                await asyncio.to_thread(self.store.event, run_id, "activity", {"phase": phase, **facts})
+            with observe_activity(record_activity):
+                await self.execute_agent_turn(run_id, row)
         except Exception as error:
             code = "RUN_TIMEOUT" if isinstance(error, TimeoutError) else getattr(error, "code", "AGENT_FAILED")
             logger.error("agent_failed run_id=%s session_id=%s code=%s",run_id,row["session_id"],code)
             await asyncio.to_thread(self.store.fail_run, run_id, code)
+
+    async def agent_answer_ready(self, run_id, session_id, after_sequence):
+        from .history import dialogue_entries
+        entries = dialogue_entries(await asyncio.to_thread(self.store.history_rows, session_id), render_turn)
+        reply = next((entry for entry in reversed(entries) if entry["kind"] == "assistant" and entry["sequence"] > after_sequence), None)
+        from ..agent.activity import activity
+        await activity("answer_ready", **({"reply_entry_id": reply["id"]} if reply else {}))
+
+    async def execute_agent_turn(self, run_id, row):
+        from ..agent.activity import activity
+        previous_rows = await asyncio.to_thread(self.store.history_rows, row["session_id"])
+        after_sequence = previous_rows[-1]["sequence"] if previous_rows else 0
+        body = json.loads(row["request_json"])
+        body["source_key"] = run_id
+        body["run_id"] = run_id
+        from .file_dialogue import discuss_file, pending_file
+        if body.get("file_context") or (body.get("retry_pending") and pending_file(self.store, row["session_id"])):
+            context, text = await asyncio.wait_for(discuss_file(self.store, row["session_id"], body), timeout=self.settings.agent_timeout_seconds)
+            await asyncio.to_thread(self.store.event, run_id, "message_delta", {"text": text})
+            await self.agent_answer_ready(run_id, row["session_id"], after_sequence)
+            await asyncio.to_thread(self.store.complete_agent, run_id, context["version_id"])
+            return
+        state = await asyncio.wait_for(self.analyst(self.store, row["session_id"], body), timeout=self.settings.agent_timeout_seconds)
+        await activity("saving")
+        await asyncio.to_thread(self.store.save_dialogue_sources, row["session_id"], state.sources)
+        version, changed = None, False
+        if state.analysis.behavior is not None:
+            version, changed = await asyncio.to_thread(self.save_version, row["session_id"], state.analysis.behavior, run_id)
+        await asyncio.to_thread(self.store.event, run_id, "dialogue_updated", {
+            "status": state.status, "round": getattr(state, "round", None),
+            "open_question_ids": [question.id for question in state.pending_questions],
+            "version_id": version["id"] if version else None,
+        })
+        for question in state.pending_questions:
+            await asyncio.to_thread(self.store.event, run_id, "clarification_requested", question.model_dump(mode="json"))
+        if version is not None:
+            await asyncio.to_thread(self.store.event, run_id, "model_proposed", {
+                "model_id": version["model_id"], "version_id": version["id"], "number": version["number"],
+                "spec_hash": version["spec_hash"], "changed": changed,
+            })
+        # The analyst returns a complete structured turn, not token streaming.
+        text = getattr(state, "reply", None) or render_turn(state)
+        await asyncio.to_thread(self.store.event, run_id, "message_delta", {"text": text})
+        await self.agent_answer_ready(run_id, row["session_id"], after_sequence)
+        await asyncio.to_thread(self.store.complete_agent, run_id, version["id"] if version else None)
 
     def stream(self, run_id, after):
         self.store.events(run_id, after)  # Validate before sending HTTP headers.
@@ -395,6 +415,9 @@ class ApplicationBackend(SQLiteBackend):
             return getattr(self, operation)(**arguments)
         if operation == "events":
             return self.stream(**arguments)
+        if operation == "agent_runs":
+            from .agent_trace import agent_runs
+            return agent_runs(self.store, render_turn=render_turn, **arguments)
         if operation in ("list_artifacts", "get_artifact"):
             return getattr(self.artifacts, operation)(**arguments)
         if operation in ("create_check", "create_explanation"):

@@ -41,6 +41,11 @@ export const FitIcon = (props: IconProps) => (
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
   </Icon>
 );
+export const ExpandIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5M4 4l5 5M20 4l-5 5M4 20l5-5M20 20l-5-5" />
+  </Icon>
+);
 export const CloseIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M6 6l12 12M18 6L6 18" />

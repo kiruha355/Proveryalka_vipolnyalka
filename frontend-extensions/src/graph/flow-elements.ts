@@ -48,9 +48,13 @@ export type TransitionEdgeData = {
   route: Route;
   /**
    * Для дуг (back — сверху, skip — снизу): координата y, через которую дуга
-   * проходит в стороне от узлов промежуточных слоёв; null для остальных маршрутов.
+   * проходит в стороне от узлов промежуточных слоёв. Для петли — её вершина;
+   * null для остальных маршрутов.
    */
   arcY: number | null;
+  /** Петли одного этапа чередуют верхнюю и нижнюю стороны; остальные маршруты — null. */
+  loopSide: "top" | "bottom" | null;
+  labelMaxWidth: number;
   dimmed: boolean;
   inTrace: boolean;
   current: boolean;
@@ -254,6 +258,26 @@ export function buildFlowElements(
   });
 
   const groups = new Map<string, ProjectionEdge[]>();
+  // Ранги берём из полной проекции: фильтр условных рёбер и смена шага трассы
+  // не должны переставлять оставшиеся подписи на другие стороны этапа.
+  const loopRoutes = new Map<string, { side: "top" | "bottom"; clearance: number }>();
+  const loopsByNode = new Map<string, ProjectionEdge[]>();
+  for (const edge of projection.edges) {
+    if (edge.selfLoop) loopsByNode.set(edge.source, [...(loopsByNode.get(edge.source) ?? []), edge]);
+  }
+  for (const nodeLoops of loopsByNode.values()) {
+    const clearance = { top: 38, bottom: 38 };
+    nodeLoops.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+    nodeLoops.forEach((edge, index) => {
+      const side = index % 2 === 0 ? "top" : "bottom";
+      loopRoutes.set(edge.id, { side, clearance: clearance[side] });
+      // Подписи шириной до 176px переносятся по словам. Резерв учитывает
+      // длинное имя и место для отметки шага, без увеличения расстояний узлов.
+      const name = names.get(edge.transitionId) ?? edge.transitionId;
+      const labelRows = Math.max(1, Math.ceil(name.length / 16));
+      clearance[side] += labelRows * 18 + 30;
+    });
+  }
   for (const edge of projection.edges) {
     if (
       !showConditional &&
@@ -261,7 +285,9 @@ export function buildFlowElements(
       !edgeSteps.has(edge.id)
     )
       continue;
-    const key = `${edge.source}=>${edge.target}`;
+    // У каждой петли своя кривая и метка, но edgeId внутри chip остаётся
+    // исходным идентификатором проекции для выбора и привязки трассы.
+    const key = edge.selfLoop ? `loop:${edge.id}` : `${edge.source}=>${edge.target}`;
     groups.set(key, [...(groups.get(key) ?? []), edge]);
   }
 
@@ -285,7 +311,10 @@ export function buildFlowElements(
     const target = boxOf(first.target);
     const route = routeFor(source, target, first.selfLoop);
     let arcY: number | null = null;
-    if (route === "back") {
+    const loop = route === "loop" ? loopRoutes.get(first.id)! : null;
+    if (loop) {
+      arcY = loop.side === "top" ? source.y - loop.clearance : source.y + source.height + loop.clearance;
+    } else if (route === "back") {
       const span = between(
         source.layer,
         target.layer,
@@ -308,7 +337,7 @@ export function buildFlowElements(
         ARC_CLEARANCE +
         skipRank++ * ARC_STEP;
     }
-    const [sourceHandle, targetHandle] = HANDLES_BY_ROUTE[route];
+    const [sourceHandle, targetHandle] = loop?.side === "bottom" ? ["bs", "bt"] : HANDLES_BY_ROUTE[route];
     const chips: EdgeChip[] = group.map((edge) => {
       const name = names.get(edge.transitionId) ?? edge.transitionId;
       const condition = edge.guardResidual
@@ -356,6 +385,8 @@ export function buildFlowElements(
         chips,
         route,
         arcY,
+        loopSide: loop?.side ?? null,
+        labelMaxWidth: route === "forward" ? Math.min(176, Math.max(96, target.x - source.x - source.width - 24)) : 176,
         dimmed: trace !== null && !inTrace,
         inTrace,
         current: chips.some((chip) => chip.current),

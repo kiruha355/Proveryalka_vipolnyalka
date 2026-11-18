@@ -1,0 +1,851 @@
+[
+  {
+    "id": "v_37f540eb59ba47948f674ee3b6e2b1ed",
+    "model_id": "m_6683d588b8a94202a9eb6b9cfb5c84d0",
+    "session_id": "s_336fa26bef034b72916bfcbb1ee117cc",
+    "number": 1,
+    "parent_id": null,
+    "spec": {
+      "schema_version": "1.0",
+      "name": "Платёж с двумя независимыми согласующими А и Б",
+      "sources": [
+        {
+          "id": "src_477deb439ca8450d85fc75729c41401d",
+          "session_id": "s_336fa26bef034b72916bfcbb1ee117cc",
+          "kind": "text",
+          "text": "Платёж с двумя независимыми согласующими А и Б.\nПоручение проходит этапы Draft, Review, Approved, Paid либо Cancelled. Действие «Подать на согласование» переводит Draft в Review. В Review каждый согласующий может отдельно дать своё согласие, если его отметка ещё не стоит. Отдельное действие «Завершить согласование» переводит Review в Approved только при наличии обеих отметок.\nКаждый согласующий может отозвать свою отметку в Review или Approved. В текущей реализации отзыв снимает только соответствующую отметку; сохранённый этап поручения остаётся прежним.\n«Оплатить» разрешено только в Approved и если поручение не отменено; устанавливает этап Paid и признак executed=true. Условие оплаты не перепроверяет отдельные отметки согласующих, а доверяет этапу Approved.\n«Отменить» можно в Draft, Review или Approved, если исполнение ещё не произошло; отмена ставит cancelled=true и этап Cancelled. Из Paid и Cancelled действий нет.\nНужно проверить два критерия: 1) после исполнения должны оставаться оба согласия; 2) отменённый платёж не может быть исполнен. Также проверить, что оплата вообще достижима. Критерии должны проверять описанное поведение, не добавлять недостающие условия и не исправлять отзыв сами.\nДля модели используй этап status и логические approved_a, approved_b, cancelled, executed. Если информации не хватает, задай уточнения."
+        },
+        {
+          "id": "answer_ef6a08d48eaa4f5c970a4851b042951e",
+          "session_id": "s_336fa26bef034b72916bfcbb1ee117cc",
+          "kind": "text",
+          "text": "Изначально status=Draft, approved_a=false, approved_b=false, cancelled=false, executed=false. Подтверждаю все три критерия: executed требует оба согласия; cancelled и executed несовместимы; достижимо состояние Paid с выполненным платежом. Отзыв в первой версии должен только снимать выбранную отметку, не меняя status; это проверяемая текущая реализация, не исправляй её автоматически. Неизменяемые переменные при каждом действии сохраняют прежние значения."
+        }
+      ],
+      "requirements": [
+        {
+          "id": "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+          "text": "У платежа два независимых согласующих: А и Б.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "Платёж с двумя независимыми согласующими А и Б.",
+              "start": 0,
+              "end": 47
+            }
+          ]
+        },
+        {
+          "id": "req_91faa8ff7d5153d4b36fa5764a2a9804",
+          "text": "Поручение имеет этап Draft, Review, Approved, Paid либо Cancelled.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "Поручение проходит этапы Draft, Review, Approved, Paid либо Cancelled.",
+              "start": 48,
+              "end": 118
+            }
+          ]
+        },
+        {
+          "id": "req_48e457bf3dbd570bb264a37b73c35990",
+          "text": "Действие «Подать на согласование» переводит поручение из Draft в Review.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "Действие «Подать на согласование» переводит Draft в Review.",
+              "start": 119,
+              "end": 178
+            }
+          ]
+        },
+        {
+          "id": "req_793f2f80d2915efa9132baa76b4fb659",
+          "text": "В Review каждый согласующий может отдельно поставить свою отметку согласия, если она ещё не стоит.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "В Review каждый согласующий может отдельно дать своё согласие, если его отметка ещё не стоит.",
+              "start": 179,
+              "end": 272
+            }
+          ]
+        },
+        {
+          "id": "req_db5f379b58755e6b8a7ba3e22f315826",
+          "text": "Отдельное действие «Завершить согласование» переводит поручение из Review в Approved только при наличии обеих отметок.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "Отдельное действие «Завершить согласование» переводит Review в Approved только при наличии обеих отметок.",
+              "start": 273,
+              "end": 378
+            }
+          ]
+        },
+        {
+          "id": "req_f733dfb689045f05a53fcc41164e258e",
+          "text": "Каждый согласующий может отозвать свою отметку в Review или Approved.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "Каждый согласующий может отозвать свою отметку в Review или Approved.",
+              "start": 379,
+              "end": 448
+            }
+          ]
+        },
+        {
+          "id": "req_3a25204fb3ae52aeb36b18f4d55dc022",
+          "text": "В текущей реализации отзыв снимает только отметку соответствующего согласующего; сохранённый этап поручения остаётся прежним.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "В текущей реализации отзыв снимает только соответствующую отметку; сохранённый этап поручения остаётся прежним.",
+              "start": 449,
+              "end": 560
+            }
+          ]
+        },
+        {
+          "id": "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+          "text": "Действие «Оплатить» разрешено только в Approved при отсутствии отмены; оно устанавливает этап Paid и executed=true.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "«Оплатить» разрешено только в Approved и если поручение не отменено; устанавливает этап Paid и признак executed=true.",
+              "start": 561,
+              "end": 678
+            }
+          ]
+        },
+        {
+          "id": "req_9e63696a936b5f52a85f4221aa19c03a",
+          "text": "Условие оплаты не перепроверяет отдельные отметки согласующих и доверяет этапу Approved.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "Условие оплаты не перепроверяет отдельные отметки согласующих, а доверяет этапу Approved.",
+              "start": 679,
+              "end": 768
+            }
+          ]
+        },
+        {
+          "id": "req_979d1f8e4bc851b18f789209c88ca98b",
+          "text": "Действие «Отменить» доступно в Draft, Review или Approved, если исполнение ещё не произошло; оно устанавливает cancelled=true и этап Cancelled.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "«Отменить» можно в Draft, Review или Approved, если исполнение ещё не произошло; отмена ставит cancelled=true и этап Cancelled.",
+              "start": 769,
+              "end": 896
+            }
+          ]
+        },
+        {
+          "id": "req_85e0cfb054105e959c4b9775aafa50b7",
+          "text": "Из Paid и Cancelled действий нет.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "Из Paid и Cancelled действий нет.",
+              "start": 897,
+              "end": 930
+            }
+          ]
+        },
+        {
+          "id": "req_43ee6409a1065372a3dbf1b686ed9caa",
+          "text": "После исполнения должны оставаться оба согласия.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "1) после исполнения должны оставаться оба согласия;",
+              "start": 961,
+              "end": 1012
+            }
+          ]
+        },
+        {
+          "id": "req_3fe7ae86fd8f554686b1bc436718900c",
+          "text": "Отменённый платёж не может быть исполнен.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "2) отменённый платёж не может быть исполнен.",
+              "start": 1013,
+              "end": 1057
+            }
+          ]
+        },
+        {
+          "id": "req_a6f0a511318e52ec9af24859ba5165e4",
+          "text": "Оплата должна быть достижима.",
+          "source_refs": [
+            {
+              "source_id": "src_477deb439ca8450d85fc75729c41401d",
+              "quote": "Также проверить, что оплата вообще достижима.",
+              "start": 1058,
+              "end": 1103
+            }
+          ]
+        },
+        {
+          "id": "req_9120945853e5590e8e776b1c1400a279",
+          "text": "Изначально status=Draft.",
+          "source_refs": [
+            {
+              "source_id": "answer_ef6a08d48eaa4f5c970a4851b042951e",
+              "quote": "Изначально status=Draft",
+              "start": 0,
+              "end": 23
+            }
+          ]
+        },
+        {
+          "id": "req_cee412ddc59a54e5aeb473ceff07d5af",
+          "text": "Изначально approved_a=false.",
+          "source_refs": [
+            {
+              "source_id": "answer_ef6a08d48eaa4f5c970a4851b042951e",
+              "quote": "Изначально status=Draft, approved_a=false",
+              "start": 0,
+              "end": 41
+            }
+          ]
+        },
+        {
+          "id": "req_c2e121b42fdd5aa38eff1086935be325",
+          "text": "Изначально approved_b=false.",
+          "source_refs": [
+            {
+              "source_id": "answer_ef6a08d48eaa4f5c970a4851b042951e",
+              "quote": "Изначально status=Draft, approved_a=false, approved_b=false",
+              "start": 0,
+              "end": 59
+            }
+          ]
+        },
+        {
+          "id": "req_67ebe9432bfa533d819b177bdb7fb39e",
+          "text": "Изначально cancelled=false.",
+          "source_refs": [
+            {
+              "source_id": "answer_ef6a08d48eaa4f5c970a4851b042951e",
+              "quote": "Изначально status=Draft, approved_a=false, approved_b=false, cancelled=false",
+              "start": 0,
+              "end": 76
+            }
+          ]
+        },
+        {
+          "id": "req_53587e990088571daef21a92363096b6",
+          "text": "Изначально executed=false.",
+          "source_refs": [
+            {
+              "source_id": "answer_ef6a08d48eaa4f5c970a4851b042951e",
+              "quote": "Изначально status=Draft, approved_a=false, approved_b=false, cancelled=false, executed=false.",
+              "start": 0,
+              "end": 93
+            }
+          ]
+        },
+        {
+          "id": "req_d95075df515d53209c12aefda8319544",
+          "text": "Неизменяемые переменные при каждом действии сохраняют прежние значения.",
+          "source_refs": [
+            {
+              "source_id": "answer_ef6a08d48eaa4f5c970a4851b042951e",
+              "quote": "Неизменяемые переменные при каждом действии сохраняют прежние значения.",
+              "start": 386,
+              "end": 457
+            }
+          ]
+        }
+      ],
+      "variables": [
+        {
+          "id": "status",
+          "name": "Этап поручения",
+          "requirement_ids": [
+            "req_91faa8ff7d5153d4b36fa5764a2a9804",
+            "req_48e457bf3dbd570bb264a37b73c35990",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_db5f379b58755e6b8a7ba3e22f315826",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_3a25204fb3ae52aeb36b18f4d55dc022",
+            "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+            "req_9e63696a936b5f52a85f4221aa19c03a",
+            "req_979d1f8e4bc851b18f789209c88ca98b",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_9120945853e5590e8e776b1c1400a279",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "domain": {
+            "kind": "enum",
+            "values": [
+              "Draft",
+              "Review",
+              "Approved",
+              "Paid",
+              "Cancelled"
+            ]
+          },
+          "initial_value": "Draft"
+        },
+        {
+          "id": "approved_a",
+          "name": "Согласие А",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_db5f379b58755e6b8a7ba3e22f315826",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_3a25204fb3ae52aeb36b18f4d55dc022",
+            "req_9e63696a936b5f52a85f4221aa19c03a",
+            "req_43ee6409a1065372a3dbf1b686ed9caa",
+            "req_cee412ddc59a54e5aeb473ceff07d5af",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "domain": {
+            "kind": "boolean"
+          },
+          "initial_value": false
+        },
+        {
+          "id": "approved_b",
+          "name": "Согласие Б",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_db5f379b58755e6b8a7ba3e22f315826",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_3a25204fb3ae52aeb36b18f4d55dc022",
+            "req_9e63696a936b5f52a85f4221aa19c03a",
+            "req_43ee6409a1065372a3dbf1b686ed9caa",
+            "req_c2e121b42fdd5aa38eff1086935be325",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "domain": {
+            "kind": "boolean"
+          },
+          "initial_value": false
+        },
+        {
+          "id": "cancelled",
+          "name": "Поручение отменено",
+          "requirement_ids": [
+            "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+            "req_979d1f8e4bc851b18f789209c88ca98b",
+            "req_3fe7ae86fd8f554686b1bc436718900c",
+            "req_67ebe9432bfa533d819b177bdb7fb39e",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "domain": {
+            "kind": "boolean"
+          },
+          "initial_value": false
+        },
+        {
+          "id": "executed",
+          "name": "Поручение исполнено",
+          "requirement_ids": [
+            "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+            "req_979d1f8e4bc851b18f789209c88ca98b",
+            "req_43ee6409a1065372a3dbf1b686ed9caa",
+            "req_3fe7ae86fd8f554686b1bc436718900c",
+            "req_a6f0a511318e52ec9af24859ba5165e4",
+            "req_53587e990088571daef21a92363096b6",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "domain": {
+            "kind": "boolean"
+          },
+          "initial_value": false
+        }
+      ],
+      "transitions": [
+        {
+          "id": "submit_for_review",
+          "name": "Подать на согласование",
+          "requirement_ids": [
+            "req_48e457bf3dbd570bb264a37b73c35990",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "guard": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Draft"
+            }
+          },
+          "effects": [
+            {
+              "variable": "status",
+              "value": {
+                "kind": "literal",
+                "value": "Review"
+              }
+            }
+          ]
+        },
+        {
+          "id": "approve_a",
+          "name": "А даёт согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "guard": {
+            "kind": "binary",
+            "op": "and",
+            "left": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "status"
+              },
+              "right": {
+                "kind": "literal",
+                "value": "Review"
+              }
+            },
+            "right": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "variable",
+                "name": "approved_a"
+              }
+            }
+          },
+          "effects": [
+            {
+              "variable": "approved_a",
+              "value": {
+                "kind": "literal",
+                "value": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "approve_b",
+          "name": "Б даёт согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "guard": {
+            "kind": "binary",
+            "op": "and",
+            "left": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "status"
+              },
+              "right": {
+                "kind": "literal",
+                "value": "Review"
+              }
+            },
+            "right": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "variable",
+                "name": "approved_b"
+              }
+            }
+          },
+          "effects": [
+            {
+              "variable": "approved_b",
+              "value": {
+                "kind": "literal",
+                "value": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "complete_review",
+          "name": "Завершить согласование",
+          "requirement_ids": [
+            "req_db5f379b58755e6b8a7ba3e22f315826",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "guard": {
+            "kind": "binary",
+            "op": "and",
+            "left": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "status"
+              },
+              "right": {
+                "kind": "literal",
+                "value": "Review"
+              }
+            },
+            "right": {
+              "kind": "binary",
+              "op": "and",
+              "left": {
+                "kind": "variable",
+                "name": "approved_a"
+              },
+              "right": {
+                "kind": "variable",
+                "name": "approved_b"
+              }
+            }
+          },
+          "effects": [
+            {
+              "variable": "status",
+              "value": {
+                "kind": "literal",
+                "value": "Approved"
+              }
+            }
+          ]
+        },
+        {
+          "id": "revoke_a",
+          "name": "А отзывает согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_3a25204fb3ae52aeb36b18f4d55dc022",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "guard": {
+            "kind": "binary",
+            "op": "or",
+            "left": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "status"
+              },
+              "right": {
+                "kind": "literal",
+                "value": "Review"
+              }
+            },
+            "right": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "status"
+              },
+              "right": {
+                "kind": "literal",
+                "value": "Approved"
+              }
+            }
+          },
+          "effects": [
+            {
+              "variable": "approved_a",
+              "value": {
+                "kind": "literal",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "revoke_b",
+          "name": "Б отзывает согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_3a25204fb3ae52aeb36b18f4d55dc022",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "guard": {
+            "kind": "binary",
+            "op": "or",
+            "left": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "status"
+              },
+              "right": {
+                "kind": "literal",
+                "value": "Review"
+              }
+            },
+            "right": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "status"
+              },
+              "right": {
+                "kind": "literal",
+                "value": "Approved"
+              }
+            }
+          },
+          "effects": [
+            {
+              "variable": "approved_b",
+              "value": {
+                "kind": "literal",
+                "value": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "pay",
+          "name": "Оплатить",
+          "requirement_ids": [
+            "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+            "req_9e63696a936b5f52a85f4221aa19c03a",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "guard": {
+            "kind": "binary",
+            "op": "and",
+            "left": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "status"
+              },
+              "right": {
+                "kind": "literal",
+                "value": "Approved"
+              }
+            },
+            "right": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "variable",
+                "name": "cancelled"
+              }
+            }
+          },
+          "effects": [
+            {
+              "variable": "status",
+              "value": {
+                "kind": "literal",
+                "value": "Paid"
+              }
+            },
+            {
+              "variable": "executed",
+              "value": {
+                "kind": "literal",
+                "value": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "cancel",
+          "name": "Отменить",
+          "requirement_ids": [
+            "req_979d1f8e4bc851b18f789209c88ca98b",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "guard": {
+            "kind": "binary",
+            "op": "and",
+            "left": {
+              "kind": "binary",
+              "op": "or",
+              "left": {
+                "kind": "binary",
+                "op": "eq",
+                "left": {
+                  "kind": "variable",
+                  "name": "status"
+                },
+                "right": {
+                  "kind": "literal",
+                  "value": "Draft"
+                }
+              },
+              "right": {
+                "kind": "binary",
+                "op": "or",
+                "left": {
+                  "kind": "binary",
+                  "op": "eq",
+                  "left": {
+                    "kind": "variable",
+                    "name": "status"
+                  },
+                  "right": {
+                    "kind": "literal",
+                    "value": "Review"
+                  }
+                },
+                "right": {
+                  "kind": "binary",
+                  "op": "eq",
+                  "left": {
+                    "kind": "variable",
+                    "name": "status"
+                  },
+                  "right": {
+                    "kind": "literal",
+                    "value": "Approved"
+                  }
+                }
+              }
+            },
+            "right": {
+              "kind": "unary",
+              "op": "not",
+              "operand": {
+                "kind": "variable",
+                "name": "executed"
+              }
+            }
+          },
+          "effects": [
+            {
+              "variable": "cancelled",
+              "value": {
+                "kind": "literal",
+                "value": true
+              }
+            },
+            {
+              "variable": "status",
+              "value": {
+                "kind": "literal",
+                "value": "Cancelled"
+              }
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "id": "consents_after_execution",
+          "name": "Оба согласия сохраняются после исполнения",
+          "requirement_ids": [
+            "req_43ee6409a1065372a3dbf1b686ed9caa"
+          ],
+          "kind": "invariant",
+          "predicate": {
+            "kind": "binary",
+            "op": "implies",
+            "left": {
+              "kind": "variable",
+              "name": "executed"
+            },
+            "right": {
+              "kind": "binary",
+              "op": "and",
+              "left": {
+                "kind": "variable",
+                "name": "approved_a"
+              },
+              "right": {
+                "kind": "variable",
+                "name": "approved_b"
+              }
+            }
+          },
+          "explanation": "Во всех достижимых состояниях исполненного поручения должны стоять обе отметки согласия — А и Б.",
+          "origin": "requirement",
+          "approved_by": null
+        },
+        {
+          "id": "cancelled_not_executed",
+          "name": "Отменённый платёж не исполнен",
+          "requirement_ids": [
+            "req_3fe7ae86fd8f554686b1bc436718900c"
+          ],
+          "kind": "forbidden_state",
+          "predicate": {
+            "kind": "binary",
+            "op": "and",
+            "left": {
+              "kind": "variable",
+              "name": "cancelled"
+            },
+            "right": {
+              "kind": "variable",
+              "name": "executed"
+            }
+          },
+          "explanation": "Запрещено состояние, в котором поручение одновременно отменено и исполнено.",
+          "origin": "requirement",
+          "approved_by": null
+        },
+        {
+          "id": "payment_reachable",
+          "name": "Оплата достижима",
+          "requirement_ids": [
+            "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+            "req_a6f0a511318e52ec9af24859ba5165e4"
+          ],
+          "kind": "reachable",
+          "predicate": {
+            "kind": "binary",
+            "op": "and",
+            "left": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "status"
+              },
+              "right": {
+                "kind": "literal",
+                "value": "Paid"
+              }
+            },
+            "right": {
+              "kind": "variable",
+              "name": "executed"
+            }
+          },
+          "explanation": "Существует хотя бы один путь к оплаченному поручению: этап Paid и executed=true.",
+          "origin": "requirement",
+          "approved_by": null
+        }
+      ]
+    },
+    "spec_hash": "06e84070938048f04c1d22ce422f4c1a97643a8050a378b3bb0f2084e2df8e2b",
+    "approved": false
+  }
+]

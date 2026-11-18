@@ -33,6 +33,9 @@ HTTP-контракт основного сценария (текст или д�
 MCP остаётся целевой архитектурой; генератор Python/FastAPI/pytest и Docker-песочница подключены в `src/proveryalka/codegen/`.
 
 Веб-клиент, запуск live/demo и границы проверок: [frontend/README.md](frontend/README.md).
+Поставка frontend + backend + SQLite + TLC одним native-процессом, persistence,
+readiness/shutdown, обязательный CI и ручной provider lane:
+[Запуск основной версии](reports/runtime-runbook.md).
 
 ## Структура проекта
 
@@ -148,14 +151,24 @@ Content-Type: application/json
 
 ### MCP (`/mcp`, Streamable HTTP)
 
-Инструменты для кодинг-агентов (Claude Code, Cursor):
+Опциональный [MCP сервер](src/proveryalka/mcp/README.md) предоставляет `get_model`,
+`check_behavior`, `get_tests` и `compare_with_code` через официальный SDK. Он использует
+те же backend/TLC/CodegenService и требует явной локальной политики доступа.
+`get_tests` читает существующую генерацию; `compare_with_code` запускает её тесты в Docker
+по точным model reference / code_hash. Проверка произвольного кода не поддерживается.
+В основном приложении MCP включается через `PROVERYALKA_MCP_ENABLED=1`;
+модели задаются `PROVERYALKA_MCP_MODEL_IDS`, разрешённые инструменты —
+`PROVERYALKA_MCP_TOOLS`. Точный маршрут `/mcp` работает вместе с REST API
+и статикой клиента. Standalone доступен через `python -m proveryalka.mcp`.
 
-| Инструмент | Что возвращает |
-|---|---|
-| `get_model(model_id, version?)` | Утверждённую модель |
-| `check_behavior(model_id, version, property_ids?)` | Результаты проверки свойств |
-| `get_tests(model_id, version)` | Тесты, выведенные из модели |
-| `compare_with_code(model_id, version, files)` | Места, где код расходится с моделью |
+### Изображения и репозитории
+
+Основной `create_app` подключает [изображения](src/proveryalka/images/README.md)
+и [снимки репозиториев](src/proveryalka/sources/repositories/README.md), миграции 007 и 008.
+Изображения дают структурированный разбор со ссылками на пиксельную область;
+автоматическое построение BehavioralModel из них пока не реализовано. Выбранные
+строки репозитория создают текстовый Source для нового аналитического диалога.
+Новые источники доступны через API; общий клиент пока поддерживает текст и TXT/MD/DOCX.
 
 ## Версии моделей (#22)
 
@@ -259,11 +272,17 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install --no-deps -e .
 sh scripts/fetch_tla2tools.sh
 cp .env.example .env
-# Укажите ключ/адрес/модель LLM; секреты не коммитятся.
+# Для GPT-подписки оставьте provider=codex и настройте локальный app-server.
+# Для явно выбранного Responses API нужны endpoint/model/key; секреты не коммитятся.
 sh scripts/run-server.sh
 ```
 
 Это документированный локальный вариант поставки, без Docker.
+Команда выше запускает только API. Для собранного UI на том же origin выполните
+`npm --prefix frontend ci`, `npm --prefix frontend-extensions ci`,
+`npm --prefix frontend run build`, затем `sh scripts/run-stack.sh`.
+Требуется Node.js 24; интерфейс откроется на `http://127.0.0.1:8000`.
+Docker нужен отдельно для песочницы generated tests, без переноса подписочной авторизации.
 Если Java не в PATH, укажите абсолютный PROVERYALKA_JAVA в .env.
 `python -m proveryalka.runtime` проверяет SQLite, запись артефактов, Java и jar
 до запуска сервера; ключ LLM не проверяется запросом и не выводится.

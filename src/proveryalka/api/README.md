@@ -182,3 +182,11 @@ type VerificationNarrative = {summary: string; question: string|null;
 `GET /api/sessions/{sid}/dialogue` дополнен `entries`: упорядоченные фактические реплики со стабильными `id`, `sequence`, `created_at`, `kind: user|assistant`, `text`. По наличию сохраняются `source_id`, `question_id`, `status: processed|pending|discarded`; `questions` у ответа содержит открытые вопросы того сохранённого хода. Их текущие состояния доступны в верхнем `questions`.
 
 Проекция читает сохранённые ходы и ответы аналитика, исключает служебные SDK/tool и verification wrappers, не меняет raw history. Повтор незавершённого хода сохраняет идентичность пользовательской реплики. Отмена/отказ отмечается `discarded`; после refresh порядок и исходный текст остаются теми же. Источники без фактического хода не превращаются в выдуманную историю чата. Все ранее существовавшие поля `/dialogue` сохранены.
+
+### Ход работы агента
+
+`GET /api/sessions/{session_id}/agent-runs?limit=50&before=<cursor>` возвращает новые запуски первыми: `{runs:[AgentRunTrace],next_cursor}`. `limit` от 1 до 100; курсор следующей страницы остаётся устойчивым при появлении новых запусков. Проекция ограничена выбранной сессией и не содержит request_json, SDK traffic, prompt, raw output или private reasoning. У text output остаётся число символов; настоящий ответ виден в dialogue.entries.
+
+Каждый trace содержит публичный run, точные input_entry_id/reply_entry_id, source_id, сохранённые created_at/started_at/finished_at, events и events_truncated. Неизвестные timestamps старых запусков остаются null. Новые SSE events имеют created_at с UTC offset. Новый тип activity содержит factual phase: queued, started, context_ready, model_request, model_response, validation, retry, saving, file_context_ready, answer_ready. У validation есть outcome passed/failed; у model requests - номер попытки и purpose. Никакого восстановленного задним числом плана.
+
+Трейс хранится в существующем run_events. Отдельной миграции нет. История связывается по сохранённым markers/IDs, в том числе после retry, и доступна без browser-local run IDs. Страница возвращает до 200 событий на запуск и явно устанавливает events_truncated при превышении. Старые произвольные tool/provider payloads не проецируются. Вызов модели выполняется прежним исполнителем; трейс не добавляет provider requests, инструменты или новый агентный цикл.

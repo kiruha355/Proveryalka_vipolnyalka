@@ -10,6 +10,18 @@ describe("public HTTP contract", () => {
     const caps = detectCapabilities({paths:{"/api/sessions":{},"/api/sessions/{session_id}/dialogue":{},"/api/sessions/{session_id}/documents":{},"/api/checks/{run_id}/explanation":{}}});
     expect(caps).toMatchObject({dialogue:true,documents:true,explanations:true});
   });
+  it("detects and reads paginated safe agent trace history with stable entry links", async () => {
+    const caps = detectCapabilities({paths:{"/api/sessions":{}, "/api/sessions/{session_id}/agent-runs":{}}});
+    expect(caps.agentTrace).toBe(true);
+    const item = {run, input_entry_id:"input", reply_entry_id:null, source_id:"source", created_at:null, started_at:null, finished_at:null,
+      events:[{run_id:"r",session_id:"s",event_id:1,type:"activity",created_at:null,data:{phase:"queued"}}],events_truncated:false};
+    const fetcher = vi.fn<typeof fetch>(async () => json({runs:[item],next_cursor:12}));
+    const api = new HttpApi("",fetcher);
+    expect((await api.listAgentRuns("s/1",25)).runs[0]?.input_entry_id).toBe("input");
+    expect(fetcher.mock.calls[0]![0]).toBe("/api/sessions/s%2F1/agent-runs?limit=50&before=25");
+    item.events[0]!.run_id = "foreign";
+    await expect(api.listAgentRuns("s")).rejects.toBeInstanceOf(ApiError);
+  });
   it("preserves addressed replies and source_id, uses distinct pending/explanation routes", async () => {
     const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => json(run)); const api=new HttpApi("/",fetcher);
     await api.sendMessage("s",{text:"Ответ",question_id:"q"},"k1");

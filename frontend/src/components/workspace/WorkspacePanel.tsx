@@ -45,7 +45,7 @@ function Approval({ context }: { context: WorkspaceContextValue }) {
     return <span className="chip chip--holds"><Check size={14} /> Модель отражает требования</span>;
   }
   if (!confirming) {
-    return <button type="button" className="button button--ghost button--small" onClick={() => setConfirming(true)}>Подтвердить модель</button>;
+    return <button type="button" className="button button--ghost button--small" onClick={() => setConfirming(true)}>Согласовать для кода</button>;
   }
   return (
     <span className="confirm" role="group" aria-label="Подтверждение модели">
@@ -124,7 +124,7 @@ export function WorkspacePanel({ context, viewId }: Props) {
         )}
       </header>
 
-      <div className="workspace__body">
+      <div className={`workspace__body${active?.id === "diagram" ? " workspace__body--diagram" : ""}`}>
         {workspace.models.error !== null && !workspace.models.data && (
           <ErrorNotice error={workspace.models.error} title="Модели не загружены"
             action={<button type="button" className="button button--small" onClick={workspace.reloadModels}>Повторить</button>} />
@@ -142,7 +142,7 @@ export function WorkspacePanel({ context, viewId }: Props) {
           <ModelIssues issues={dialogue.analysis.model_issues} missing={dialogue.analysis.missing_information} />
         )}
         {ActiveView && !nothing && (
-          <div role="tabpanel" id={`panel-${active!.id}`} aria-labelledby={`tab-${active!.id}`} className="workspace__view">
+          <div role="tabpanel" id={`panel-${active!.id}`} aria-labelledby={`tab-${active!.id}`} className={`workspace__view${active!.id === "files" ? " workspace__view--files" : active!.id === "diagram" ? " workspace__view--diagram" : ""}`}>
             <ActiveView context={context} />
           </div>
         )}

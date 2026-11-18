@@ -1,0 +1,49 @@
+{
+  "baseline": {
+    "ui": "8",
+    "bundle": "/assets/index-eyNfCJ_k.js",
+    "viewport": [
+      1280,
+      800
+    ],
+    "html_scroll_height": 3320,
+    "body_scroll_height": 800,
+    "window_scroll_y_after_native_scroll": 1600,
+    "cause": ".visually-hidden Агент: absolute spans have body offsetParent; static top reaches3320.51px outside scrolling chat clip"
+  },
+  "patch": {
+    "source": "frontend/src/styles/app.css",
+    "fields": [
+      "html/body/root overflow hidden and overscroll none",
+      "app position relative and 100dvh height",
+      "chat body positioned containing block/min-height0/overscroll contain",
+      "sidebar/workspace overscroll contain"
+    ]
+  },
+  "native_dom_patch_check": {
+    "boundary": "exact CSS inserted into own UI8 tab_f; production source build not published by this worker",
+    "html_scroll_height": 800,
+    "window_scroll_y_after_outer_native_scroll": 0,
+    "chat_scroll_top": 1600,
+    "chat_scroll_bottom": 5174.5,
+    "inspector_scroll_top": 90,
+    "workspace_files_scroll_top": 102.5,
+    "footer_bottom": 800,
+    "provider_calls": 0
+  },
+  "not_run": [
+    "shared source build publication (parent owns)",
+    "narrow viewport browser test",
+    "new backend/provider/Docker calls"
+  ],
+  "causal_isolation": {
+    "original_no_patch": {
+      "html_scroll_height": 3320,
+      "offset_parent": "BODY"
+    },
+    "only_chat_body_position_relative": {
+      "html_scroll_height": 800,
+      "offset_parent": "chat__body"
+    }
+  }
+}

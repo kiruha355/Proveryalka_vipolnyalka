@@ -1,0 +1,11 @@
+2026-10-31. Рабочее дерево t3/repository-import-snapshots.
+Команда:
+/private/tmp/prov-review/.venv/bin/python -m pytest -q tests/test_repositories.py tests/test_repositories_http.py tests/test_repositories_transport.py
+
+Фактический stdout завершающего targeted прогона:
+........................................................................ [100%]
+72 passed in 4.52s
+
+Уровни: real Git fixture/index/storage/security + deterministic HTTPS boundary + isolated HTTP/real analyst pipeline.
+Подмены: local Git transport только в tests; scripted generate_state вместо LLM; codegen_sandbox=object() в repository testapp.
+Provider LLM, private credential provider, браузер, CI: NOT_RUN.

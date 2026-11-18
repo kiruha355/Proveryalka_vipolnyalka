@@ -1,5 +1,5 @@
 import type {
-  ArtifactEntry, ExplanationView, Model, ModelVersion, Question, Run, RunEvent, VerificationResult,
+  AgentRunTrace, ArtifactEntry, ExplanationView, Model, ModelVersion, Question, Run, RunEvent, VerificationResult,
 } from "../api/types";
 import type { StreamStatus } from "./runTracker";
 
@@ -17,6 +17,7 @@ export interface RunFailure {
 }
 
 export interface AgentRunView {
+  trace?: AgentRunTrace;
   runId: string;
   text: string;
   questionId: string | null;

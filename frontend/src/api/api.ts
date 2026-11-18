@@ -1,5 +1,5 @@
 import type {
-  ArtifactEntry, FileContextRef, DocumentSource, DialogueView, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session, SessionDetail,
+  AgentRunTracePage, ArtifactEntry, FileContextRef, DocumentSource, DialogueView, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session, SessionDetail,
 } from "./types";
 
 export interface ApiCapabilities {
@@ -20,6 +20,7 @@ export interface ApiCapabilities {
   dialogue?: boolean;
   explanations?: boolean;
   fileDialogue?: boolean;
+  agentTrace?: boolean;
 }
 
 export const DOCUMENT_TYPES = [".txt", ".md", ".docx"] as const;
@@ -52,6 +53,8 @@ export interface ProveryalkaApi {
   retryExplanation?(runId: string, key: string, signal?: AbortSignal): Promise<Run>;
 
   getRun(runId: string, signal?: AbortSignal): Promise<Run>;
+  /** Paginated persisted public traces, newest first. Only when agentTrace is advertised. */
+  listAgentRuns?(sessionId: string, before?: number | null, signal?: AbortSignal): Promise<AgentRunTracePage>;
   cancelRun(runId: string, signal?: AbortSignal): Promise<Run>;
   /** Replays events with event_id > after, then follows the live stream until the server closes it. */
   streamEvents(runId: string, after: number, signal: AbortSignal): AsyncIterable<RunEvent>;

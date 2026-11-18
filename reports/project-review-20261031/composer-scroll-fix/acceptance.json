@@ -1,0 +1,36 @@
+{
+  "ui_revision": 9,
+  "bundle": "/assets/index-DN6NdCMa.js",
+  "frontend_tests": {
+    "pass": 55,
+    "skipped_optin_http": 1,
+    "typecheck": "PASS",
+    "build": "PASS"
+  },
+  "native_source_build": {
+    "html_height": 800,
+    "body_height": 800,
+    "viewport_height": 800,
+    "window_scroll_after_outer2400": 0,
+    "chat_scroll_after_internal": 5199,
+    "footer_bottom": 800,
+    "graph_height": 563.5,
+    "top_expand_buttons": 0,
+    "label_z_index": 3
+  },
+  "live_demo": {
+    "session_id": "s_a02fa95ea45942bf86debd94b11ca368",
+    "agent_runs": 1,
+    "states": [
+      "completed"
+    ],
+    "provider": "codex/gpt-6.1-sol/xhigh",
+    "new_calls": 1,
+    "selected_demo_answer": "Начальное состояние",
+    "draft_restored_after_reload": true,
+    "question_restored_after_reload": true,
+    "send_enabled": true,
+    "answer_sent": false
+  },
+  "proof_boundary": "Native UI used for initial real request and draft insertion; no new TLC or codegen/Docker test run for this fresh clarification-only session."
+}

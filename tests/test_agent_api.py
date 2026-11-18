@@ -44,10 +44,12 @@ def test_agent_persists_version_and_replays_without_rerun(tmp_path):
         stream = client.get(f'/api/runs/{run_id}/events').text
         assert 'event: model_proposed' in stream and 'event: run_finished' in stream
         events = [json.loads(line[6:]) for line in stream.splitlines() if line.startswith('data: ')]
-        assert [e["event_id"] for e in events] == [1,2,3,4]
-        assert [e["type"] for e in events] == ["dialogue_updated","model_proposed","message_delta","run_finished"]
-        assert events[1]["data"]["changed"] is True
-        assert client.get(f'/api/runs/{run_id}/events',headers={"Last-Event-ID":"1"}).text.count('data: ') == 3
+        assert [e["event_id"] for e in events] == list(range(1,len(events)+1))
+        business_events = [e for e in events if e["type"] != "activity"]
+        assert [e["type"] for e in business_events] == ["dialogue_updated","model_proposed","message_delta","run_finished"]
+        assert business_events[1]["data"]["changed"] is True
+        assert all(event["created_at"] for event in events)
+        assert client.get(f'/api/runs/{run_id}/events',headers={"Last-Event-ID":"1"}).text.count('data: ') == len(events)-1
         assert client.get(f'/api/runs/{run_id}/events',headers={"Last-Event-ID":"99"}).status_code == 409
         assert client.post(url,json={"text":"Analyze"},headers={"Idempotency-Key":"message"}).json() == response.json()
         assert analyst.calls == 1

@@ -6,9 +6,14 @@ export function useExpandedGraph() {
   const shell = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const close = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const open = () => {
+    returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setExpanded(true);
+  };
   useEffect(() => {
     if (!expanded || !shell.current) return;
-    const origin = document.activeElement as HTMLElement | null;
+    const origin = returnFocus.current;
     const previousOverflow = document.body.style.overflow;
     const siblings: {element: HTMLElement; inert: string | null}[] = [];
     let current: HTMLElement = shell.current;
@@ -31,7 +36,7 @@ export function useExpandedGraph() {
       if (origin?.isConnected) origin.focus(); else trigger.current?.focus();
     };
   }, [expanded]);
-  return {expanded, setExpanded, shell, trigger, close,
+  return {expanded, setExpanded, open, shell, trigger, close,
     onKeyDownCapture: (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (!expanded) return;
       if (event.key === "Escape") {

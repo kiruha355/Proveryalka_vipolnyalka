@@ -1,0 +1,69 @@
+name: provider-acceptance
+
+# No PR/push trigger and no subscription auth on GitHub-hosted runners.
+on:
+  workflow_dispatch:
+    inputs:
+      endpoint:
+        description: Explicit Responses API base URL (no credentials in URL)
+        type: string
+        required: true
+      model:
+        description: Explicit model ID
+        type: string
+        required: true
+      max_calls:
+        description: Maximum paid Responses requests (1..10)
+        type: number
+        default: 6
+      max_output_tokens:
+        description: Output token cap per request (256..8192)
+        type: number
+        default: 4096
+      seconds:
+        description: Total wall budget (10..900 seconds)
+        type: number
+        default: 600
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    # Configure this environment's deployment protection and PROVIDER_API_KEY
+    # explicitly before dispatch. No local auth files are uploaded or mounted.
+    environment: provider-acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Dependencies and pinned TLC
+        run: |
+          pip install -r requirements-runtime.lock
+          pip install --no-deps -e .
+          sh scripts/fetch_tla2tools.sh
+      - name: Explicit provider acceptance with request and token budget
+        env:
+          PROVERYALKA_LLM_PROVIDER: openai
+          OPENAI_BASE_URL: ${{ inputs.endpoint }}
+          OPENAI_MODEL: ${{ inputs.model }}
+          OPENAI_API_KEY: ${{ secrets.PROVIDER_API_KEY }}
+          OPENAI_AGENTS_DISABLE_TRACING: "1"
+          MAX_CALLS: ${{ inputs.max_calls }}
+          MAX_OUTPUT_TOKENS: ${{ inputs.max_output_tokens }}
+          SECONDS_BUDGET: ${{ inputs.seconds }}
+        run: python -m proveryalka.delivery_provider --confirm-provider-spend --output evidence/provider --max-calls "$MAX_CALLS" --max-output-tokens "$MAX_OUTPUT_TOKENS" --seconds "$SECONDS_BUDGET"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: provider-receipt
+          # SQLite/provider session history stays private and is never uploaded.
+          path: evidence/provider/receipt.json
+          if-no-files-found: ignore

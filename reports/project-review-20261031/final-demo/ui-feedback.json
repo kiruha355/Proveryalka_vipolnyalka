@@ -1,0 +1,46 @@
+{
+  "updated_at": "2026-10-31T10:37:33.918262+00:00",
+  "frontend": {
+    "passed": 38,
+    "skipped_optin_http": 1,
+    "types_build": "PASS"
+  },
+  "extensions": {
+    "passed": 108,
+    "types_build": "PASS"
+  },
+  "backend": "unchanged since 513PASS integration",
+  "ui": "5",
+  "file_view_geometry": {
+    "before": {
+      "workspace_client": 717,
+      "workspace_scroll": 1561,
+      "files_height": 1514.6
+    },
+    "after": {
+      "workspace_client": 717,
+      "workspace_scroll": 717,
+      "files_height": 670.5
+    }
+  },
+  "graph": {
+    "close_button": "30x30 SVG X",
+    "escape": "PASS",
+    "focus_return": "PASS"
+  },
+  "message_formatting": "escaped code fences, inline code, emphasis; no raw HTML execution",
+  "publication": "index atomically replaced after copying assets; previous assets retained",
+  "sandbox": {
+    "status": "ready",
+    "image_id": "sha256:e052badb7925dc75a36c07a7f952c038946f277f7dd96970baf3a3b74dbcd1d6",
+    "repair": "docker tag same known image ID to existing content-derived tag repaired tag lookup; no build/restart/prune"
+  },
+  "user_acceptance": "PENDING",
+  "integrated_native_ui_docker": {
+    "test_run_id": "trun_fe56347d07154d83815d3f677f500ac5",
+    "generation_id": "gen_4a0e6747e0614dd384e9295275bcf9ae",
+    "status": "passed",
+    "passed": 54,
+    "total": 54
+  }
+}

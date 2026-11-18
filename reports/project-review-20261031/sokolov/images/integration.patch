@@ -1,0 +1,48 @@
+--- a/src/proveryalka/storage/sqlite.py
++++ b/src/proveryalka/storage/sqlite.py
+@@ -46,9 +46,9 @@
+             connection.execute("PRAGMA journal_mode=WAL")
+             connection.execute("BEGIN IMMEDIATE")
+             version = connection.execute("PRAGMA user_version").fetchone()[0]
+-            if version > 6:
++            if version > 7:
+                 raise RuntimeError("Database schema is newer than this application")
+-            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql"), (5, "005_documents_explanations.sql"), (6, "006_codegen.sql")]:
++            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql"), (5, "005_documents_explanations.sql"), (6, "006_codegen.sql"), (7, "007_images.sql")]:
+                 if version >= target:
+                     continue
+                 migration = Path(__file__).with_name("migrations") / filename
+--- a/src/proveryalka/api/app.py
++++ b/src/proveryalka/api/app.py
+@@ -254,6 +254,11 @@
+         router = create_codegen_router(store, codegen_settings or CodegenSettings.from_env(), codegen_sandbox)
+         app.state.codegen = router.codegen
+         app.include_router(router)
++    if store is not None:
++        from ..images import create_images_router
++        images_router = create_images_router(store)
++        app.state.images = images_router.images
++        app.include_router(images_router)
+     return app
+
+
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -13,6 +13,7 @@
+     "openai-agents==0.24.0",
+     "python-dotenv==1.2.4",
+     "python-multipart==0.0.32",
++    "Pillow==12.1.1",
+ ]
+
+ [project.optional-dependencies]
+--- a/requirements-runtime.lock
++++ b/requirements-runtime.lock
+@@ -25,6 +25,7 @@
+ openai-agents==0.24.0
+ opentelemetry-api==1.45.2
+ packaging==26.3
++Pillow==12.1.1
+ pluggy==1.7.0
+ pycparser==3.12
+ pydantic==2.14.1

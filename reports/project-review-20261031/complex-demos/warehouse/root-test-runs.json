@@ -1,0 +1,2304 @@
+[
+  {
+    "test_run_id": "trun_c8739f60f1094b7a8971509669f35489",
+    "generation_id": "gen_34f32d8d795445359e867e858bec7f04",
+    "session_id": "s_667780e868ab40ccbc04850e04043026",
+    "version_id": "v_2a9cb60dcb45449a81b0149d445dea91",
+    "spec_hash": "a2021739f33d8b1933893d3f40096081cbbb249babd67a7d9eb769bb952efaaf",
+    "code_hash": "3104c794565aaab6894b8ab089b991d68d3ad014b01f8b9cdd6578b6a07623f5",
+    "status": "passed",
+    "error_code": null,
+    "message": "Пройдено 322 из 322",
+    "cancel_requested": false,
+    "timeout_seconds": 120.0,
+    "created_at": "2026-10-31T11:49:59.243116+00:00",
+    "started_at": "2026-10-31T11:49:59.245337+00:00",
+    "finished_at": "2026-10-31T11:50:00.183155+00:00",
+    "duration_seconds": 0.934,
+    "exit_code": 0,
+    "counts": {
+      "total": 322,
+      "passed": 322,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "cases": [
+      {
+        "name": "test_model_endpoint_links_version_and_requirements",
+        "classname": "tests.test_api",
+        "outcome": "passed",
+        "duration_seconds": 0.004,
+        "message": null
+      },
+      {
+        "name": "test_initial_state",
+        "classname": "tests.test_api",
+        "outcome": "passed",
+        "duration_seconds": 0.002,
+        "message": null
+      },
+      {
+        "name": "test_event_sequence_over_http",
+        "classname": "tests.test_api",
+        "outcome": "passed",
+        "duration_seconds": 0.006,
+        "message": null
+      },
+      {
+        "name": "test_reset_returns_initial_state",
+        "classname": "tests.test_api",
+        "outcome": "passed",
+        "duration_seconds": 0.003,
+        "message": null
+      },
+      {
+        "name": "test_disabled_event_is_rejected_and_state_kept",
+        "classname": "tests.test_api",
+        "outcome": "passed",
+        "duration_seconds": 0.003,
+        "message": null
+      },
+      {
+        "name": "test_unknown_transition_returns_404",
+        "classname": "tests.test_api",
+        "outcome": "passed",
+        "duration_seconds": 0.002,
+        "message": null
+      },
+      {
+        "name": "test_revision_conflict_returns_409",
+        "classname": "tests.test_api",
+        "outcome": "passed",
+        "duration_seconds": 0.002,
+        "message": null
+      },
+      {
+        "name": "test_request_body_is_validated",
+        "classname": "tests.test_api",
+        "outcome": "passed",
+        "duration_seconds": 0.003,
+        "message": null
+      },
+      {
+        "name": "test_evaluate_rejects_invalid_state",
+        "classname": "tests.test_api",
+        "outcome": "passed",
+        "duration_seconds": 0.002,
+        "message": null
+      },
+      {
+        "name": "test_initial_state_matches_model",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[available-boolean_instead_of_integer]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[available-string_instead_of_integer]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[available-below_minimum]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[available-above_maximum]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[reserved-boolean_instead_of_integer]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[reserved-string_instead_of_integer]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[reserved-below_minimum]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[reserved-above_maximum]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[shipped-boolean_instead_of_integer]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[shipped-string_instead_of_integer]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[shipped-below_minimum]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[shipped-above_maximum]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[status-integer_instead_of_enum]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[status-value_outside_enum]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[paid-integer_instead_of_boolean]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[paid-string_instead_of_boolean]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[missing_variable]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_invalid_state_is_rejected[unknown_variable]",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_state_must_be_an_object",
+        "classname": "tests.test_domain",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_model_file_matches_spec_hash",
+        "classname": "tests.test_provenance",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_rules_follow_model_transitions",
+        "classname": "tests.test_provenance",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_variables_follow_model",
+        "classname": "tests.test_provenance",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_requirement_references_exist",
+        "classname": "tests.test_provenance",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_Reserve_applies_effects_and_keeps_other_variables",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_Reserve_rejected_when_guard_is_false",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_Pay_applies_effects_and_keeps_other_variables",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_Pay_rejected_when_guard_is_false",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_Ship_applies_effects_and_keeps_other_variables",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_Ship_rejected_when_guard_is_false",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_Cancel_applies_effects_and_keeps_other_variables",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_Cancel_rejected_when_guard_is_false",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r0-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r0-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r0-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r0-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r1-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r1-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r1-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r1-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r2-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r2-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r2-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r2-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r3-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r3-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r3-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r3-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r4-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r4-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r4-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r4-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r5-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r5-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r5-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[r5-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b0-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b0-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b0-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b0-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b1-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b1-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b1-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b1-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b2-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b2-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b2-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b2-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b3-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b3-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b3-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b3-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b4-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b4-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b4-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b4-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b5-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b5-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b5-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b5-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b6-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b6-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b6-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b6-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b7-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b7-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b7-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b7-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b8-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b8-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b8-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b8-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b9-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b9-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b9-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b9-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b10-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b10-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b10-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b10-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b11-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b11-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b11-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b11-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b12-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b12-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b12-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b12-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b13-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b13-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b13-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b13-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b14-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b14-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b14-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b14-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b15-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b15-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b15-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b15-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b16-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b16-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b16-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b16-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b17-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b17-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b17-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b17-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b18-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b18-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b18-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b18-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b19-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b19-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b19-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b19-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b20-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b20-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b20-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b20-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b21-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b21-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b21-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b21-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b22-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b22-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b22-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b22-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b23-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b23-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b23-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b23-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b24-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b24-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b24-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b24-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b25-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b25-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b25-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b25-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b26-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b26-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b26-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b26-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b27-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b27-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b27-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b27-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b28-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b28-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b28-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b28-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b29-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b29-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b29-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b29-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b30-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b30-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b30-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b30-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b31-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b31-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b31-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b31-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b32-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b32-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b32-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b32-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b33-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b33-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b33-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b33-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b34-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b34-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b34-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b34-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b35-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b35-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b35-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b35-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b36-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b36-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b36-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b36-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b37-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b37-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b37-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b37-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b38-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b38-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b38-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b38-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b39-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b39-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b39-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b39-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b40-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b40-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b40-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b40-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b41-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b41-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b41-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b41-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b42-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b42-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b42-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b42-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b43-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b43-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b43-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b43-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b44-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b44-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b44-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b44-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b45-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b45-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b45-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b45-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b46-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b46-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b46-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b46-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b47-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b47-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b47-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b47-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b48-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b48-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b48-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b48-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b49-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b49-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b49-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b49-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b50-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b50-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b50-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b50-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b51-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b51-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b51-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b51-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b52-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b52-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b52-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b52-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b53-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b53-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b53-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b53-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b54-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b54-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b54-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b54-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b55-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b55-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b55-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b55-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b56-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b56-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b56-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b56-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b57-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b57-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b57-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b57-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b58-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b58-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b58-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b58-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b59-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b59-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b59-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b59-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b60-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b60-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b60-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b60-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b61-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b61-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b61-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b61-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b62-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b62-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b62-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b62-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b63-Reserve]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b63-Pay]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b63-Ship]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_conformance_table[b63-Cancel]",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      },
+      {
+        "name": "test_unknown_transition_is_rejected",
+        "classname": "tests.test_transitions",
+        "outcome": "passed",
+        "duration_seconds": 0.0,
+        "message": null
+      }
+    ],
+    "sandbox": {
+      "engine": "docker",
+      "image": "proveryalka-codegen-sandbox:4d76b97118d8df7e",
+      "network": "none",
+      "read_only_root": true,
+      "user": "10001:10001",
+      "capabilities": [],
+      "no_new_privileges": true,
+      "memory_mb": 512,
+      "swap_mb": 0,
+      "cpus": 1.0,
+      "pids_limit": 128,
+      "tmpfs_mb": 64,
+      "project_mount": "read-only",
+      "engine_version": "29.1.3",
+      "image_id": "sha256:6fdebb606d496710b22904bd5c416dc5f6a579040c5bdad5ecaea67b68ae1ef3",
+      "container_exit_code": 0,
+      "oom_killed": false
+    },
+    "log_available": true,
+    "log_truncated": false
+  }
+]

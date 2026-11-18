@@ -224,16 +224,36 @@ export interface CheckRequest {
 // ---- Run events (SSE) ----
 
 export type RunEventType =
-  | "message_delta" | "tool_call" | "clarification_requested" | "model_proposed"
+  | "activity" | "message_delta" | "tool_call" | "clarification_requested" | "model_proposed"
   | "dialogue_updated" | "explanation_queued" | "explanation_started" | "explanation_ready"
   | "check_started" | "check_finished" | "file_written" | "run_finished" | "error";
 
 export interface RunEvent {
+  /** Persisted server timestamp; older recordings may omit it. */
+  created_at?: string | null;
   event_id: number;
   run_id: string;
   session_id: string;
   type: RunEventType;
   data: Record<string, unknown>;
+}
+
+/** Safe persisted projection of one actual agent run, independent of browser storage. */
+export interface AgentRunTrace {
+  run: Run;
+  input_entry_id: string | null;
+  reply_entry_id: string | null;
+  source_id: string | null;
+  created_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  events: RunEvent[];
+  events_truncated: boolean;
+}
+
+export interface AgentRunTracePage {
+  runs: AgentRunTrace[];
+  next_cursor: number | null;
 }
 
 // ---- Analyst dialogue (stored in SessionDetail.messages) ----
