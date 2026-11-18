@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from ..checker import TLCChecker
+from .artifacts import ArtifactAPI
 from ..storage.sqlite import SQLiteBackend
 from ..verification.contracts import VerificationRequest
 
@@ -12,6 +13,7 @@ class ApplicationBackend(SQLiteBackend):
     def __init__(self, store, settings, checker=None):
         super().__init__(store)
         self.checker = checker or TLCChecker(settings)
+        self.artifacts = ArtifactAPI(store, settings.artifacts_path)
         self.loop = None
         self.tasks = {}
 
@@ -44,6 +46,8 @@ class ApplicationBackend(SQLiteBackend):
             await asyncio.gather(*list(self.tasks.values()), return_exceptions=True)
 
     def call(self, operation, **arguments):
+        if operation in ("list_artifacts", "get_artifact"):
+            return getattr(self.artifacts, operation)(**arguments)
         if operation == "create_check":
             run = self.store.create_check(**arguments)
             self.loop.call_soon_threadsafe(self.schedule, run["run_id"])
