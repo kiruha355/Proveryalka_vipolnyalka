@@ -49,7 +49,11 @@ def test_upgrade_existing_codegen_database_mounts_sources_and_preserves_versions
             connection.executescript((migrations / filename).read_text())
         connection.execute("PRAGMA user_version=6")
     store = SQLiteStore(path)
-    session, model, spec = setup_model(store)
+    # Seed using the old schema, not the new owner-aware session writer.
+    session = {"id":"legacy-session", "title":"Versions", "mode":"analyzer", "created_at":"2026-01-01T00:00:00+00:00"}
+    with sqlite3.connect(path) as connection:
+        connection.execute("INSERT INTO sessions(id,title,mode,created_at) VALUES (:id,:title,:mode,:created_at)",session)
+    session, model, spec = setup_model(store, session)
     original = store.create_version(model["id"], {"spec": spec}, "original-version")
     git = GitFixture(tmp_path / "repo")
     git.write("requirements.md", "unselected first\nselected requirement\nunselected last\n")
@@ -89,7 +93,7 @@ def test_upgrade_existing_codegen_database_mounts_sources_and_preserves_versions
         assert client.get(f"/api/sessions/{sid}/repositories").json()[0] == snapshot
         assert client.get(f"/api/models/{model['id']}/versions/1").json() == original
     with sqlite3.connect(path) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 9
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 10
 
 
 def _rpc(response):

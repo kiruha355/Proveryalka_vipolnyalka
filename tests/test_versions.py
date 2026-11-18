@@ -10,8 +10,8 @@ from proveryalka.services import ServiceError
 from proveryalka.storage.sqlite import SQLiteStore
 
 
-def setup_model(store):
-    session = store.create_session({"title": "Versions"}, "s")
+def setup_model(store, session=None):
+    session = session or store.create_session({"title": "Versions"}, "s")
     spec = json.loads(Path("tests/fixtures/models/order.json").read_text())
     for source in spec["sources"]:
         old_id = source["id"]
