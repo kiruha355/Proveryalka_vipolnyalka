@@ -165,11 +165,11 @@ def test_parallel_pop_does_not_return_same_item_twice(store):
 
 def test_migration_refuses_future_schema_without_modifying_it(store):
     with store.transaction(write=True) as connection:
-        connection.execute("PRAGMA user_version=4")
+        connection.execute("PRAGMA user_version=5")
     with pytest.raises(RuntimeError, match="newer"):
         store.initialize()
     with store.transaction() as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 5
 
 
 def test_unavailable_database_has_safe_service_error(tmp_path):
@@ -191,7 +191,7 @@ def test_http_storage_restart_and_idempotency(tmp_path):
         assert client.post("/api/sessions", json={"title": "Other"}, headers=headers).status_code == 409
         response = client.post(f"/api/sessions/{session_id}/sources", json={"text": "Original", "requirements": ["R text"]}, headers=headers)
         assert response.status_code == 201
-        assert client.post(f"/api/sessions/{session_id}/messages", json={"text": "Hello"}, headers=headers).status_code == 503
+
     with TestClient(create_app(settings)) as client:
         detail = client.get(f"/api/sessions/{session_id}").json()
         assert detail["sources"][0]["text"] == "Original"

@@ -25,10 +25,11 @@ def create_app(
     behavioral_model: Type[BaseModel] = BehavioralModel,
     verification_result: Type[BaseModel] = VerificationResult,
     checker=None,
+    analyst=None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
     store = SQLiteStore(settings.database_path) if backend is None else None
-    adapter = backend if backend is not None else ApplicationBackend(store, settings, checker)
+    adapter = backend if backend is not None else ApplicationBackend(store, settings, checker, analyst)
 
     @asynccontextmanager
     async def lifespan(app):
