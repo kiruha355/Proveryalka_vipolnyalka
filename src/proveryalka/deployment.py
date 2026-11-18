@@ -17,6 +17,7 @@ from starlette.staticfiles import StaticFiles
 from .api.app import create_app
 from .config import Settings
 from .runtime import diagnose
+from .checker.runner import EngineUnavailable
 
 
 def check_frontend(directory: Path):
@@ -73,6 +74,9 @@ def main(argv=None):
         settings = Settings.from_env()
         result = asyncio.run(diagnose(settings))
         app = create_deployment(settings, args.frontend_dist)
+    except EngineUnavailable as error:
+        print(json.dumps({"status":"not_ready", "reason":str(error)},ensure_ascii=False))
+        return 1
     except Exception as error:
         # Exception messages can contain external settings; keep startup output bounded.
         print(json.dumps({"status": "not_ready", "error_type": type(error).__name__,

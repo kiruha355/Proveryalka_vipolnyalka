@@ -9,7 +9,6 @@ import asyncio
 import json
 import os
 import shutil
-import signal
 import tempfile
 from uuid import uuid4
 
@@ -17,6 +16,7 @@ from agents import Model, ModelResponse
 from agents.usage import Usage
 from openai.types.responses import ResponseOutputMessage, ResponseOutputText
 
+from ..processes import process_options, terminate
 from .errors import AgentError
 
 
@@ -72,6 +72,8 @@ class CodexClient:
         executable = shutil.which(self.command)
         if executable is None:
             raise AgentError("PROVIDER_UNAVAILABLE", "Codex CLI не найден; установите его или укажите PROVERYALKA_CODEX_BIN")
+        if executable.lower().endswith(('.cmd','.bat')):
+            raise AgentError("PROVIDER_UNAVAILABLE", "Укажите PROVERYALKA_CODEX_BIN полным путём к codex.exe, без cmd/bat оболочки")
         # Пустой каталог: аналитику не нужен доступ к файлам проекта или чужим сессиям.
         self.workdir = tempfile.mkdtemp(prefix="proveryalka-codex-")
         arguments = [executable, "app-server", "--listen", "stdio://", "-c", 'web_search="disabled"']
@@ -81,7 +83,7 @@ class CodexClient:
             self.process = await asyncio.create_subprocess_exec(
                 *arguments, cwd=self.workdir, stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                start_new_session=True, limit=16 * 1024 * 1024,
+                **process_options(), limit=16 * 1024 * 1024,
             )
         except OSError as error:
             await self.__aexit__(None, None, None)
@@ -106,15 +108,7 @@ class CodexClient:
             if task is not None:
                 task.cancel()
         if self.process is not None and self.process.returncode is None:
-            try:
-                os.killpg(self.process.pid, signal.SIGTERM)
-                await asyncio.wait_for(self.process.wait(), 5)
-            except (ProcessLookupError, TimeoutError):
-                try:
-                    os.killpg(self.process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                await self.process.wait()
+            await terminate(self.process, grace=5)
         for future in self.pending.values():
             if not future.done():
                 future.set_exception(AgentError("PROVIDER_UNAVAILABLE", "Codex app-server остановлен"))

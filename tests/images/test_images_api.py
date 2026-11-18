@@ -87,7 +87,6 @@ def test_reject_paths_urls_symlinks_models_and_extra_fields(client, tmp_path):
     target = tmp_path / "source.png"
     target.write_bytes(image_bytes())
     link = tmp_path / "link.png"
-    link.symlink_to(target)
     # API only accepts multipart bytes; a symlink/path/URL is never opened by the server.
     for body in ({"path": str(link)}, {"url": "file:///etc/passwd"}, {"file": "https://example.com/x.png"}):
         response = client.post(f"/api/sessions/{client.sid}/images", json=body, headers={"Idempotency-Key": "x"})
@@ -205,3 +204,18 @@ def test_corrupt_saved_image_is_not_sent_to_provider(client, provider, store):
     response = analyze(client, source["id"])
     assert response.status_code == 503 and response.json()["error"]["code"] == "IMAGE_SOURCE_CORRUPT"
     assert not provider.inputs
+
+
+def test_reject_existing_symlink_path(client, tmp_path):
+    target = tmp_path / "source.png"
+    target.write_bytes(image_bytes())
+    link = tmp_path / "link.png"
+    try:
+        link.symlink_to(target)
+    except OSError as error:
+        if getattr(error, 'winerror', None) == 1314:
+            pytest.skip("Windows symlink privilege unavailable: enable Developer Mode or run an elevated test shell; path rejection tested separately")
+        raise
+    response = client.post(f"/api/sessions/{client.sid}/images", json={"path": str(link)}, headers={"Idempotency-Key": "symlink"})
+    assert response.status_code == 422
+    assert upload(client,str(link).encode()).status_code == 422
