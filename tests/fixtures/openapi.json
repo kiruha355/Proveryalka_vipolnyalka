@@ -1178,7 +1178,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CheckCreate"
+                "$ref": "#/components/schemas/CheckRequest"
               }
             }
           }
@@ -1727,29 +1727,6 @@
         ],
         "title": "BooleanDomain"
       },
-      "CheckCreate": {
-        "properties": {
-          "property_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array",
-                "maxItems": 1000,
-                "minItems": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Property Ids"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "CheckCreate"
-      },
       "CheckLimits": {
         "properties": {
           "timeout_seconds": {
@@ -1781,6 +1758,32 @@
         "additionalProperties": false,
         "type": "object",
         "title": "CheckLimits"
+      },
+      "CheckRequest": {
+        "properties": {
+          "property_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 1000,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Ids"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/CheckLimits"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CheckRequest"
       },
       "CheckRun": {
         "properties": {
