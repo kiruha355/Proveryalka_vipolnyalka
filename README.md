@@ -215,3 +215,42 @@ PROVERYALKA_AGENT_TIMEOUT ограничивает LLM-run (630 секунд),
 PROVERYALKA_MAX_INPUT_CHARS — текст (100000). Переполнение очереди — HTTP 429,
 повтор уже принятого Idempotency-Key не расходует дополнительное место.
 PROVERYALKA_TLC_PARALLEL отдельно ограничивает процессы свойств внутри проверки.
+
+## Воспроизводимый локальный запуск (#26)
+
+Проверенное окружение: Python 3.12.14, Temurin JRE 21.0.13+9,
+TLA+ Tools v1.8.0 (SHA-256 проверяется scripts/fetch_tla2tools.sh).
+Полный набор Python-зависимостей закреплён в requirements-runtime.lock.
+На чистой машине установите Python 3.12 и Temurin 21, затем из корня:
+
+```sh
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements-runtime.lock
+.venv/bin/python -m pip install --no-deps -e .
+sh scripts/fetch_tla2tools.sh
+cp .env.example .env
+# Укажите ключ/адрес/модель LLM; секреты не коммитятся.
+sh scripts/run-server.sh
+```
+
+Это документированный локальный вариант поставки, без Docker.
+Если Java не в PATH, укажите абсолютный PROVERYALKA_JAVA в .env.
+`python -m proveryalka.runtime` проверяет SQLite, запись артефактов, Java и jar
+до запуска сервера; ключ LLM не проверяется запросом и не выводится.
+`/health` означает живой HTTP-процесс, `/ready` — доступные SQLite и TLC;
+agent_configured отражает наличие настроек, а не успешную авторизацию LLM.
+
+Каталог data/ постоянный: SQLite, материалы проверок, кэш. Не удаляйте его
+между запусками; для переноса используйте резервную копию SQLite при остановленном
+сервере вместе с артефактами. Миграции применяются автоматически. Один процесс
+сервера на одну БД; запуск нескольких workers не поддерживается. Ctrl+C
+останавливает агентные операции и дочерние TLC, дожидаясь сохранения статусов.
+
+```sh
+PROVERYALKA_REQUIRE_TLC=1 .venv/bin/python -m pytest -q
+```
+
+`tests/test_api_tlc.py` проверяет оба acceptance scenarios через HTTP: создание
+сессии/источника/версии, реальный TLC, результат, файлы и сохранение после
+перезапуска. Для реального LLM нужны внешние учётные данные; детерминированные
+тесты агента выполняются с тестовым провайдером и не расходуют API-бюджет.
