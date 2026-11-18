@@ -74,6 +74,7 @@ class Run(Contract):
     session_id: str
     state: Literal["queued", "running", "cancelling", "cancelled", "completed", "failed"]
     version_id: Optional[str] = None
+    error_code: Optional[str] = None
 
 
 class CheckCreate(Contract):

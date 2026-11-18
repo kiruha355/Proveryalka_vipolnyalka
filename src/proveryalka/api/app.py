@@ -61,7 +61,7 @@ def create_app(
         "CheckRun", __base__=Contract, run=(Run, ...),
         results=(list[Result], ...),
     )
-    errors = {code: {"model": ErrorResponse} for code in (404, 409, 422, 503)}
+    errors = {code: {"model": ErrorResponse} for code in (404, 409, 422, 429, 503)}
     errors[422]["description"] = "Unprocessable Entity"
 
     @app.exception_handler(ServiceError)
