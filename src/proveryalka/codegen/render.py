@@ -223,8 +223,8 @@ def render_api_tests(model, exploration):
     ids = [transition.id for transition in model.transitions]
     source = Source()
     source.add('"""HTTP API: модель, состояние, применение событий и отказы."""',
-               "from fastapi.testclient import TestClient", "",
-               "from app.api import create_app",
+               "import pytest", "from fastapi.testclient import TestClient", "",
+               "from app.api import create_app", "from app.config import API_PREFIX",
                "from app.spec import SPEC_HASH, VERSION_ID", "", "",
                f"INITIAL = {literal(initial)}",
                f"INITIAL_ENABLED = {literal(tuple(enabled))}",
@@ -233,55 +233,52 @@ def render_api_tests(model, exploration):
     for transition_id, state in steps:
         source.add(f"    ({literal(transition_id)}, {literal(state)}),")
     source.add(")", "", "",
-               "def client():",
-               "    return TestClient(create_app())", "", "",
-               "def test_model_endpoint_links_version_and_requirements():",
-               '    body = client().get("/model").json()',
+               "@pytest.fixture", "def api(tmp_path):",
+               "    with TestClient(create_app(tmp_path / 'state.db')) as client:", "        yield client", "", "",
+               "def test_model_endpoint_links_version_and_requirements(api):",
+               '    body = api.get(API_PREFIX + "/model").json()',
                '    assert body["version_id"] == VERSION_ID',
                '    assert body["spec_hash"] == SPEC_HASH',
                '    assert {item["id"]: tuple(item["requirement_ids"]) for item in body["transitions"]} == TRANSITIONS', "", "",
-               "def test_initial_state():",
-               '    assert client().get("/state").json() == {"state": INITIAL, "revision": 0, "enabled": list(INITIAL_ENABLED)}', "", "")
+               "def test_initial_state(api):",
+               '    assert api.get(API_PREFIX + "/state").json() == {"state": INITIAL, "revision": 0, "enabled": list(INITIAL_ENABLED)}', "", "")
     if steps:
-        source.add("def test_event_sequence_over_http():",
-                   "    api = client()",
+        source.add("def test_event_sequence_over_http(api):",
                    "    for revision, (transition_id, expected) in enumerate(PATH, start=1):",
-                   '        response = api.post("/events", json={"transition": transition_id, "expected_revision": revision - 1})',
+                   '        response = api.post(API_PREFIX + "/events", json={"transition": transition_id, "expected_revision": revision - 1})',
                    "        assert response.status_code == 200, response.text",
                    '        assert response.json()["state"] == expected',
                    '        assert response.json()["revision"] == revision',
-                   '    assert api.get("/state").json()["state"] == PATH[-1][1]', "", "",
-                   "def test_reset_returns_initial_state():",
-                   "    api = client()",
-                   '    api.post("/events", json={"transition": PATH[0][0]})',
-                   '    body = api.post("/reset").json()',
+                   '    assert api.get(API_PREFIX + "/state").json()["state"] == PATH[-1][1]', "", "",
+                   "def test_reset_returns_initial_state(api):",
+                   '    api.post(API_PREFIX + "/events", json={"transition": PATH[0][0]})',
+                   '    body = api.post(API_PREFIX + "/reset").json()',
                    '    assert body["state"] == INITIAL', "", "")
     if blocked is not None:
-        source.add("def test_disabled_event_is_rejected_and_state_kept():",
-                   "    api = client()",
-                   f'    response = api.post("/events", json={{"transition": {literal(blocked)}}})',
+        source.add("def test_disabled_event_is_rejected_and_state_kept(api):",
+                   f'    response = api.post(API_PREFIX + "/events", json={{"transition": {literal(blocked)}}})',
                    "    assert response.status_code == 409",
                    '    assert response.json()["error"]["code"] == "TRANSITION_NOT_ENABLED"',
-                   '    assert api.get("/state").json() == {"state": INITIAL, "revision": 0, "enabled": list(INITIAL_ENABLED)}', "", "")
+                   '    assert api.get(API_PREFIX + "/state").json() == {"state": INITIAL, "revision": 0, "enabled": list(INITIAL_ENABLED)}', "", "")
     if outside is not None:
-        source.add("def test_evaluate_reports_effect_out_of_domain():",
-                   f'    response = client().post("/evaluate", json={{"state": {literal(outside.state)}, "transition": {literal(outside.transition)}}})',
+        source.add("def test_evaluate_reports_effect_out_of_domain(api):",
+                   f'    response = api.post(API_PREFIX + "/evaluate", json={{"state": {literal(outside.state)}, "transition": {literal(outside.transition)}}})',
                    "    assert response.status_code == 409",
                    '    assert response.json()["error"]["code"] == "EFFECT_OUT_OF_DOMAIN"', "", "")
     probe = ids[0] if ids else "__unknown__"
-    source.add("def test_unknown_transition_returns_404():",
-               '    response = client().post("/events", json={"transition": "__unknown__"})',
+    source.add("def test_unknown_transition_returns_404(api):",
+               '    response = api.post(API_PREFIX + "/events", json={"transition": "__unknown__"})',
                "    assert response.status_code == 404",
                '    assert response.json()["error"]["code"] == "UNKNOWN_TRANSITION"', "", "",
-               "def test_revision_conflict_returns_409():",
-               f'    response = client().post("/events", json={{"transition": {literal(probe)}, "expected_revision": 99}})',
+               "def test_revision_conflict_returns_409(api):",
+               f'    response = api.post(API_PREFIX + "/events", json={{"transition": {literal(probe)}, "expected_revision": 99}})',
                "    assert response.status_code == 409",
                '    assert response.json()["error"]["code"] == "REVISION_CONFLICT"', "", "",
-               "def test_request_body_is_validated():",
-               '    assert client().post("/events", json={"transition": 1}).status_code == 422',
-               '    assert client().post("/events", json={"transition": "x", "extra": True}).status_code == 422', "", "",
-               "def test_evaluate_rejects_invalid_state():",
-               '    response = client().post("/evaluate", json={"state": {}, "transition": "__unknown__"})',
+               "def test_request_body_is_validated(api):",
+               '    assert api.post(API_PREFIX + "/events", json={"transition": 1}).status_code == 422',
+               '    assert api.post(API_PREFIX + "/events", json={"transition": "x", "extra": True}).status_code == 422', "", "",
+               "def test_evaluate_rejects_invalid_state(api):",
+               '    response = api.post(API_PREFIX + "/evaluate", json={"state": {}, "transition": "__unknown__"})',
                "    assert response.status_code == 422",
                '    assert response.json()["error"]["code"] == "INVALID_STATE"')
     return source
@@ -307,7 +304,8 @@ VERIFICATION_TEXT = {
 }
 
 
-def render_readme(model, provenance, verification, coverage, rules_elements, files):
+def render_readme(model, provenance, verification, coverage, rules_elements, files, api_prefix="", storage="memory",
+                  application_mode="template"):
     lines = {element["id"]: element["start_line"] for element in rules_elements}
     out = [f"# {markdown(model.name)}", "",
            f"Сервис сгенерирован `{GENERATOR}` из согласованной версии модели. Изменения правил вносятся новой версией модели и повторной генерацией.", "",
@@ -324,13 +322,32 @@ def render_readme(model, provenance, verification, coverage, rules_elements, fil
            "```", "",
            "## API", "",
            "| Метод | Путь | Назначение |", "|---|---|---|",
-           "| GET | `/model` | Переменные, области, переходы, ссылки на требования, version_id, spec_hash |",
-           "| GET | `/state` | Текущее состояние, номер ревизии, доступные переходы |",
-           "| POST | `/events` | `{\"transition\": id, \"expected_revision\"?: n}`: применить событие; 404 неизвестный переход, 409 условие ложно, выход за область или конфликт ревизии |",
-           "| POST | `/evaluate` | `{\"state\": {...}, \"transition\": id}`: вычислить переход без изменения состояния сервиса; 422 при недопустимом состоянии |",
-           "| POST | `/reset` | Вернуть начальное состояние |", "",
+           f"| GET | `{api_prefix}/model` | Переменные, области, переходы, ссылки на требования, version_id, spec_hash |",
+           f"| GET | `{api_prefix}/state` | Текущее состояние, номер ревизии, доступные переходы |",
+           f"| POST | `{api_prefix}/events` | `{{\"transition\": id, \"expected_revision\"?: n}}`: применить событие; 404 неизвестный переход, 409 условие ложно, выход за область или конфликт ревизии |",
+           f"| POST | `{api_prefix}/evaluate` | `{{\"state\": {{...}}, \"transition\": id}}`: вычислить переход без изменения состояния сервиса; 422 при недопустимом состоянии |",
+           f"| POST | `{api_prefix}/reset` | Вернуть начальное состояние |", "",
            "## Переходы и требования", "",
            "| Переход | Название | Требования | Присваивает | Код |", "|---|---|---|---|---|"]
+    if storage == "sqlite":
+        index = out.index("## API")
+        out[index:index] = ["## Хранилище SQLite", "",
+                            "Установите `SERVICE_STATE_DB` в путь к файлу на постоянном диске "
+                            "(по умолчанию `service-state.sqlite3` в рабочем каталоге). "
+                            "Таблица инициализируется при первом обращении к состоянию.", "",
+                            "Укажите `?instance_id=<идентификатор>` в запросах состояния, событий и сброса. "
+                            "Идентификатор содержит до 128 букв ASCII, цифр, дефисов и подчёркиваний. "
+                            "Без параметра используется `default`. Экземпляр записывается при первом успешном изменении. "
+                            "Ревизии независимы, а переход с проверкой ревизии выполняется в одной транзакции.", ""]
+    if application_mode == "agent":
+        index = out.index("## Переходы и требования")
+        out[index:index] = [
+            "## Прикладные действия", "",
+            f"Получите список имён и переходов через `GET {api_prefix}/actions`. "
+            f"Вызов `POST {api_prefix}/actions/{{action}}` принимает необязательные "
+            "`expected_revision` в теле и `instance_id` в строке запроса. "
+            "Действие применяет привязанный переход с его обычными проверками.", "",
+        ]
     for transition in model.transitions:
         assigns = ", ".join(effect.variable for effect in transition.effects) or "—"
         out.append(f"| `{transition.id}` | {markdown(transition.name)} | {markdown(', '.join(transition.requirement_ids))} | {assigns} | `app/rules.py:{lines.get(transition.id, 1)}` |")

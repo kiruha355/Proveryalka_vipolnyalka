@@ -1,14 +1,12 @@
 #!/usr/bin/env sh
 # Загружает закреплённую сборку tla2tools.jar и проверяет sha256.
-# Версию меняют только здесь: TLA_VERSION + TLA_SHA256 (digest ассета на странице релиза).
-# v1.8.0 — prerelease: 30.10.2026 ассет заменён сборкой TLC 2026.10.30.154139 rev 090e85c,
-# прежний digest fc6878c6… больше не скачивается. Новый digest сверен с локальным jar,
-# на котором пройдены тесты с настоящим TLC (Java 25, Python 3.12).
+# Сборка model-checker-hardening опубликована отдельным тегом с SHA коммита TLC.
+# У тега v1.8.0 содержимое JAR меняется при обновлении предварительного релиза.
 set -eu
 
-TLA_VERSION="v1.8.0"
-TLA_SHA256="011267fca25d0752cf18894dd585cd28b96960c112ea8a20b823ea770e7e10cd"
-URL="https://github.com/tlaplus/tlaplus/releases/download/${TLA_VERSION}/tla2tools.jar"
+TLA_VERSION="20261023-2ef2af8c767b"
+TLA_SHA256="49c05a29439167a25c952023a58e339ed1cbc56ece33369fbf601aaf984ccfb6"
+URL="https://github.com/tlaplus/model-checker-hardening/releases/download/tlc-${TLA_VERSION}/tla2tools-${TLA_VERSION}.jar"
 DEST="${1:-tools/tla2tools.jar}"
 
 sha256() {

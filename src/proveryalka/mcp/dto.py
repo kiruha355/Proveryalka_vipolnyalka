@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
+from ..codegen.dto import SnapshotCandidate
 from ..verification.contracts import CheckLimits
 
 
@@ -46,8 +47,8 @@ class GetTests(Contract):
 
 
 class CompareWithCode(GetTests):
-    # Значение вне stored_generation возвращает unsupported, а не предположение о соответствии.
     mode: StrictStr = Field(default="stored_generation", max_length=64)
+    candidate: SnapshotCandidate | None = None
     timeout_seconds: float = Field(default=120.0, gt=0, le=120, strict=True, allow_inf_nan=False)
 
 

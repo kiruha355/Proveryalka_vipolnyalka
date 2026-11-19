@@ -7,6 +7,7 @@ from pydantic import TypeAdapter, ValidationError
 from proveryalka.behavior import BehavioralModel
 from proveryalka.behavior.expressions import Expression, LiteralExpression, UnaryExpression
 from proveryalka.checker import ArtifactError, ArtifactStore, ResultCache, describe_validation_error, preflight
+from proveryalka.checker.__main__ import main as checker_command
 from proveryalka.checker.cache import CACHE_MARK, cache_key
 from proveryalka.checker.parser import interpret, messages, statistics, trace_changes
 from proveryalka.checker.runner import ProcessResult
@@ -23,6 +24,12 @@ TLC = FIXTURES / "tlc"
 
 def load(name):
     return BehavioralModel.model_validate_json((MODELS / f"{name}.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(("command", "contract"), [("model", BehavioralModel), ("result", VerificationResult)])
+def test_checker_exports_public_contract_schemas(command, contract, capsys):
+    assert checker_command(["schema", command]) == 0
+    assert json.loads(capsys.readouterr().out) == contract.model_json_schema()
 
 
 def compile_data(data):

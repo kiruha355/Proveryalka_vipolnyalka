@@ -119,6 +119,8 @@ async def test_sdk_cancel_compare_requests_existing_executor_stop(tmp_path):
 
 @pytest.mark.anyio
 async def test_real_tlc_and_docker_through_official_http_client(tmp_path):
+    from test_codegen_comparison import save_snapshot
+
     jar = Path(os.getenv("PROVERYALKA_TLA_JAR", "tools/tla2tools.jar"))
     if not jar.is_file():
         if os.getenv("PROVERYALKA_REQUIRE_TLC") == "1":
@@ -151,6 +153,22 @@ async def test_real_tlc_and_docker_through_official_http_client(tmp_path):
                 assert data["tlc_at_generation"]["state"] == "holds"
                 assert result.structured_content["model_ref"] == ref
                 assert codegen.get_test_run(run["test_run_id"]) == run
+                snapshot = save_snapshot(backend.store, gen["session_id"], {
+                    item.path: item.content for item in codegen.repo.project(gen["generation_id"])[1]
+                    if item.path.startswith("app/")
+                })
+                comparison = await client.call_tool("compare_with_code", {
+                    "model": ref, "generation_id": gen["generation_id"], "code_hash": gen["code_hash"],
+                    "mode": "repository_snapshot", "candidate": {
+                        "snapshot_id": snapshot["id"], "manifest_sha256": snapshot["manifest_sha256"],
+                        "adapter": {"kind": "fastapi-evaluate-v1", "module": "app.api", "api_prefix": ""},
+                    },
+                })
+                assert not comparison.is_error, comparison
+                compared = comparison.structured_content["data"]["test_run"]
+                assert compared["status"] == "passed"
+                assert compared["comparison"]["status"] == "matches"
+                assert compared["code_hash"] == compared["comparison"]["code_hash"] != gen["code_hash"]
                 evidence = os.getenv("PROVERYALKA_MCP_EVIDENCE")
                 if evidence:
                     import json

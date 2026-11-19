@@ -9,14 +9,17 @@ LLM формализует и объясняет. Перебор состоян�
 Добавлены FastAPI-каркас и SQLite-хранилище сессий, истории и текстовых
 требований. Инструкции запуска и контракты: [docs/api.md](docs/api.md).
 Транзакции, миграции и единая история для SDK: [docs/storage.md](docs/storage.md).
-Снимок OpenAPI: [docs/openapi.json](docs/openapi.json).
+Снимок OpenAPI хранится в [tests/fixtures/openapi.json](tests/fixtures/openapi.json).
 Агент находится в `src/proveryalka/agent/`: Responses API и настраиваемый GPT/Codex subscription provider,
 инструкции аналитика и запуск через `run_message(message, session)`.
 Для истории используется `StoredSession` из серверного компонента.
 Извлечение требований и формат аналитического результата: [docs/agent.md](docs/agent.md).
-Из того же ответа без второго вызова LLM собирается [BehavioralModel 1.0](docs/behavioral-model.md).
-JSON Schema и полные примеры находятся в `docs/schemas/` и `docs/examples/`.
-Общий [интерфейс проверки](docs/verification.md) содержит шесть статусов,
+Из того же ответа без второго вызова LLM собирается BehavioralModel 1.0.
+Команды `python -m proveryalka.checker schema model` и
+`python -m proveryalka.checker schema result` печатают JSON Schema
+BehavioralModel и VerificationResult из рабочих контрактов. Два примера заявки находятся в
+[order_bug.json](tests/fixtures/models/order_bug.json) и [order_fixed.json](tests/fixtures/models/order_fixed.json).
+Общий [интерфейс проверки](src/proveryalka/checker/README.md) содержит шесть статусов,
 проверку трасс, SDK-инструмент `check_behavior` и объяснение результатов.
 Без адаптера ядра проверка не запускается; тестовые данные всегда помечены.
 Уточняющий диалог запускается через `start_dialogue` и `reply_dialogue`:
@@ -30,7 +33,7 @@ HTTP-контракт основного сценария (текст или д�
 ручной запуск TLC → объяснение отчёта → правка и повторная проверка):
 [src/proveryalka/api/README.md](src/proveryalka/api/README.md).
 Разделы «Схема БД», «API» и «MCP» ниже частично описывают целевую архитектуру.
-MCP остаётся целевой архитектурой; генератор Python/FastAPI/pytest и Docker-песочница подключены в `src/proveryalka/codegen/`.
+Генератор Python/FastAPI/pytest, Docker-песочница и MCP подключены к HTTP-приложению.
 
 Веб-клиент, запуск live/demo и границы проверок: [frontend/README.md](frontend/README.md).
 Поставка frontend + backend + SQLite + TLC одним native-процессом, persistence,
@@ -104,9 +107,10 @@ SQLite в томе Docker. Загруженные материалы, клоны
 | `POST` | `/api/models/{id}/versions/{n}/checks` | Запустить проверку без LLM |
 | `GET` | `/api/checks/{id}` | Результат проверки |
 | `GET` | `/api/checks/{id}/artifacts/{name}` | Файлы прогона: `.tla`, `.cfg`, лог TLC |
-| `POST` | `/api/models/{id}/versions/{n}/codegen` | Сгенерировать реализацию по утверждённой модели |
-| `POST` | `/api/models/{id}/versions/{n}/tests/run` | Прогнать тесты в песочнице |
-| `GET` | `/api/models/{id}/versions/{n}/export` | Архив проекта |
+| `POST` | `/api/models/{id}/versions/{n}/generations` | Сгенерировать реализацию по утверждённой модели |
+| `POST` | `/api/generations/{id}/test-runs` | Прогнать тесты сохранённой генерации в песочнице |
+| `POST` | `/api/generations/{id}/comparisons` | Проверить кандидата из сохранённого снимка репозитория |
+| `GET` | `/api/generations/{id}/archive` | Архив проекта |
 
 #### Пример: запуск проверки
 
@@ -149,13 +153,63 @@ Content-Type: application/json
 | `run_finished` | Агент закончил работу |
 | `error` | Ошибка |
 
+### Генерация и проверка кода
+
+`GET /api/codegen/status` сообщает поддерживаемые технические условия. Передайте их
+в `POST /api/models/{id}/versions/{n}/generations` с заголовком `Idempotency-Key`.
+Это тело выбирает Python/FastAPI с SQLite и прикладными действиями агента.
+
+```json
+{
+  "technical_conditions": {
+    "language": "python",
+    "platform": "fastapi",
+    "api_prefix": "/api/v1",
+    "storage": "sqlite",
+    "integrations": []
+  },
+  "application_mode": "agent"
+}
+```
+
+Поддерживаются также корневой API (`api_prefix: ""`) и память процесса
+(`storage: "memory"`). Для явного контракта требуется подтвердить все пять полей.
+Внешние интеграции отклоняются с указанием поля. При `application_mode: "agent"`
+настроенный провайдер проектирует имена прикладных действий, которые вызывают
+переходы утверждённой модели через тот же обработчик событий. Режим `template`
+по умолчанию выполняется локально. Результат хранит выбранные условия, версию,
+`spec_hash` и `code_hash`. Статусы TLC и подтверждение `allow_unverified`
+проверяются перед вызовом агента.
+
+SQLite-сервис использует переменную `SERVICE_STATE_DB` и параметр
+`?instance_id=...` для состояния, событий, действий и сброса. Команды запуска,
+выбор постоянного пути и тесты восстановления входят в ZIP.
+
+Для внешнего проекта сначала импортируйте снимок в той же сессии, затем отправьте
+`POST /api/generations/{id}/comparisons` с `Idempotency-Key` и следующим телом.
+
+```json
+{
+  "snapshot_id": "<id снимка>",
+  "manifest_sha256": "<manifest_sha256 снимка>",
+  "reference_code_hash": "<code_hash генерации>",
+  "adapter": {"kind": "fastapi-evaluate-v1", "module": "app.api", "api_prefix": ""}
+}
+```
+
+`GET /api/test-runs/{test_run_id}` возвращает хэши модели, эталонных тестов и
+кода кандидата. В `comparison.status` различаются совпадение, расхождение,
+несовместимость адаптера и сбой исполнения. Расхождения содержат сценарий,
+переход и связанные требования. Снимок, адаптер и условия исполнения описаны
+в [контракте MCP](src/proveryalka/mcp/README.md#границы-compare_with_code).
+
 ### MCP (`/mcp`, Streamable HTTP)
 
 Опциональный [MCP сервер](src/proveryalka/mcp/README.md) предоставляет `get_model`,
 `check_behavior`, `get_tests` и `compare_with_code` через официальный SDK. Он использует
 те же backend/TLC/CodegenService и требует явной локальной политики доступа.
-`get_tests` читает существующую генерацию; `compare_with_code` запускает её тесты в Docker
-по точным model reference / code_hash. Проверка произвольного кода не поддерживается.
+`get_tests` читает существующую генерацию. `compare_with_code` использует точную
+ссылку на модель и генерацию и поддерживает сравнение сохранённых снимков в Docker.
 В основном приложении MCP включается через `PROVERYALKA_MCP_ENABLED=1`;
 модели задаются `PROVERYALKA_MCP_MODEL_IDS`, разрешённые инструменты —
 `PROVERYALKA_MCP_TOOLS`. Точный маршрут `/mcp` работает вместе с REST API

@@ -11,7 +11,7 @@ from ..behavior.expressions import BinaryExpression, LiteralExpression, UnaryExp
 
 GENERATOR_NAME = "proveryalka-codegen"
 # Меняется при любом изменении выдаваемых файлов; входит в происхождение каждого файла.
-GENERATOR_VERSION = "1.0.0"
+GENERATOR_VERSION = "1.1.0"
 TARGET = "python-fastapi"
 TECHNICAL_CONDITIONS = {
     "language": "python",
@@ -22,6 +22,33 @@ TECHNICAL_CONDITIONS = {
     "dependencies": "requirements.txt (все версии зафиксированы)",
     "state": "одно состояние в памяти процесса",
 }
+SUPPORTED_CONDITIONS = {
+    "language": ["python"],
+    "platform": ["fastapi"],
+    "api_prefix": ["", "/api/v1"],
+    "storage": ["memory", "sqlite"],
+    "integrations": [],
+}
+
+
+def condition_issues(conditions):
+    missing, unsupported = [], []
+    for field, choices in SUPPORTED_CONDITIONS.items():
+        value = conditions.get(field)
+        if value is None:
+            missing.append({"path": field, "reason": "Confirm the technical condition before generation"})
+        elif field == "integrations" and value != []:
+            unsupported.append({"path": field, "reason": "External integrations are currently unsupported"})
+        elif field != "integrations" and value not in choices:
+            unsupported.append({"path": field, "reason": f"Supported values: {choices!r}"})
+    return missing, unsupported
+
+
+def technical_conditions(conditions):
+    if conditions is None:
+        return dict(TECHNICAL_CONDITIONS)
+    return {**TECHNICAL_CONDITIONS, **conditions,
+            "state": "SQLite по экземплярам процесса" if conditions["storage"] == "sqlite" else TECHNICAL_CONDITIONS["state"]}
 # Полное замыкание зависимостей; совпадает с sandbox_image/requirements.lock (проверяется тестом).
 DEPENDENCIES = (
     "annotated-doc==0.0.5", "annotated-types==0.8.0", "anyio==4.15.1", "click==8.5.0",

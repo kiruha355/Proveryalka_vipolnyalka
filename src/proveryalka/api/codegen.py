@@ -10,7 +10,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse, Response
 
-from ..codegen.dto import CodegenStatus, GeneratedFileEntry, Generation, GenerationCreate, TestRun, TestRunCreate
+from ..codegen.dto import ComparisonCreate, CodegenStatus, GeneratedFileEntry, Generation, GenerationCreate, TestRun, TestRunCreate
 from ..codegen.service import CodegenService
 from ..contracts import ErrorResponse
 from ..services import ServiceError
@@ -25,8 +25,8 @@ def error_response(error):
     }})
 
 
-def create_codegen_router(store, settings=None, sandbox=None):
-    service = CodegenService(store, settings, sandbox)
+def create_codegen_router(store, settings=None, sandbox=None, planner=None):
+    service = CodegenService(store, settings, sandbox, planner)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -38,7 +38,7 @@ def create_codegen_router(store, settings=None, sandbox=None):
 
     router = APIRouter(tags=["codegen"], lifespan=lifespan)
     router.codegen = service
-    errors = {code: {"model": ErrorResponse} for code in (404, 409, 422, 429, 503)}
+    errors = {code: {"model": ErrorResponse} for code in (404, 409, 422, 429, 502, 503)}
 
     def call(function, *args):
         try:
@@ -51,9 +51,12 @@ def create_codegen_router(store, settings=None, sandbox=None):
         return await service.status()
 
     @router.post("/api/models/{model_id}/versions/{number}/generations", response_model=Generation, status_code=201, responses=errors)
-    def create_generation(model_id: str, number: int, body: Optional[GenerationCreate] = None,
-                          idempotency_key: str = Header(min_length=1, max_length=128)):
-        return call(service.generate, model_id, number, (body or GenerationCreate()).model_dump(), idempotency_key)
+    async def create_generation(model_id: str, number: int, body: Optional[GenerationCreate] = None,
+                                idempotency_key: str = Header(min_length=1, max_length=128)):
+        try:
+            return await service.generate_request(model_id, number, (body or GenerationCreate()).model_dump(), idempotency_key)
+        except ServiceError as error:
+            return error_response(error)
 
     @router.get("/api/models/{model_id}/versions/{number}/generations", response_model=list[Generation], responses=errors)
     def list_version_generations(model_id: str, number: int):
@@ -102,6 +105,15 @@ def create_codegen_router(store, settings=None, sandbox=None):
     @router.get("/api/generations/{generation_id}/test-runs", response_model=list[TestRun], responses=errors)
     def list_test_runs(generation_id: str):
         return call(service.list_test_runs, generation_id)
+
+    @router.post("/api/generations/{generation_id}/comparisons", response_model=TestRun, status_code=202, responses=errors)
+    def create_comparison(generation_id: str, body: ComparisonCreate,
+                          idempotency_key: str = Header(min_length=1, max_length=128)):
+        return call(service.create_comparison, generation_id, body.model_dump(), idempotency_key)
+
+    @router.get("/api/generations/{generation_id}/comparisons", response_model=list[TestRun], responses=errors)
+    def list_comparisons(generation_id: str):
+        return call(service.list_comparisons, generation_id)
 
     @router.get("/api/test-runs/{test_run_id}", response_model=TestRun, responses=errors)
     def get_test_run(test_run_id: str):
