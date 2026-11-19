@@ -22,7 +22,7 @@ DESCRIPTIONS = {
     "get_model": "Read an explicit immutable model version; approval is reported without changing it.",
     "check_behavior": "Run the existing TLC service for an immutable model reference. Technical statuses stay inconclusive.",
     "get_tests": "Read actual tests of a stored generation pinned by model reference and code_hash; never generates tests implicitly.",
-    "compare_with_code": "Run tests of an exact stored generation in the existing Docker executor. Arbitrary code equivalence is unsupported.",
+    "compare_with_code": "Run stored generation tests or compare a pinned repository snapshot through its evaluate adapter in Docker.",
 }
 
 

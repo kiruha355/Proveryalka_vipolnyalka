@@ -78,7 +78,7 @@ def write_job(directory, files):
     """Пишет проверенные файлы и снимает права записи: в контейнер монтируется копия только для чтения."""
     root = Path(directory)
     for path, content in files:
-        target = root / safe_path(path)
+        target = root / safe_path(path, snapshot=path.startswith("candidate/"))
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(content)
         target.chmod(0o444)

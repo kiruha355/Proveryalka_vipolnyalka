@@ -5,6 +5,7 @@ import zipfile
 
 
 SEGMENT = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}$")
+SNAPSHOT_SEGMENT = re.compile(r"^[A-Za-z0-9_.][A-Za-z0-9_.-]{0,99}$")
 MAX_DEPTH = 8
 ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 
@@ -13,12 +14,13 @@ class UnsafePath(ValueError):
     pass
 
 
-def safe_path(path):
+def safe_path(path, *, snapshot=False):
     """Только относительные пути из простых сегментов: без '..', '/', '\\', двоеточий и управляющих символов."""
     if not isinstance(path, str) or not path or len(path) > 300:
         raise UnsafePath("Недопустимый путь")
     parts = path.split("/")
-    if len(parts) > MAX_DEPTH or any(not SEGMENT.match(part) or part in (".", "..") or part.endswith(".") for part in parts):
+    segment = SNAPSHOT_SEGMENT if snapshot else SEGMENT
+    if len(parts) > MAX_DEPTH or any(not segment.fullmatch(part) or part.endswith(".") for part in parts):
         raise UnsafePath("Недопустимый путь")
     return path
 

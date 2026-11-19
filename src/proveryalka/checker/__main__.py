@@ -3,7 +3,7 @@
     python -m proveryalka.checker                 запрос VerificationRequest из stdin, отчёт в stdout (для CommandChecker)
     python -m proveryalka.checker check model.json [--property P] [--timeout S] [--max-states N] [--max-depth D] [--json]
     python -m proveryalka.checker replay data/artifacts/checks/chk_...   повторить прогон по сохранённому комплекту
-    python -m proveryalka.checker schema model|request|report             JSON Schema контрактов
+    python -m proveryalka.checker schema model|request|result|report      JSON Schema контрактов
 """
 import argparse
 import asyncio
@@ -16,7 +16,7 @@ from pydantic import ValidationError
 from ..behavior import BehavioralModel
 from ..config import Settings
 from ..verification.checker import InvalidCheckResult, check_behavior, validate_report
-from ..verification.contracts import CheckLimits, VerificationReport, VerificationRequest
+from ..verification.contracts import CheckLimits, VerificationReport, VerificationRequest, VerificationResult
 from .artifacts import ArtifactError, RunBundle
 from .engine import TLCChecker
 from .preflight import describe_validation_error
@@ -24,7 +24,7 @@ from .preflight import describe_validation_error
 
 EXIT_INVALID = 2
 EXIT_MISMATCH = 3
-SCHEMAS = {"model": BehavioralModel, "request": VerificationRequest, "report": VerificationReport}
+SCHEMAS = {"model": BehavioralModel, "request": VerificationRequest, "result": VerificationResult, "report": VerificationReport}
 
 
 def print_issues(error, label="MODEL_INVALID"):
