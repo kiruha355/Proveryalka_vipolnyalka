@@ -1,0 +1,158 @@
+[
+  {
+    "path": "reports/project-review-20261031/sokolov/images/backend-tests.xml",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/images/backend-tests.xml",
+    "sha256": "105ef15dc302250e62f42df069d57e3315ac6d59b703e00b5811db4730dddc2e",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/images/client-contract.ts",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/images/client-contract.ts",
+    "sha256": "0b49f8c6a812114d57050a0e4afcdfa599a3b0829afdf4cde24f436b157bcd29",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/images/evidence.md",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/images/evidence.md",
+    "sha256": "533674f02123fbafaf2ea43397f988297ff4c128721f57aa342c0384e3d13da0",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/images/integration-contract.md",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/images/integration-contract.md",
+    "sha256": "abb62e65ee9c84c6e80e5031f4674df5f49ca8f97044dfb4f93b0002df665439",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/images/integration.patch",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/images/integration.patch",
+    "sha256": "ba76e771805cb6b9bc37a2632864a91eca4f98fa67112f77556f946b554628c3",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/images/protocol-schema-evidence.json",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/images/protocol-schema-evidence.json",
+    "sha256": "207c3c38cd22e786c4cb9045cc34cf1804e04cf8c1441615d8aa5c5d766320b1",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/images/provider-smoke.json",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/images/provider-smoke.json",
+    "sha256": "09d3999e68985053871e8b74f4dab3e159dc8e14dfcf4802cff1e98a9ea45006",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/images/smoke_image_provider.py",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/images/smoke_image_provider.py",
+    "sha256": "6ffbac7b2b4ec035958c8fdc2019461b531e6ebc17d49933ad2dc3153d66e448",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/images/synthetic-source.png",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/images/synthetic-source.png",
+    "sha256": "198cff85289777c4eddc74a09a627f88ce4c1006d511ebff5c42183ca044cb66",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/mcp/app-wiring.patch",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/mcp/app-wiring.patch",
+    "sha256": "458182c5f3fade95c1c1eb4d421ac3368ec24eabe256250eac7998ead270ffc9",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/mcp/backend-full.txt",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/mcp/backend-full.txt",
+    "sha256": "c318bd11d8c90d145f28495f8c95b53adef5dcf62b8df893418f3058fad78348",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/mcp/backend-junit.xml",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/mcp/backend-junit.xml",
+    "sha256": "e3ae1c8b4e7136fed7c2a9d5d8ca0bc3887e1744d4e5cafa7675db4d5619c65c",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/mcp/evidence.md",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/mcp/evidence.md",
+    "sha256": "1e03649cf27af5616096c6a3ca63e3ac1e18f906ce691b089ed77684fe5f65ae",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/mcp/integration-contract.md",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/mcp/integration-contract.md",
+    "sha256": "08b6660e66e48f58a1706ecd356ad8aa329c72468288f9e5301efdbdb5d279ea",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/mcp/pyproject-mcp-extra.patch",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/mcp/pyproject-mcp-extra.patch",
+    "sha256": "3cf0c75b0c1d1b3a6ed21b65490caf019c16efce9c9eb0c7daa2a68bead5fe70",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/mcp/real-docker-comparison.json",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/mcp/real-docker-comparison.json",
+    "sha256": "214395218ae66cac9437ebc138a183067cf72985d60c686e776ae95ebe66c771",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/mcp/real-tlc.json",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/mcp/real-tlc.json",
+    "sha256": "554bb2bdb25e26f60e1bb22c1374d5b76613969328339a7d808e68a5e8d74c5f",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/mcp/schemas-1.0.json",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/mcp/schemas-1.0.json",
+    "sha256": "fa1c9967639c479fabb00affbe9cdde993c3e7590177526443826f1ac61bc376",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/repositories/backend-full.txt",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/repositories/backend-full.txt",
+    "sha256": "2eb828c38c4ab5187707be8f9b99331a39e2146bb36c22c8745a2994c29cb69c",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/repositories/backend-full.xml",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/repositories/backend-full.xml",
+    "sha256": "8ddaa13d73cd2bdc1a82ef37f5d3aed825e4aff97b10a43d45e0f09940ead3f8",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/repositories/evidence.md",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/repositories/evidence.md",
+    "sha256": "5ee8c51a45ae9f2c3ff7ff19569f744bfa25ad33e960f42bf6d3618087ec6c4a",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/repositories/integration-contract.md",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/repositories/integration-contract.md",
+    "sha256": "ebe17dce0ab7c2cdc3cdfd0c64f24b6f1d0da443f58030d3b78c65fce1ae1679",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/repositories/integration.patch",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/repositories/integration.patch",
+    "sha256": "e434c3e461e898737d1d9eb59d9239e4d883e43f7d6fbafbd9c5a2cdc5776089",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/repositories/public-smoke.json",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/repositories/public-smoke.json",
+    "sha256": "07637156b9c7d91c904534ee67ff16676ccd8de821cab8e56e596f4a580e124a",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/repositories/public_smoke.py",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/repositories/public_smoke.py",
+    "sha256": "50f88c665b9b5ea91900b18713804b4305dc5155ee3f16848be7c27899880774",
+    "matches_incoming": true
+  },
+  {
+    "path": "reports/project-review-20261031/sokolov/repositories/targeted-tests.txt",
+    "backup": "/tmp/proveryalka-integration-untracked-20261031/reports/project-review-20261031/sokolov/repositories/targeted-tests.txt",
+    "sha256": "16db0053b9ea43d251acaf1d29468b649c38438357c9a3382a94f9262450beeb",
+    "matches_incoming": true
+  }
+]

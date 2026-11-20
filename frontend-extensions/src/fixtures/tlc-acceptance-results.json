@@ -1,0 +1,113 @@
+{
+  "_provenance": {
+    "source": "reports/project-review-20261031/checker/acceptance-receipt.json",
+    "head": "62c12b8c300b5205b2ff1ee3dec96e44d29786d7",
+    "checked_at_utc": "2026-10-31T07:17:41.419522+00:00",
+    "engine": {
+      "java_major": "25",
+      "tlc_version": "2026.10.30.154139 rev 090e85c",
+      "jar_sha256": "011267fca25d0752cf18894dd585cd28b96960c112ea8a20b823ea770e7e10cd"
+    },
+    "note": "Реальные результаты TLC для tests/fixtures/models/order_bug.json и order_fixed.json, свойство NoCancelledExecution. version_id=null: проверка шла без HTTP-версии."
+  },
+  "order_bug": {
+    "schema_version": "1.0",
+    "spec_hash": "b3d2783b161af79ec841ea791d94f874b3c05c2439c79468fd0372a7999588a3",
+    "version_id": null,
+    "mode": "engine",
+    "executed": true,
+    "engine": {
+      "name": "TLC",
+      "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+    },
+    "limits": {
+      "timeout_seconds": 20.0,
+      "max_states": 100000,
+      "max_depth": null
+    },
+    "property_id": "NoCancelledExecution",
+    "status": "PROPERTY_VIOLATED",
+    "conclusive": true,
+    "message": "Найдено нарушение за 3 шаг(ов)",
+    "trace": [
+      {
+        "number": 0,
+        "transition_id": null,
+        "state": {
+          "status": "Created",
+          "approved": false,
+          "cancelled": false
+        }
+      },
+      {
+        "number": 1,
+        "transition_id": "Approve",
+        "state": {
+          "status": "Approved",
+          "approved": true,
+          "cancelled": false
+        }
+      },
+      {
+        "number": 2,
+        "transition_id": "Cancel",
+        "state": {
+          "status": "Cancelled",
+          "approved": true,
+          "cancelled": true
+        }
+      },
+      {
+        "number": 3,
+        "transition_id": "Execute",
+        "state": {
+          "status": "Executed",
+          "approved": true,
+          "cancelled": true
+        }
+      }
+    ],
+    "statistics": {
+      "states_generated": 6,
+      "distinct_states": 6,
+      "depth": 3,
+      "elapsed_seconds": 0.283
+    },
+    "related_requirements": [
+      "R2",
+      "R3",
+      "R4",
+      "R5"
+    ]
+  },
+  "order_fixed": {
+    "schema_version": "1.0",
+    "spec_hash": "09d54e84e8ad2b638a3701536cd38b6b89442684952a8784d6b5f3471042f6ac",
+    "version_id": null,
+    "mode": "engine",
+    "executed": true,
+    "engine": {
+      "name": "TLC",
+      "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+    },
+    "limits": {
+      "timeout_seconds": 20.0,
+      "max_states": 100000,
+      "max_depth": null
+    },
+    "property_id": "NoCancelledExecution",
+    "status": "PROPERTY_HOLDS",
+    "conclusive": true,
+    "message": "Свойство выполняется: полностью исследовано 4 различных состояний",
+    "trace": [],
+    "statistics": {
+      "states_generated": 6,
+      "distinct_states": 4,
+      "depth": 2,
+      "elapsed_seconds": 0.247
+    },
+    "related_requirements": [
+      "R5"
+    ]
+  }
+}

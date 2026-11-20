@@ -340,3 +340,34 @@ def test_explicit_correction_keeps_both_reports_and_links_recheck(tmp_path, monk
         assert 'Тестовый адаптер' in revision.render_revision(result)
 
     asyncio.run(scenario())
+
+
+def test_verification_refuses_ready_state_while_turn_is_pending(tmp_path, monkeypatch):
+    session = session_for(tmp_path)
+    case, source = case_for(session)
+    ready = build_state([source], DialogueDraft(analysis=case['draft'], questions=[], resolutions=[], corrections=[]), None, None, 5)
+
+    async def fail(*args, **kwargs):
+        raise errors.AgentError('PROVIDER_UNAVAILABLE', 'Не удалось подключиться')
+
+    monkeypatch.setattr(dialogue, 'generate_state', fail)
+    scripted = ScriptedModel()
+    configure_sdk(monkeypatch, scripted)
+    checker = FixtureChecker()
+
+    async def scenario():
+        await session.add_items([{'role': 'assistant', 'content': json.dumps({'analyst_dialogue': ready.model_dump(mode='json')}, ensure_ascii=False)}])
+        with pytest.raises(errors.AgentError):
+            await dialogue.reply_dialogue(session, 'Исправляю: при Cancel approved сбрасывается в false.')
+        assert (await dialogue.load_dialogue(session)).status == 'ready'
+        assert await dialogue.load_pending(session) is not None
+        # Прежняя готовая модель не должна проверяться, пока уточнение не завершено или не отменено.
+        with pytest.raises(ValueError, match='незавершённое'):
+            await verification.verify_dialogue(session, checker)
+        assert checker.calls == [] and scripted.calls == []
+        assert await verification.load_verification(session) is None
+        await dialogue.cancel_pending(session)
+        outcome = await verification.verify_dialogue(session, checker)
+        assert len(checker.calls) == 1 and outcome.report.results[0].status == 'PROPERTY_VIOLATED'
+
+    asyncio.run(scenario())

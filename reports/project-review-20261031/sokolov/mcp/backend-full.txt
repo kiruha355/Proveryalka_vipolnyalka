@@ -1,0 +1,18 @@
+........................................................................ [ 19%]
+........................................................................ [ 38%]
+........................................................................ [ 58%]
+........................................................................ [ 77%]
+........................................................................ [ 97%]
+..........                                                               [100%]
+=============================== warnings summary ===============================
+tests/mcp/test_execution.py::test_technical_status_is_not_semantic_success[TIMEOUT]
+  /private/tmp/prov-review/.venv/lib/python3.12/site-packages/websockets/legacy/__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+    warnings.warn(  # deprecated in 14.0 - 2024-11-09
+
+tests/mcp/test_execution.py::test_technical_status_is_not_semantic_success[TIMEOUT]
+  /private/tmp/prov-review/.venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+    from websockets.server import WebSocketServerProtocol
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /Users/a/.t3/worktrees/Proveryalka_vipolnyalka/t3-ad3cba4c/reports/project-review-20261031/sokolov/mcp/backend-junit.xml -
+370 passed, 2 warnings in 56.04s

@@ -1,0 +1,827 @@
+{
+  "generation_id": "gen_0d8c615caaa94aebb79db02040be9add",
+  "session_id": "s_336fa26bef034b72916bfcbb1ee117cc",
+  "model_id": "m_6683d588b8a94202a9eb6b9cfb5c84d0",
+  "version_id": "v_c5121f0e8fea4432aad69c10fff47607",
+  "version_number": 2,
+  "spec_hash": "3c63553df8f7f5b8c7f0c9798e4e3d4bbb4c045f0f33850141ed0be9e0458f42",
+  "code_hash": "c5a7f6d481513d7257e3ec6c850d30e30430791d1a14df697797f94b9a413c38",
+  "status": "completed",
+  "target": "python-fastapi",
+  "generator": {
+    "name": "proveryalka-codegen",
+    "version": "1.0.0"
+  },
+  "technical_conditions": {
+    "dependencies": "requirements.txt (все версии зафиксированы)",
+    "framework": "fastapi==0.162.0",
+    "language": "python",
+    "python": ">=3.11",
+    "state": "одно состояние в памяти процесса",
+    "test_runner": "pytest==8.3.5",
+    "validation": "pydantic==2.14.1"
+  },
+  "project_name": "platezh-s-dvumya-nezavisimymi-soglasuyushchimi-a-service",
+  "verification": {
+    "state": "holds",
+    "acknowledged": false,
+    "properties": [
+      {
+        "property_id": "consents_after_execution",
+        "status": "PROPERTY_HOLDS",
+        "check_run_id": "chk_45e60e439feb466381276192b402f277"
+      },
+      {
+        "property_id": "cancelled_not_executed",
+        "status": "PROPERTY_HOLDS",
+        "check_run_id": "chk_45e60e439feb466381276192b402f277"
+      },
+      {
+        "property_id": "payment_reachable",
+        "status": "PROPERTY_HOLDS",
+        "check_run_id": "chk_45e60e439feb466381276192b402f277"
+      }
+    ]
+  },
+  "coverage": {
+    "reachable_states": 11,
+    "exhaustive": true,
+    "boundary_states": 64,
+    "conformance_cases": 600,
+    "invalid_state_cases": 12,
+    "trace_replays": 1
+  },
+  "file_count": 17,
+  "total_bytes": 310606,
+  "created_at": "2026-10-31T11:47:44.954952+00:00",
+  "files": [
+    {
+      "path": "GENERATION.json",
+      "size": 9430,
+      "sha256": "24a4d995e73a949fbf2cf0c059cfb0a55419ccd85913804d10aaf3637068217a",
+      "role": "manifest",
+      "media_type": "application/json",
+      "explanation": "Происхождение: генератор, version_id, spec_hash, снимок проверки TLC, SHA-256 и требования файлов.",
+      "requirement_ids": [],
+      "elements": []
+    },
+    {
+      "path": "README.md",
+      "size": 11385,
+      "sha256": "9a04755347a7236c90454f37b447dd6e30d974b8016d1d62df47d0be743ce796",
+      "role": "doc",
+      "media_type": "text/markdown",
+      "explanation": "Описание проекта: версия модели, запуск, API, связь переходов с требованиями, результаты TLC, границы тестов.",
+      "requirement_ids": [
+        "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+        "req_91faa8ff7d5153d4b36fa5764a2a9804",
+        "req_48e457bf3dbd570bb264a37b73c35990",
+        "req_793f2f80d2915efa9132baa76b4fb659",
+        "req_db5f379b58755e6b8a7ba3e22f315826",
+        "req_f733dfb689045f05a53fcc41164e258e",
+        "req_06acdd527d9158408233550bd32d8985",
+        "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+        "req_9e63696a936b5f52a85f4221aa19c03a",
+        "req_979d1f8e4bc851b18f789209c88ca98b",
+        "req_85e0cfb054105e959c4b9775aafa50b7",
+        "req_43ee6409a1065372a3dbf1b686ed9caa",
+        "req_3fe7ae86fd8f554686b1bc436718900c",
+        "req_a6f0a511318e52ec9af24859ba5165e4",
+        "req_9120945853e5590e8e776b1c1400a279",
+        "req_cee412ddc59a54e5aeb473ceff07d5af",
+        "req_c2e121b42fdd5aa38eff1086935be325",
+        "req_67ebe9432bfa533d819b177bdb7fb39e",
+        "req_53587e990088571daef21a92363096b6",
+        "req_d95075df515d53209c12aefda8319544"
+      ],
+      "elements": []
+    },
+    {
+      "path": "app/__init__.py",
+      "size": 33,
+      "sha256": "5d14b7f33a41a3493a4fc784447992d12b370bc569251a241197c26f41cb3103",
+      "role": "source",
+      "media_type": "text/x-python",
+      "explanation": "Пакет сервиса.",
+      "requirement_ids": [],
+      "elements": []
+    },
+    {
+      "path": "app/api.py",
+      "size": 4327,
+      "sha256": "dbf6ad6a51c2023f8201cf945b36f7972cf489fadc3ba2877ad9bd0c1c287ee7",
+      "role": "source",
+      "media_type": "text/x-python",
+      "explanation": "FastAPI: GET /model, GET /state, POST /events, POST /evaluate, POST /reset.",
+      "requirement_ids": [],
+      "elements": []
+    },
+    {
+      "path": "app/domain.py",
+      "size": 1958,
+      "sha256": "ce091aaed9cd14f9a26525444f5657aa1d2196b188ecf1c7b42033c20321ea96",
+      "role": "source",
+      "media_type": "text/x-python",
+      "explanation": "Проверка типов и конечных областей значений состояния.",
+      "requirement_ids": [],
+      "elements": []
+    },
+    {
+      "path": "app/engine.py",
+      "size": 2047,
+      "sha256": "54245db4b67120c9d93d09e6a45ca8319f657ed1fc2386868cfd4592791436a7",
+      "role": "source",
+      "media_type": "text/x-python",
+      "explanation": "Применение события: проверка состояния, условие, одновременное присваивание, проверка областей.",
+      "requirement_ids": [],
+      "elements": []
+    },
+    {
+      "path": "app/rules.py",
+      "size": 8828,
+      "sha256": "bad69528e43407b04ffcebcdf6aa741454a64e3d96277e9054faa8a1ce313907",
+      "role": "source",
+      "media_type": "text/x-python",
+      "explanation": "Условия и одновременные присваивания переходов (submit_for_review, approve_a, approve_b, complete_review, revoke_a, revoke_b, pay, cancel); у каждого перехода указаны требования.",
+      "requirement_ids": [
+        "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+        "req_48e457bf3dbd570bb264a37b73c35990",
+        "req_793f2f80d2915efa9132baa76b4fb659",
+        "req_db5f379b58755e6b8a7ba3e22f315826",
+        "req_f733dfb689045f05a53fcc41164e258e",
+        "req_06acdd527d9158408233550bd32d8985",
+        "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+        "req_9e63696a936b5f52a85f4221aa19c03a",
+        "req_979d1f8e4bc851b18f789209c88ca98b",
+        "req_85e0cfb054105e959c4b9775aafa50b7",
+        "req_d95075df515d53209c12aefda8319544"
+      ],
+      "elements": [
+        {
+          "kind": "transition",
+          "id": "submit_for_review",
+          "name": "Подать на согласование",
+          "requirement_ids": [
+            "req_48e457bf3dbd570bb264a37b73c35990",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 21,
+          "end_line": 30
+        },
+        {
+          "kind": "transition",
+          "id": "approve_a",
+          "name": "А даёт согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 33,
+          "end_line": 42
+        },
+        {
+          "kind": "transition",
+          "id": "approve_b",
+          "name": "Б даёт согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 45,
+          "end_line": 54
+        },
+        {
+          "kind": "transition",
+          "id": "complete_review",
+          "name": "Завершить согласование",
+          "requirement_ids": [
+            "req_db5f379b58755e6b8a7ba3e22f315826",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 57,
+          "end_line": 66
+        },
+        {
+          "kind": "transition",
+          "id": "revoke_a",
+          "name": "А отзывает согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_06acdd527d9158408233550bd32d8985",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 69,
+          "end_line": 79
+        },
+        {
+          "kind": "transition",
+          "id": "revoke_b",
+          "name": "Б отзывает согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_06acdd527d9158408233550bd32d8985",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 82,
+          "end_line": 92
+        },
+        {
+          "kind": "transition",
+          "id": "pay",
+          "name": "Оплатить",
+          "requirement_ids": [
+            "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+            "req_9e63696a936b5f52a85f4221aa19c03a",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 95,
+          "end_line": 105
+        },
+        {
+          "kind": "transition",
+          "id": "cancel",
+          "name": "Отменить",
+          "requirement_ids": [
+            "req_979d1f8e4bc851b18f789209c88ca98b",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 108,
+          "end_line": 118
+        }
+      ]
+    },
+    {
+      "path": "app/spec.py",
+      "size": 7531,
+      "sha256": "0a3335fb92ca1ae7bb0c04e7f6201e3a7096271cbe566e6bec86fc7dcedbe28f",
+      "role": "source",
+      "media_type": "text/x-python",
+      "explanation": "Данные модели: требования, переменные с областями значений, начальное состояние, version_id и spec_hash.",
+      "requirement_ids": [
+        "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+        "req_91faa8ff7d5153d4b36fa5764a2a9804",
+        "req_48e457bf3dbd570bb264a37b73c35990",
+        "req_793f2f80d2915efa9132baa76b4fb659",
+        "req_db5f379b58755e6b8a7ba3e22f315826",
+        "req_f733dfb689045f05a53fcc41164e258e",
+        "req_06acdd527d9158408233550bd32d8985",
+        "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+        "req_9e63696a936b5f52a85f4221aa19c03a",
+        "req_979d1f8e4bc851b18f789209c88ca98b",
+        "req_85e0cfb054105e959c4b9775aafa50b7",
+        "req_43ee6409a1065372a3dbf1b686ed9caa",
+        "req_3fe7ae86fd8f554686b1bc436718900c",
+        "req_a6f0a511318e52ec9af24859ba5165e4",
+        "req_9120945853e5590e8e776b1c1400a279",
+        "req_cee412ddc59a54e5aeb473ceff07d5af",
+        "req_c2e121b42fdd5aa38eff1086935be325",
+        "req_67ebe9432bfa533d819b177bdb7fb39e",
+        "req_53587e990088571daef21a92363096b6",
+        "req_d95075df515d53209c12aefda8319544"
+      ],
+      "elements": [
+        {
+          "kind": "requirement",
+          "id": "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+          "name": "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83"
+          ],
+          "start_line": 12,
+          "end_line": 12
+        },
+        {
+          "kind": "requirement",
+          "id": "req_91faa8ff7d5153d4b36fa5764a2a9804",
+          "name": "req_91faa8ff7d5153d4b36fa5764a2a9804",
+          "requirement_ids": [
+            "req_91faa8ff7d5153d4b36fa5764a2a9804"
+          ],
+          "start_line": 13,
+          "end_line": 13
+        },
+        {
+          "kind": "requirement",
+          "id": "req_48e457bf3dbd570bb264a37b73c35990",
+          "name": "req_48e457bf3dbd570bb264a37b73c35990",
+          "requirement_ids": [
+            "req_48e457bf3dbd570bb264a37b73c35990"
+          ],
+          "start_line": 14,
+          "end_line": 14
+        },
+        {
+          "kind": "requirement",
+          "id": "req_793f2f80d2915efa9132baa76b4fb659",
+          "name": "req_793f2f80d2915efa9132baa76b4fb659",
+          "requirement_ids": [
+            "req_793f2f80d2915efa9132baa76b4fb659"
+          ],
+          "start_line": 15,
+          "end_line": 15
+        },
+        {
+          "kind": "requirement",
+          "id": "req_db5f379b58755e6b8a7ba3e22f315826",
+          "name": "req_db5f379b58755e6b8a7ba3e22f315826",
+          "requirement_ids": [
+            "req_db5f379b58755e6b8a7ba3e22f315826"
+          ],
+          "start_line": 16,
+          "end_line": 16
+        },
+        {
+          "kind": "requirement",
+          "id": "req_f733dfb689045f05a53fcc41164e258e",
+          "name": "req_f733dfb689045f05a53fcc41164e258e",
+          "requirement_ids": [
+            "req_f733dfb689045f05a53fcc41164e258e"
+          ],
+          "start_line": 17,
+          "end_line": 17
+        },
+        {
+          "kind": "requirement",
+          "id": "req_06acdd527d9158408233550bd32d8985",
+          "name": "req_06acdd527d9158408233550bd32d8985",
+          "requirement_ids": [
+            "req_06acdd527d9158408233550bd32d8985"
+          ],
+          "start_line": 18,
+          "end_line": 18
+        },
+        {
+          "kind": "requirement",
+          "id": "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+          "name": "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+          "requirement_ids": [
+            "req_bf2da64ede4c56a2b9ce8dfb7110b8e8"
+          ],
+          "start_line": 19,
+          "end_line": 19
+        },
+        {
+          "kind": "requirement",
+          "id": "req_9e63696a936b5f52a85f4221aa19c03a",
+          "name": "req_9e63696a936b5f52a85f4221aa19c03a",
+          "requirement_ids": [
+            "req_9e63696a936b5f52a85f4221aa19c03a"
+          ],
+          "start_line": 20,
+          "end_line": 20
+        },
+        {
+          "kind": "requirement",
+          "id": "req_979d1f8e4bc851b18f789209c88ca98b",
+          "name": "req_979d1f8e4bc851b18f789209c88ca98b",
+          "requirement_ids": [
+            "req_979d1f8e4bc851b18f789209c88ca98b"
+          ],
+          "start_line": 21,
+          "end_line": 21
+        },
+        {
+          "kind": "requirement",
+          "id": "req_85e0cfb054105e959c4b9775aafa50b7",
+          "name": "req_85e0cfb054105e959c4b9775aafa50b7",
+          "requirement_ids": [
+            "req_85e0cfb054105e959c4b9775aafa50b7"
+          ],
+          "start_line": 22,
+          "end_line": 22
+        },
+        {
+          "kind": "requirement",
+          "id": "req_43ee6409a1065372a3dbf1b686ed9caa",
+          "name": "req_43ee6409a1065372a3dbf1b686ed9caa",
+          "requirement_ids": [
+            "req_43ee6409a1065372a3dbf1b686ed9caa"
+          ],
+          "start_line": 23,
+          "end_line": 23
+        },
+        {
+          "kind": "requirement",
+          "id": "req_3fe7ae86fd8f554686b1bc436718900c",
+          "name": "req_3fe7ae86fd8f554686b1bc436718900c",
+          "requirement_ids": [
+            "req_3fe7ae86fd8f554686b1bc436718900c"
+          ],
+          "start_line": 24,
+          "end_line": 24
+        },
+        {
+          "kind": "requirement",
+          "id": "req_a6f0a511318e52ec9af24859ba5165e4",
+          "name": "req_a6f0a511318e52ec9af24859ba5165e4",
+          "requirement_ids": [
+            "req_a6f0a511318e52ec9af24859ba5165e4"
+          ],
+          "start_line": 25,
+          "end_line": 25
+        },
+        {
+          "kind": "requirement",
+          "id": "req_9120945853e5590e8e776b1c1400a279",
+          "name": "req_9120945853e5590e8e776b1c1400a279",
+          "requirement_ids": [
+            "req_9120945853e5590e8e776b1c1400a279"
+          ],
+          "start_line": 26,
+          "end_line": 26
+        },
+        {
+          "kind": "requirement",
+          "id": "req_cee412ddc59a54e5aeb473ceff07d5af",
+          "name": "req_cee412ddc59a54e5aeb473ceff07d5af",
+          "requirement_ids": [
+            "req_cee412ddc59a54e5aeb473ceff07d5af"
+          ],
+          "start_line": 27,
+          "end_line": 27
+        },
+        {
+          "kind": "requirement",
+          "id": "req_c2e121b42fdd5aa38eff1086935be325",
+          "name": "req_c2e121b42fdd5aa38eff1086935be325",
+          "requirement_ids": [
+            "req_c2e121b42fdd5aa38eff1086935be325"
+          ],
+          "start_line": 28,
+          "end_line": 28
+        },
+        {
+          "kind": "requirement",
+          "id": "req_67ebe9432bfa533d819b177bdb7fb39e",
+          "name": "req_67ebe9432bfa533d819b177bdb7fb39e",
+          "requirement_ids": [
+            "req_67ebe9432bfa533d819b177bdb7fb39e"
+          ],
+          "start_line": 29,
+          "end_line": 29
+        },
+        {
+          "kind": "requirement",
+          "id": "req_53587e990088571daef21a92363096b6",
+          "name": "req_53587e990088571daef21a92363096b6",
+          "requirement_ids": [
+            "req_53587e990088571daef21a92363096b6"
+          ],
+          "start_line": 30,
+          "end_line": 30
+        },
+        {
+          "kind": "requirement",
+          "id": "req_d95075df515d53209c12aefda8319544",
+          "name": "req_d95075df515d53209c12aefda8319544",
+          "requirement_ids": [
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 31,
+          "end_line": 31
+        },
+        {
+          "kind": "variable",
+          "id": "status",
+          "name": "Этап поручения",
+          "requirement_ids": [
+            "req_91faa8ff7d5153d4b36fa5764a2a9804",
+            "req_48e457bf3dbd570bb264a37b73c35990",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_db5f379b58755e6b8a7ba3e22f315826",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_06acdd527d9158408233550bd32d8985",
+            "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+            "req_9e63696a936b5f52a85f4221aa19c03a",
+            "req_979d1f8e4bc851b18f789209c88ca98b",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_9120945853e5590e8e776b1c1400a279",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 35,
+          "end_line": 36
+        },
+        {
+          "kind": "variable",
+          "id": "approved_a",
+          "name": "Согласие А",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_db5f379b58755e6b8a7ba3e22f315826",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_06acdd527d9158408233550bd32d8985",
+            "req_9e63696a936b5f52a85f4221aa19c03a",
+            "req_43ee6409a1065372a3dbf1b686ed9caa",
+            "req_cee412ddc59a54e5aeb473ceff07d5af",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 37,
+          "end_line": 38
+        },
+        {
+          "kind": "variable",
+          "id": "approved_b",
+          "name": "Согласие Б",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_db5f379b58755e6b8a7ba3e22f315826",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_06acdd527d9158408233550bd32d8985",
+            "req_9e63696a936b5f52a85f4221aa19c03a",
+            "req_43ee6409a1065372a3dbf1b686ed9caa",
+            "req_c2e121b42fdd5aa38eff1086935be325",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 39,
+          "end_line": 40
+        },
+        {
+          "kind": "variable",
+          "id": "cancelled",
+          "name": "Поручение отменено",
+          "requirement_ids": [
+            "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+            "req_979d1f8e4bc851b18f789209c88ca98b",
+            "req_3fe7ae86fd8f554686b1bc436718900c",
+            "req_67ebe9432bfa533d819b177bdb7fb39e",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 41,
+          "end_line": 42
+        },
+        {
+          "kind": "variable",
+          "id": "executed",
+          "name": "Поручение исполнено",
+          "requirement_ids": [
+            "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+            "req_979d1f8e4bc851b18f789209c88ca98b",
+            "req_43ee6409a1065372a3dbf1b686ed9caa",
+            "req_3fe7ae86fd8f554686b1bc436718900c",
+            "req_a6f0a511318e52ec9af24859ba5165e4",
+            "req_53587e990088571daef21a92363096b6",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 43,
+          "end_line": 44
+        }
+      ]
+    },
+    {
+      "path": "model/behavioral_model.json",
+      "size": 30005,
+      "sha256": "7cd5a01025a73a2dfab00e1e9e676f5f25f8e76ad16e5d1ec95ab8d2e63b3b3c",
+      "role": "model",
+      "media_type": "application/json",
+      "explanation": "Согласованная модель BehavioralModel 1.0 этой версии; её канонический SHA-256 равен spec_hash.",
+      "requirement_ids": [
+        "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+        "req_91faa8ff7d5153d4b36fa5764a2a9804",
+        "req_48e457bf3dbd570bb264a37b73c35990",
+        "req_793f2f80d2915efa9132baa76b4fb659",
+        "req_db5f379b58755e6b8a7ba3e22f315826",
+        "req_f733dfb689045f05a53fcc41164e258e",
+        "req_06acdd527d9158408233550bd32d8985",
+        "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+        "req_9e63696a936b5f52a85f4221aa19c03a",
+        "req_979d1f8e4bc851b18f789209c88ca98b",
+        "req_85e0cfb054105e959c4b9775aafa50b7",
+        "req_43ee6409a1065372a3dbf1b686ed9caa",
+        "req_3fe7ae86fd8f554686b1bc436718900c",
+        "req_a6f0a511318e52ec9af24859ba5165e4",
+        "req_9120945853e5590e8e776b1c1400a279",
+        "req_cee412ddc59a54e5aeb473ceff07d5af",
+        "req_c2e121b42fdd5aa38eff1086935be325",
+        "req_67ebe9432bfa533d819b177bdb7fb39e",
+        "req_53587e990088571daef21a92363096b6",
+        "req_d95075df515d53209c12aefda8319544"
+      ],
+      "elements": []
+    },
+    {
+      "path": "pytest.ini",
+      "size": 72,
+      "sha256": "900ad5ede42030e383e74fc5276d43bf10c5c256bfbd9066dc52675fe533240b",
+      "role": "config",
+      "media_type": "text/plain",
+      "explanation": "Настройка pytest: каталог тестов и путь импорта.",
+      "requirement_ids": [],
+      "elements": []
+    },
+    {
+      "path": "requirements.txt",
+      "size": 374,
+      "sha256": "6cd9003888caa0cd71c88e5a0e9a26cf695f8f98424d44443b112b160c378a8f",
+      "role": "config",
+      "media_type": "text/plain",
+      "explanation": "Зафиксированные версии всех зависимостей (Python ≥3.11).",
+      "requirement_ids": [],
+      "elements": []
+    },
+    {
+      "path": "tests/data/conformance.json",
+      "size": 215007,
+      "sha256": "691ad6e6a15b7da0716d669c4fd2dc166e15203357942e4547e6e205c25f2b14",
+      "role": "test_data",
+      "media_type": "application/json",
+      "explanation": "Ожидаемые исходы переходов, недопустимые состояния и трассы TLC; вычислены по семантике модели при генерации.",
+      "requirement_ids": [
+        "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+        "req_48e457bf3dbd570bb264a37b73c35990",
+        "req_793f2f80d2915efa9132baa76b4fb659",
+        "req_db5f379b58755e6b8a7ba3e22f315826",
+        "req_f733dfb689045f05a53fcc41164e258e",
+        "req_06acdd527d9158408233550bd32d8985",
+        "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+        "req_9e63696a936b5f52a85f4221aa19c03a",
+        "req_979d1f8e4bc851b18f789209c88ca98b",
+        "req_85e0cfb054105e959c4b9775aafa50b7",
+        "req_d95075df515d53209c12aefda8319544"
+      ],
+      "elements": []
+    },
+    {
+      "path": "tests/test_api.py",
+      "size": 4821,
+      "sha256": "90bcfdb6a8058a28e0365bccd328d2f7903ccf48e308a3640d719f79d50aa517",
+      "role": "test",
+      "media_type": "text/x-python",
+      "explanation": "Тесты HTTP API: последовательность событий, отказы 404/409/422, сброс.",
+      "requirement_ids": [],
+      "elements": []
+    },
+    {
+      "path": "tests/test_domain.py",
+      "size": 906,
+      "sha256": "a7bdb2f414305a122f3fd452f8feaad7f93e744dd1db49243856c5b06c7fbf47",
+      "role": "test",
+      "media_type": "text/x-python",
+      "explanation": "Тесты типов и конечных областей значений.",
+      "requirement_ids": [],
+      "elements": []
+    },
+    {
+      "path": "tests/test_provenance.py",
+      "size": 1582,
+      "sha256": "a84e0e75f055c742cc2fa37607a94601ed92724493fc2f38cc64a1ba146576d4",
+      "role": "test",
+      "media_type": "text/x-python",
+      "explanation": "Связь кода с моделью: spec_hash, состав переходов и переменных, ссылки на требования.",
+      "requirement_ids": [],
+      "elements": []
+    },
+    {
+      "path": "tests/test_traces.py",
+      "size": 1117,
+      "sha256": "a141f10edf1ae379f2336d3a85997a05f71d9cd5afaf8a417ae0447f341eb1d0",
+      "role": "test",
+      "media_type": "text/x-python",
+      "explanation": "Повтор трасс TLC этой версии через сгенерированный код; статус свойства определяет TLC.",
+      "requirement_ids": [
+        "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+        "req_a6f0a511318e52ec9af24859ba5165e4"
+      ],
+      "elements": []
+    },
+    {
+      "path": "tests/test_transitions.py",
+      "size": 11183,
+      "sha256": "823693b24eb85359db0a092390b4ea67f45525edc6919e1895c0ed01ddd70ff4",
+      "role": "test",
+      "media_type": "text/x-python",
+      "explanation": "Тесты переходов: применение, неизменные переменные, одновременность, ложное условие, выход за область, таблица исходов.",
+      "requirement_ids": [
+        "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+        "req_48e457bf3dbd570bb264a37b73c35990",
+        "req_793f2f80d2915efa9132baa76b4fb659",
+        "req_db5f379b58755e6b8a7ba3e22f315826",
+        "req_f733dfb689045f05a53fcc41164e258e",
+        "req_06acdd527d9158408233550bd32d8985",
+        "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+        "req_9e63696a936b5f52a85f4221aa19c03a",
+        "req_979d1f8e4bc851b18f789209c88ca98b",
+        "req_85e0cfb054105e959c4b9775aafa50b7",
+        "req_d95075df515d53209c12aefda8319544"
+      ],
+      "elements": [
+        {
+          "kind": "transition",
+          "id": "submit_for_review",
+          "name": "Подать на согласование",
+          "requirement_ids": [
+            "req_48e457bf3dbd570bb264a37b73c35990",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 18,
+          "end_line": 33
+        },
+        {
+          "kind": "transition",
+          "id": "approve_a",
+          "name": "А даёт согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 36,
+          "end_line": 51
+        },
+        {
+          "kind": "transition",
+          "id": "approve_b",
+          "name": "Б даёт согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_793f2f80d2915efa9132baa76b4fb659",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 54,
+          "end_line": 69
+        },
+        {
+          "kind": "transition",
+          "id": "complete_review",
+          "name": "Завершить согласование",
+          "requirement_ids": [
+            "req_db5f379b58755e6b8a7ba3e22f315826",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 72,
+          "end_line": 87
+        },
+        {
+          "kind": "transition",
+          "id": "revoke_a",
+          "name": "А отзывает согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_06acdd527d9158408233550bd32d8985",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 90,
+          "end_line": 105
+        },
+        {
+          "kind": "transition",
+          "id": "revoke_b",
+          "name": "Б отзывает согласие",
+          "requirement_ids": [
+            "req_d94ac30dc50c5cfeb67c9c2dddde3f83",
+            "req_f733dfb689045f05a53fcc41164e258e",
+            "req_06acdd527d9158408233550bd32d8985",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 108,
+          "end_line": 123
+        },
+        {
+          "kind": "transition",
+          "id": "pay",
+          "name": "Оплатить",
+          "requirement_ids": [
+            "req_bf2da64ede4c56a2b9ce8dfb7110b8e8",
+            "req_9e63696a936b5f52a85f4221aa19c03a",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 126,
+          "end_line": 141
+        },
+        {
+          "kind": "transition",
+          "id": "cancel",
+          "name": "Отменить",
+          "requirement_ids": [
+            "req_979d1f8e4bc851b18f789209c88ca98b",
+            "req_85e0cfb054105e959c4b9775aafa50b7",
+            "req_d95075df515d53209c12aefda8319544"
+          ],
+          "start_line": 144,
+          "end_line": 159
+        }
+      ]
+    }
+  ]
+}

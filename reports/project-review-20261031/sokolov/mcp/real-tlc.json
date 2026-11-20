@@ -1,0 +1,136 @@
+{
+  "run": {
+    "run_id": "chk_c30da7122f1546b8bee4b42f917ef3d7",
+    "session_id": "s_f0db9b7d02b54e17b914b744b68d7386",
+    "version_id": "v_2907500f6b2841f9a94682edae220d56",
+    "state": "completed",
+    "error_code": null
+  },
+  "results": [
+    {
+      "schema_version": "1.0",
+      "spec_hash": "dbf4cbc8b79567a5567d91bd1db5a2733ce2480186c2ec240bd5fcf3594240de",
+      "version_id": "v_2907500f6b2841f9a94682edae220d56",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "NoCancelledExecution",
+      "status": "PROPERTY_HOLDS",
+      "conclusive": true,
+      "message": "Свойство выполняется: полностью исследовано 4 различных состояний",
+      "trace": [],
+      "statistics": {
+        "states_generated": 6,
+        "distinct_states": 4,
+        "depth": 2,
+        "elapsed_seconds": 0.266
+      },
+      "related_requirements": [
+        "R5"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "spec_hash": "dbf4cbc8b79567a5567d91bd1db5a2733ce2480186c2ec240bd5fcf3594240de",
+      "version_id": "v_2907500f6b2841f9a94682edae220d56",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "CanExecute",
+      "status": "PROPERTY_HOLDS",
+      "conclusive": true,
+      "message": "Цель достижима за 2 шаг(ов)",
+      "trace": [
+        {
+          "number": 0,
+          "transition_id": null,
+          "state": {
+            "status": "Created",
+            "approved": false,
+            "cancelled": false
+          }
+        },
+        {
+          "number": 1,
+          "transition_id": "Approve",
+          "state": {
+            "status": "Approved",
+            "approved": true,
+            "cancelled": false
+          }
+        },
+        {
+          "number": 2,
+          "transition_id": "Execute",
+          "state": {
+            "status": "Executed",
+            "approved": true,
+            "cancelled": false
+          }
+        }
+      ],
+      "statistics": {
+        "states_generated": 5,
+        "distinct_states": 4,
+        "depth": 2,
+        "elapsed_seconds": 0.272
+      },
+      "related_requirements": [
+        "R2",
+        "R4"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "spec_hash": "dbf4cbc8b79567a5567d91bd1db5a2733ce2480186c2ec240bd5fcf3594240de",
+      "version_id": "v_2907500f6b2841f9a94682edae220d56",
+      "mode": "engine",
+      "executed": true,
+      "engine": {
+        "name": "TLC",
+        "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+      },
+      "limits": {
+        "timeout_seconds": 30.0,
+        "max_states": 100000,
+        "max_depth": null
+      },
+      "property_id": "EndsProperly",
+      "status": "PROPERTY_HOLDS",
+      "conclusive": true,
+      "message": "Свойство выполняется: полностью исследовано 4 различных состояний",
+      "trace": [],
+      "statistics": {
+        "states_generated": 6,
+        "distinct_states": 4,
+        "depth": 2,
+        "elapsed_seconds": 0.213
+      },
+      "related_requirements": [
+        "R6"
+      ]
+    }
+  ],
+  "explanation": {
+    "state": "not_requested",
+    "run_id": null,
+    "error_code": null,
+    "narrative": null
+  }
+}

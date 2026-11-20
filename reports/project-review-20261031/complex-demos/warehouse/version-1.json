@@ -1,0 +1,718 @@
+{
+  "id": "v_8f5098ef6acf494498688b651763ce23",
+  "model_id": "m_b5c7cfc255a147aa94a6b651c954bfb6",
+  "session_id": "s_667780e868ab40ccbc04850e04043026",
+  "number": 1,
+  "parent_id": null,
+  "spec": {
+    "schema_version": "1.0",
+    "name": "Складской заказ на 2 единицы товара",
+    "sources": [
+      {
+        "id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+        "session_id": "s_667780e868ab40ccbc04850e04043026",
+        "kind": "text",
+        "text": "Складской заказ на 2 единицы товара. На складе всего 3 единицы. Нужна конечная модель с переменными: available — integer 0..3, reserved — integer 0..2, shipped — integer 0..2, status — enum Draft/Reserved/Cancelled/Shipped, paid — boolean. Изначально status=Draft, available=3, reserved=0, shipped=0.\n\nДействия:\n1. Reserve разрешён только из Draft при available>=2. Одновременно available=available-2, reserved=2, status=Reserved.\n2. Pay разрешён только при status=Reserved и paid=false. Устанавливает paid=true.\n3. Ship разрешён только при status=Reserved, paid=true и reserved=2. Одновременно reserved=0, shipped=2, status=Shipped.\n4. Cancel разрешён только при status=Reserved. Устанавливает status=Cancelled и reserved=0. В текущей версии available не изменяется — это намеренная учебная ошибка, не исправляй её автоматически.\nВсе неуказанные переменные сохраняются. Из Cancelled и Shipped действий нет.\n\nПроверяемые критерии: available+reserved+shipped всегда должно равняться 3; отменённый заказ не должен иметь отгруженный товар; отгрузка возможна только после оплаты. Это свойства для проверки модели, а не дополнительные guards. Сначала уточни действительно недостающие сведения."
+      },
+      {
+        "id": "answer_05952b29a9a7409b887d2c9a7d32af5e",
+        "session_id": "s_667780e868ab40ccbc04850e04043026",
+        "kind": "text",
+        "text": "Изначально paid=false: заказ ещё не оплачен. Подтверждаю все три критерия проверки из исходного описания. Учебную ошибку Cancel пока сохраняем: available не меняется, reserved обнуляется."
+      }
+    ],
+    "requirements": [
+      {
+        "id": "req_03deace4698956baa1d158bae7144b21",
+        "text": "Складской заказ содержит 2 единицы товара.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "Складской заказ на 2 единицы товара.",
+            "start": 0,
+            "end": 36
+          }
+        ]
+      },
+      {
+        "id": "req_6f773e210e525ff9bf14dd6dfc53cae0",
+        "text": "На складе всего 3 единицы товара.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "На складе всего 3 единицы.",
+            "start": 37,
+            "end": 63
+          }
+        ]
+      },
+      {
+        "id": "req_80d0d74789ad59458d4d1af903bbac6a",
+        "text": "Нужна конечная модель.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "Нужна конечная модель",
+            "start": 64,
+            "end": 85
+          }
+        ]
+      },
+      {
+        "id": "req_62082f2c4316547a92b7284402c07ef9",
+        "text": "available — целое число от 0 до 3.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "available — integer 0..3",
+            "start": 101,
+            "end": 125
+          }
+        ]
+      },
+      {
+        "id": "req_efd35998b8fb512280b43b68a3f3ccc5",
+        "text": "reserved — целое число от 0 до 2.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "reserved — integer 0..2",
+            "start": 127,
+            "end": 150
+          }
+        ]
+      },
+      {
+        "id": "req_82d4ebac821b548d97d7571e6032c1da",
+        "text": "shipped — целое число от 0 до 2.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "shipped — integer 0..2",
+            "start": 152,
+            "end": 174
+          }
+        ]
+      },
+      {
+        "id": "req_d5b51c5f67025ea083664a4cec1162f3",
+        "text": "status принимает значения Draft, Reserved, Cancelled или Shipped.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "status — enum Draft/Reserved/Cancelled/Shipped",
+            "start": 176,
+            "end": 222
+          }
+        ]
+      },
+      {
+        "id": "req_2e3e4f8cab7350b8b5d5a198a6fb1261",
+        "text": "paid — логическая переменная.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "paid — boolean.",
+            "start": 224,
+            "end": 239
+          }
+        ]
+      },
+      {
+        "id": "req_338a353901a053cca219f1d9ad1c623b",
+        "text": "Изначально status=Draft, available=3, reserved=0, shipped=0.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "Изначально status=Draft, available=3, reserved=0, shipped=0.",
+            "start": 240,
+            "end": 300
+          }
+        ]
+      },
+      {
+        "id": "req_01189db190aa5159bdcdc73494608354",
+        "text": "Reserve разрешён только из Draft при available>=2. Одновременно available уменьшается на 2, reserved становится 2, status становится Reserved.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "Reserve разрешён только из Draft при available>=2. Одновременно available=available-2, reserved=2, status=Reserved.",
+            "start": 315,
+            "end": 430
+          }
+        ]
+      },
+      {
+        "id": "req_cedc5f58642c5065b13d45623abd271a",
+        "text": "Pay разрешён только при status=Reserved и paid=false. Устанавливает paid=true.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "Pay разрешён только при status=Reserved и paid=false. Устанавливает paid=true.",
+            "start": 434,
+            "end": 512
+          }
+        ]
+      },
+      {
+        "id": "req_e15ae391f9305927803d48f74e33b06b",
+        "text": "Ship разрешён только при status=Reserved, paid=true и reserved=2. Одновременно reserved=0, shipped=2, status=Shipped.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "Ship разрешён только при status=Reserved, paid=true и reserved=2. Одновременно reserved=0, shipped=2, status=Shipped.",
+            "start": 516,
+            "end": 633
+          }
+        ]
+      },
+      {
+        "id": "req_017b5a256cd65981a858434852c2d191",
+        "text": "Cancel разрешён только при status=Reserved. Устанавливает status=Cancelled и reserved=0. available не изменяется; это намеренная учебная ошибка.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "Cancel разрешён только при status=Reserved. Устанавливает status=Cancelled и reserved=0. В текущей версии available не изменяется — это намеренная учебная ошибка, не исправляй её автоматически.",
+            "start": 637,
+            "end": 830
+          }
+        ]
+      },
+      {
+        "id": "req_588c5a93353c513eb5afb57508df4fb0",
+        "text": "Все неуказанные переменные сохраняются.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "Все неуказанные переменные сохраняются.",
+            "start": 831,
+            "end": 870
+          }
+        ]
+      },
+      {
+        "id": "req_48259ccb945e54d8989e4f57a0444772",
+        "text": "Из Cancelled и Shipped действий нет.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "Из Cancelled и Shipped действий нет.",
+            "start": 871,
+            "end": 907
+          }
+        ]
+      },
+      {
+        "id": "req_53f0aacca8a655fda64bd98d97cf9689",
+        "text": "available+reserved+shipped всегда должно равняться 3.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "available+reserved+shipped всегда должно равняться 3",
+            "start": 931,
+            "end": 983
+          }
+        ]
+      },
+      {
+        "id": "req_2ddcf9d9be615ddfa344b007ac1a694e",
+        "text": "Отменённый заказ не должен иметь отгруженный товар.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "отменённый заказ не должен иметь отгруженный товар",
+            "start": 985,
+            "end": 1035
+          }
+        ]
+      },
+      {
+        "id": "req_f72c5632436250608131945ae1e69140",
+        "text": "Отгрузка возможна только после оплаты.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "отгрузка возможна только после оплаты.",
+            "start": 1037,
+            "end": 1075
+          }
+        ]
+      },
+      {
+        "id": "req_7c99c5073dc851a4ae034766bc5a5a0e",
+        "text": "Критерии проверяются как свойства модели и не являются дополнительными guards.",
+        "source_refs": [
+          {
+            "source_id": "src_5a6ed583c2ef4a3facae27c25f4f9764",
+            "quote": "Это свойства для проверки модели, а не дополнительные guards.",
+            "start": 1076,
+            "end": 1137
+          }
+        ]
+      },
+      {
+        "id": "req_9b6c87c4a9e05c3885202d50fde7e21e",
+        "text": "Изначально paid=false: заказ ещё не оплачен.",
+        "source_refs": [
+          {
+            "source_id": "answer_05952b29a9a7409b887d2c9a7d32af5e",
+            "quote": "Изначально paid=false: заказ ещё не оплачен.",
+            "start": 0,
+            "end": 44
+          }
+        ]
+      }
+    ],
+    "variables": [
+      {
+        "id": "available",
+        "name": "Доступное количество товара",
+        "requirement_ids": [
+          "req_6f773e210e525ff9bf14dd6dfc53cae0",
+          "req_62082f2c4316547a92b7284402c07ef9",
+          "req_338a353901a053cca219f1d9ad1c623b",
+          "req_01189db190aa5159bdcdc73494608354",
+          "req_017b5a256cd65981a858434852c2d191",
+          "req_588c5a93353c513eb5afb57508df4fb0"
+        ],
+        "domain": {
+          "kind": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "initial_value": 3
+      },
+      {
+        "id": "reserved",
+        "name": "Зарезервированное количество товара",
+        "requirement_ids": [
+          "req_efd35998b8fb512280b43b68a3f3ccc5",
+          "req_338a353901a053cca219f1d9ad1c623b",
+          "req_01189db190aa5159bdcdc73494608354",
+          "req_e15ae391f9305927803d48f74e33b06b",
+          "req_017b5a256cd65981a858434852c2d191",
+          "req_588c5a93353c513eb5afb57508df4fb0"
+        ],
+        "domain": {
+          "kind": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "initial_value": 0
+      },
+      {
+        "id": "shipped",
+        "name": "Отгруженное количество товара",
+        "requirement_ids": [
+          "req_82d4ebac821b548d97d7571e6032c1da",
+          "req_338a353901a053cca219f1d9ad1c623b",
+          "req_e15ae391f9305927803d48f74e33b06b",
+          "req_588c5a93353c513eb5afb57508df4fb0"
+        ],
+        "domain": {
+          "kind": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "initial_value": 0
+      },
+      {
+        "id": "status",
+        "name": "Статус заказа",
+        "requirement_ids": [
+          "req_d5b51c5f67025ea083664a4cec1162f3",
+          "req_338a353901a053cca219f1d9ad1c623b",
+          "req_01189db190aa5159bdcdc73494608354",
+          "req_cedc5f58642c5065b13d45623abd271a",
+          "req_e15ae391f9305927803d48f74e33b06b",
+          "req_017b5a256cd65981a858434852c2d191",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772"
+        ],
+        "domain": {
+          "kind": "enum",
+          "values": [
+            "Draft",
+            "Reserved",
+            "Cancelled",
+            "Shipped"
+          ]
+        },
+        "initial_value": "Draft"
+      },
+      {
+        "id": "paid",
+        "name": "Заказ оплачен",
+        "requirement_ids": [
+          "req_2e3e4f8cab7350b8b5d5a198a6fb1261",
+          "req_cedc5f58642c5065b13d45623abd271a",
+          "req_e15ae391f9305927803d48f74e33b06b",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_9b6c87c4a9e05c3885202d50fde7e21e"
+        ],
+        "domain": {
+          "kind": "boolean"
+        },
+        "initial_value": false
+      }
+    ],
+    "transitions": [
+      {
+        "id": "Reserve",
+        "name": "Резервирование товара",
+        "requirement_ids": [
+          "req_01189db190aa5159bdcdc73494608354",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "guard": {
+          "kind": "binary",
+          "op": "and",
+          "left": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Draft"
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "op": "ge",
+            "left": {
+              "kind": "variable",
+              "name": "available"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 2
+            }
+          }
+        },
+        "effects": [
+          {
+            "variable": "available",
+            "value": {
+              "kind": "binary",
+              "op": "sub",
+              "left": {
+                "kind": "variable",
+                "name": "available"
+              },
+              "right": {
+                "kind": "literal",
+                "value": 2
+              }
+            }
+          },
+          {
+            "variable": "reserved",
+            "value": {
+              "kind": "literal",
+              "value": 2
+            }
+          },
+          {
+            "variable": "status",
+            "value": {
+              "kind": "literal",
+              "value": "Reserved"
+            }
+          }
+        ]
+      },
+      {
+        "id": "Pay",
+        "name": "Оплата заказа",
+        "requirement_ids": [
+          "req_cedc5f58642c5065b13d45623abd271a",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "guard": {
+          "kind": "binary",
+          "op": "and",
+          "left": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Reserved"
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "paid"
+            },
+            "right": {
+              "kind": "literal",
+              "value": false
+            }
+          }
+        },
+        "effects": [
+          {
+            "variable": "paid",
+            "value": {
+              "kind": "literal",
+              "value": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "Ship",
+        "name": "Отгрузка товара",
+        "requirement_ids": [
+          "req_e15ae391f9305927803d48f74e33b06b",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "guard": {
+          "kind": "binary",
+          "op": "and",
+          "left": {
+            "kind": "binary",
+            "op": "and",
+            "left": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "status"
+              },
+              "right": {
+                "kind": "literal",
+                "value": "Reserved"
+              }
+            },
+            "right": {
+              "kind": "binary",
+              "op": "eq",
+              "left": {
+                "kind": "variable",
+                "name": "paid"
+              },
+              "right": {
+                "kind": "literal",
+                "value": true
+              }
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "reserved"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 2
+            }
+          }
+        },
+        "effects": [
+          {
+            "variable": "reserved",
+            "value": {
+              "kind": "literal",
+              "value": 0
+            }
+          },
+          {
+            "variable": "shipped",
+            "value": {
+              "kind": "literal",
+              "value": 2
+            }
+          },
+          {
+            "variable": "status",
+            "value": {
+              "kind": "literal",
+              "value": "Shipped"
+            }
+          }
+        ]
+      },
+      {
+        "id": "Cancel",
+        "name": "Отмена заказа",
+        "requirement_ids": [
+          "req_017b5a256cd65981a858434852c2d191",
+          "req_588c5a93353c513eb5afb57508df4fb0",
+          "req_48259ccb945e54d8989e4f57a0444772",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "guard": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "status"
+          },
+          "right": {
+            "kind": "literal",
+            "value": "Reserved"
+          }
+        },
+        "effects": [
+          {
+            "variable": "status",
+            "value": {
+              "kind": "literal",
+              "value": "Cancelled"
+            }
+          },
+          {
+            "variable": "reserved",
+            "value": {
+              "kind": "literal",
+              "value": 0
+            }
+          }
+        ]
+      }
+    ],
+    "properties": [
+      {
+        "id": "stock_conservation",
+        "name": "Сохранение общего количества товара",
+        "requirement_ids": [
+          "req_6f773e210e525ff9bf14dd6dfc53cae0",
+          "req_53f0aacca8a655fda64bd98d97cf9689",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "kind": "invariant",
+        "predicate": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "binary",
+            "op": "add",
+            "left": {
+              "kind": "binary",
+              "op": "add",
+              "left": {
+                "kind": "variable",
+                "name": "available"
+              },
+              "right": {
+                "kind": "variable",
+                "name": "reserved"
+              }
+            },
+            "right": {
+              "kind": "variable",
+              "name": "shipped"
+            }
+          },
+          "right": {
+            "kind": "literal",
+            "value": 3
+          }
+        },
+        "explanation": "В каждом достижимом состоянии сумма доступного, зарезервированного и отгруженного товара должна равняться 3.",
+        "origin": "requirement",
+        "approved_by": null
+      },
+      {
+        "id": "cancelled_without_shipment",
+        "name": "У отменённого заказа нет отгруженного товара",
+        "requirement_ids": [
+          "req_2ddcf9d9be615ddfa344b007ac1a694e",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "kind": "invariant",
+        "predicate": {
+          "kind": "binary",
+          "op": "implies",
+          "left": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "status"
+            },
+            "right": {
+              "kind": "literal",
+              "value": "Cancelled"
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "shipped"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 0
+            }
+          }
+        },
+        "explanation": "Если заказ находится в статусе Cancelled, количество отгруженного товара должно быть равно 0.",
+        "origin": "requirement",
+        "approved_by": null
+      },
+      {
+        "id": "shipment_requires_payment",
+        "name": "Отгрузка только после оплаты",
+        "requirement_ids": [
+          "req_f72c5632436250608131945ae1e69140",
+          "req_7c99c5073dc851a4ae034766bc5a5a0e"
+        ],
+        "kind": "invariant",
+        "predicate": {
+          "kind": "binary",
+          "op": "implies",
+          "left": {
+            "kind": "binary",
+            "op": "gt",
+            "left": {
+              "kind": "variable",
+              "name": "shipped"
+            },
+            "right": {
+              "kind": "literal",
+              "value": 0
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "op": "eq",
+            "left": {
+              "kind": "variable",
+              "name": "paid"
+            },
+            "right": {
+              "kind": "literal",
+              "value": true
+            }
+          }
+        },
+        "explanation": "Если количество отгруженного товара больше 0, заказ должен быть оплачен: paid=true.",
+        "origin": "requirement",
+        "approved_by": null
+      }
+    ]
+  },
+  "spec_hash": "e1921fce43b2e810fefcd8c2852c2a498fef0788c14eb51d6b7900477f93cdf9",
+  "approved": false
+}

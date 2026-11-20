@@ -1,0 +1,70 @@
+{
+  "warehouse": {
+    "session_id": "s_667780e868ab40ccbc04850e04043026",
+    "model_id": "m_b5c7cfc255a147aa94a6b651c954bfb6",
+    "links": {
+      "violation": "http://127.0.0.1:5300/?ui=9#/s/s_667780e868ab40ccbc04850e04043026?m=m_b5c7cfc255a147aa94a6b651c954bfb6&v=1&view=diagram&check=chk_85ab308e95a54722acffaca426b16db3&p=stock_conservation&step=2",
+      "fixed": "http://127.0.0.1:5300/?ui=9#/s/s_667780e868ab40ccbc04850e04043026?m=m_b5c7cfc255a147aa94a6b651c954bfb6&v=2&view=check&check=chk_6855eb4a0119493a9189ae1328c81799&p=stock_conservation",
+      "files": "http://127.0.0.1:5300/?ui=9#/s/s_667780e868ab40ccbc04850e04043026?m=m_b5c7cfc255a147aa94a6b651c954bfb6&v=2&view=files"
+    },
+    "v1": "PROPERTY_VIOLATED",
+    "v2": "3 PROPERTY_HOLDS",
+    "v2_states": 6,
+    "files": 16,
+    "generation_id": "gen_34f32d8d795445359e867e858bec7f04",
+    "tests": {
+      "test_run_id": "trun_c8739f60f1094b7a8971509669f35489",
+      "status": "passed",
+      "counts": {
+        "total": 322,
+        "passed": 322,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "duration_seconds": 0.934
+    }
+  },
+  "payment": {
+    "session_id": "s_336fa26bef034b72916bfcbb1ee117cc",
+    "url": "http://127.0.0.1:5300/?ui=9#/s/s_336fa26bef034b72916bfcbb1ee117cc",
+    "topic": "Два согласующих и отзыв после финального согласования",
+    "state": "complete",
+    "model_id": "m_6683d588b8a94202a9eb6b9cfb5c84d0",
+    "v1_check": "chk_b04d0355182645709f2a83eebda0777e",
+    "v2_check": "chk_45e60e439feb466381276192b402f277",
+    "v1_status": [
+      "PROPERTY_VIOLATED",
+      "PROPERTY_HOLDS",
+      "PROPERTY_HOLDS"
+    ],
+    "v2_status": [
+      "PROPERTY_HOLDS",
+      "PROPERTY_HOLDS",
+      "PROPERTY_HOLDS"
+    ],
+    "v2_states": 11,
+    "links": {
+      "violation": "http://127.0.0.1:5300/?ui=9#/s/s_336fa26bef034b72916bfcbb1ee117cc?m=m_6683d588b8a94202a9eb6b9cfb5c84d0&v=1&view=diagram&check=chk_b04d0355182645709f2a83eebda0777e&p=consents_after_execution&step=6",
+      "fixed": "http://127.0.0.1:5300/?ui=9#/s/s_336fa26bef034b72916bfcbb1ee117cc?m=m_6683d588b8a94202a9eb6b9cfb5c84d0&v=2&view=check&check=chk_45e60e439feb466381276192b402f277&p=consents_after_execution",
+      "files": "http://127.0.0.1:5300/?ui=9#/s/s_336fa26bef034b72916bfcbb1ee117cc?m=m_6683d588b8a94202a9eb6b9cfb5c84d0&v=2&view=files"
+    },
+    "generation_id": "gen_0d8c615caaa94aebb79db02040be9add",
+    "files": 17,
+    "tests": {
+      "test_run_id": "trun_fa1cde4764794d36bc6cc4b4acf6cf1f",
+      "status": "passed",
+      "counts": {
+        "total": 645,
+        "passed": 645,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "duration_seconds": 1.217,
+      "code_hash": "c5a7f6d481513d7257e3ec6c850d30e30430791d1a14df697797f94b9a413c38",
+      "spec_hash": "3c63553df8f7f5b8c7f0c9798e4e3d4bbb4c045f0f33850141ed0be9e0458f42"
+    }
+  },
+  "scope": "Two real native browser scenarios with actual GPT subscription, addressed follow-ups, TLC, deterministic codegen and Docker; no application source edits or fixture substitution."
+}

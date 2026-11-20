@@ -1,0 +1,332 @@
+{
+  "schema_version": "1.0",
+  "name": "Заявка",
+  "sources": [
+    {
+      "id": "source1",
+      "session_id": "fixtures",
+      "kind": "text",
+      "text": "Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.\nЗаявку в статусе Created можно согласовать: статус Approved, approved=true.\nЗаявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true.\nИсполнить можно только согласованную заявку: статус Executed.\nОтменённая заявка не должна быть исполнена.\nПроцесс может завершиться только отменой или исполнением."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.",
+          "start": 0,
+          "end": 157
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "text": "Заявку в статусе Created можно согласовать: статус Approved, approved=true.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Заявку в статусе Created можно согласовать: статус Approved, approved=true.",
+          "start": 158,
+          "end": 233
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "text": "Заявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Заявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true.",
+          "start": 234,
+          "end": 321
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "text": "Исполнить можно только согласованную заявку: статус Executed.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Исполнить можно только согласованную заявку: статус Executed.",
+          "start": 322,
+          "end": 383
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "text": "Отменённая заявка не должна быть исполнена.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Отменённая заявка не должна быть исполнена.",
+          "start": 384,
+          "end": 427
+        }
+      ]
+    },
+    {
+      "id": "R6",
+      "text": "Процесс может завершиться только отменой или исполнением.",
+      "source_refs": [
+        {
+          "source_id": "source1",
+          "quote": "Процесс может завершиться только отменой или исполнением.",
+          "start": 428,
+          "end": 485
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "id": "status",
+      "name": "Статус заявки",
+      "requirement_ids": [
+        "R1"
+      ],
+      "domain": {
+        "kind": "enum",
+        "values": [
+          "Created",
+          "Approved",
+          "Cancelled",
+          "Executed"
+        ]
+      },
+      "initial_value": "Created"
+    },
+    {
+      "id": "approved",
+      "name": "Согласована",
+      "requirement_ids": [
+        "R1"
+      ],
+      "domain": {
+        "kind": "boolean"
+      },
+      "initial_value": false
+    },
+    {
+      "id": "cancelled",
+      "name": "Отменена",
+      "requirement_ids": [
+        "R1"
+      ],
+      "domain": {
+        "kind": "boolean"
+      },
+      "initial_value": false
+    }
+  ],
+  "transitions": [
+    {
+      "id": "Approve",
+      "name": "Согласовать",
+      "requirement_ids": [
+        "R2"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "eq",
+        "left": {
+          "kind": "variable",
+          "name": "status"
+        },
+        "right": {
+          "kind": "literal",
+          "value": "Created"
+        }
+      },
+      "effects": [
+        {
+          "variable": "status",
+          "value": {
+            "kind": "literal",
+            "value": "Approved"
+          }
+        },
+        {
+          "variable": "approved",
+          "value": {
+            "kind": "literal",
+            "value": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "Cancel",
+      "name": "Отменить",
+      "requirement_ids": [
+        "R3"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "or",
+        "left": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "status"
+          },
+          "right": {
+            "kind": "literal",
+            "value": "Created"
+          }
+        },
+        "right": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "status"
+          },
+          "right": {
+            "kind": "literal",
+            "value": "Approved"
+          }
+        }
+      },
+      "effects": [
+        {
+          "variable": "status",
+          "value": {
+            "kind": "literal",
+            "value": "Cancelled"
+          }
+        },
+        {
+          "variable": "cancelled",
+          "value": {
+            "kind": "literal",
+            "value": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "Execute",
+      "name": "Исполнить",
+      "requirement_ids": [
+        "R4"
+      ],
+      "guard": {
+        "kind": "binary",
+        "op": "eq",
+        "left": {
+          "kind": "variable",
+          "name": "approved"
+        },
+        "right": {
+          "kind": "literal",
+          "value": true
+        }
+      },
+      "effects": [
+        {
+          "variable": "status",
+          "value": {
+            "kind": "literal",
+            "value": "Executed"
+          }
+        }
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "id": "NoCancelledExecution",
+      "name": "Отменённая заявка не исполняется",
+      "requirement_ids": [
+        "R5"
+      ],
+      "kind": "forbidden_state",
+      "predicate": {
+        "kind": "binary",
+        "op": "and",
+        "left": {
+          "kind": "variable",
+          "name": "cancelled"
+        },
+        "right": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "status"
+          },
+          "right": {
+            "kind": "literal",
+            "value": "Executed"
+          }
+        }
+      },
+      "explanation": "Отменённая заявка не исполняется"
+    },
+    {
+      "id": "CanExecute",
+      "name": "Заявку можно исполнить",
+      "requirement_ids": [
+        "R4"
+      ],
+      "kind": "reachable",
+      "predicate": {
+        "kind": "binary",
+        "op": "eq",
+        "left": {
+          "kind": "variable",
+          "name": "status"
+        },
+        "right": {
+          "kind": "literal",
+          "value": "Executed"
+        }
+      },
+      "explanation": "Заявку можно исполнить"
+    },
+    {
+      "id": "EndsProperly",
+      "name": "Завершение только отменой или исполнением",
+      "requirement_ids": [
+        "R6"
+      ],
+      "kind": "deadlock_free",
+      "predicate": {
+        "kind": "binary",
+        "op": "or",
+        "left": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "status"
+          },
+          "right": {
+            "kind": "literal",
+            "value": "Cancelled"
+          }
+        },
+        "right": {
+          "kind": "binary",
+          "op": "eq",
+          "left": {
+            "kind": "variable",
+            "name": "status"
+          },
+          "right": {
+            "kind": "literal",
+            "value": "Executed"
+          }
+        }
+      },
+      "explanation": "Завершение только отменой или исполнением"
+    }
+  ]
+}

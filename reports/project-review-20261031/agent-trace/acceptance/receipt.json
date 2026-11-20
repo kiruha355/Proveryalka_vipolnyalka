@@ -1,0 +1,68 @@
+{
+  "captured_at": "2026-10-31T11:01:08.479307+00:00",
+  "backend_full": {
+    "passed": 522,
+    "skipped": 0,
+    "require_tlc": true,
+    "require_sandbox": true,
+    "seconds": 72.25
+  },
+  "frontend": {
+    "passed": 50,
+    "skipped_optin_http": 1,
+    "typecheck": "PASS"
+  },
+  "extensions": {
+    "passed": 113,
+    "typecheck_build": "PASS"
+  },
+  "native_browser": {
+    "session_id": "s_38a15207f8d646b0860d70b4c96ca1c4",
+    "run_id": "agent_3756c968ad9e4c919b9cb47d5ae180c1",
+    "model_id": "m_b68ace559a9d47489c51d4a79e27c83a",
+    "provider": "codex",
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh",
+    "logical_provider_calls": 1,
+    "recorded_attempts": 1,
+    "terminal_state": "completed",
+    "duration_seconds": 36.986099,
+    "running_phase_observed": "model_request",
+    "expanded_trace": "PASS",
+    "page_scroll_height": 800,
+    "viewport_height": 800,
+    "workspace_scroll_height": 717,
+    "workspace_client_height": 717,
+    "graph_canvas_height": 563.5,
+    "normal_expand_controls": 1,
+    "fresh_profile_restore": "PASS: same run ID, one trace,12 steps, persisted timestamps, no local initial run record",
+    "details_keyboard": "PASS: Enter toggles focused native details summary; Space not counted",
+    "graph_expand_escape_focus": "PASS",
+    "edge_labels": {
+      "reference_model": "m_796f0f6574b447849ac1c5c316dc78e0",
+      "version": 2,
+      "labels": 4,
+      "overlapping_label_pairs": 0,
+      "computed_opacity": "1",
+      "long_name_wrap": "2 lines",
+      "page_scroll_height": 800,
+      "viewport_height": 800,
+      "label_z_index": 3
+    },
+    "narrow_viewport": "NOT_VERIFIED: native resize stored390x844 setting but actual viewport remained1280x800",
+    "snapshot_boundary": "Final UI8 native PNG saved and visually reviewed. A prior UI7 repeat timed out15000ms, same known T3 snapshot issue."
+  },
+  "scopes": [
+    "UI8 factual trace, fixed graph layout and label stacking",
+    "true new subscription call through native UI",
+    "server persistence of factual events"
+  ],
+  "not_run": [
+    "new TLC for the trace example",
+    "new Docker run for this trace change",
+    "user visual acceptance",
+    "GitHub CI checks"
+  ],
+  "pending_followup": null,
+  "ui_revision": "8"
+}

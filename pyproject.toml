@@ -12,9 +12,13 @@ dependencies = [
     "uvicorn==0.34.2",
     "openai-agents==0.24.0",
     "python-dotenv==1.2.4",
+    "python-multipart==0.0.32",
+    "Pillow==12.1.1",
+    "cryptography==50.0.2",
 ]
 
 [project.optional-dependencies]
+mcp = ["mcp==2.3.0", "mcp-types==2.3.0"]
 test = ["pytest==8.3.5", "httpx==0.28.1"]
 
 [tool.setuptools.packages.find]
@@ -23,7 +27,8 @@ include = ["proveryalka*"]
 
 [tool.setuptools.package-data]
 "proveryalka.storage" = ["migrations/*.sql"]
+"proveryalka.codegen" = ["sandbox_image/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]

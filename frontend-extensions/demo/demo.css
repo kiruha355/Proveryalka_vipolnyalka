@@ -1,0 +1,43 @@
+body {
+  margin: 0;
+  font-family:
+    "Inter",
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #2a2521;
+}
+
+.demo {
+  display: grid;
+  gap: 18px;
+}
+
+.demo__frame {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+}
+
+.demo__frame--tall {
+  height: 820px;
+}
+
+.demo__frame--short {
+  height: 300px;
+}
+
+.demo__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.demo__frame--files {
+  height: 860px;
+}
+@media (max-width: 760px) {
+  .demo__frame--tall { height: 1120px; }
+}

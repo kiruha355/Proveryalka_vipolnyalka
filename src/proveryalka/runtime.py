@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .checker.runner import detect_engine
 from .config import Settings
+from .agent.llm_config import provider_configured, provider_name
 from .storage.sqlite import SQLiteStore
 
 
@@ -21,7 +22,7 @@ async def diagnose(settings=None):
     engine = await detect_engine(settings.java_path, settings.tla_jar)
     return {"sqlite":"ready", "artifacts":"ready", "java_major":engine.java_version,
             "tlc":engine.tlc_version, "jar_sha256":engine.jar_sha256,
-            "agent_configured":bool(os.getenv("OPENAI_API_KEY") and os.getenv("OPENAI_BASE_URL"))}
+            "llm_provider":provider_name(), "agent_configured":provider_configured()}
 
 
 def main():

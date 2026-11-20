@@ -1,18 +1,20 @@
 from contextlib import asynccontextmanager
 from typing import Optional, Type
 
-from fastapi import FastAPI, Header, Query
+from fastapi import FastAPI, Header, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, StrictStr, create_model
+from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException
 
 from ..config import Settings
 from ..behavior import BehavioralModel
 from ..verification import VerificationResult
 from ..contracts import (
-    CheckCreate, Contract, ErrorResponse, Event, MessageCreate, Run, Session,
-    SessionCreate, SessionDetail, Source, TextSourceCreate,
+    AgentRunTracePage, CheckCreate, Contract, DialogueView, DocumentUpload, ErrorResponse, Event, ExplanationView,
+    MessageCreate, Run, Session, SessionCreate, SessionDetail, Source, TextSourceCreate,
 )
 from ..services import Backend, ServiceError
 from ..storage.sqlite import SQLiteStore
@@ -26,15 +28,32 @@ def create_app(
     verification_result: Type[BaseModel] = VerificationResult,
     checker=None,
     analyst=None,
+    explainer=None,
+    codegen_settings=None,
+    codegen_sandbox=None,
+    image_limits=None,
+    image_provider=None,
+    repository_limits=None,
+    repository_host_policy=None,
+    repository_credential_provider=None,
+    mcp_policy=None,
+    auth_settings=None,
+    auth_delivery=None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
     store = SQLiteStore(settings.database_path) if backend is None else None
-    adapter = backend if backend is not None else ApplicationBackend(store, settings, checker, analyst)
+    adapter = backend if backend is not None else ApplicationBackend(store, settings, checker, analyst, explainer)
+    from ..sources.repositories import RepositoryService
+    repositories = RepositoryService(
+        store, limits=repository_limits, host_policy=repository_host_policy,
+        credential_provider=repository_credential_provider,
+    ) if store is not None else None
 
     @asynccontextmanager
     async def lifespan(app):
         if store is not None:
             store.initialize()
+            repositories.initialize()
             await adapter.start()
         try:
             yield
@@ -43,8 +62,34 @@ def create_app(
                 await adapter.close()
 
     app = FastAPI(title="Проверялка API", version="0.1.0", lifespan=lifespan)
+    from ..auth.config import AuthSettings
+    from ..auth.service import AuthService
+    from ..auth.router import create_auth_router
+    auth_settings = auth_settings or AuthSettings.from_env()
+    if auth_settings.enabled and store is None:
+        raise ValueError("User authentication requires the persistent application backend")
+    app.state.auth = AuthService(store, auth_settings, auth_delivery) if auth_settings.enabled else None
+    if app.state.auth is not None:
+        from fastapi import Depends
+        from ..auth.middleware import authorize_resource
+        app.router.dependencies.append(Depends(authorize_resource))
+        app.include_router(create_auth_router(app.state.auth))
+        from ..auth.middleware import OwnershipMiddleware
+        from ..auth.tokens import create_token_router
+        app.include_router(create_token_router(app.state.auth))
+        from ..auth.connections import ConnectionService, create_connections_router
+        from ..sources.repositories.transport import UserRepositoryTransport
+        app.state.connections = ConnectionService(store)
+        app.include_router(create_connections_router(app.state.connections))
+        repositories.transport = UserRepositoryTransport(app.state.connections)
+        repositories.user_connections = True
+        app.add_middleware(OwnershipMiddleware, auth=app.state.auth)
     app.state.settings = settings
     app.state.backend = adapter
+    app.state.repositories = repositories
+    if repositories is not None:
+        from .repositories import create_repository_router
+        app.include_router(create_repository_router(repositories, adapter))
     Spec = behavioral_model
     Result = verification_result
     VersionCreate = create_model("VersionCreate", __base__=Contract, spec=(Spec, ...), parent_id=(Optional[str], None))
@@ -60,9 +105,11 @@ def create_app(
     Check = create_model(
         "CheckRun", __base__=Contract, run=(Run, ...),
         results=(list[Result], ...),
+        explanation=(ExplanationView, Field(default_factory=lambda: ExplanationView(state="not_requested"))),
     )
     errors = {code: {"model": ErrorResponse} for code in (404, 409, 422, 429, 503)}
     errors[422]["description"] = "Unprocessable Entity"
+    document_errors = {**errors, **{code: {"model": ErrorResponse} for code in (411, 413, 415)}}
 
     @app.exception_handler(ServiceError)
     async def service_error(request, error):
@@ -98,8 +145,12 @@ def create_app(
             await adapter.checker.engine()
         except Exception as error:
             raise ServiceError(503, "DEPENDENCY_UNAVAILABLE", "SQLite or Java/TLC is unavailable; run python -m proveryalka.runtime") from error
-        import os
-        return {"status":"ready", "checker":"TLC", "agent_configured":bool(os.getenv("OPENAI_API_KEY") and os.getenv("OPENAI_BASE_URL"))}
+        from ..agent.llm_config import provider_configured, provider_name
+        try:
+            provider, configured = provider_name(), provider_configured()
+        except ValueError:
+            provider, configured = None, False
+        return {"status":"ready", "checker":"TLC", "llm_provider":provider, "agent_configured":configured}
 
     @app.post("/api/sessions", response_model=Session, status_code=201, responses=errors)
     def create_session(body: SessionCreate, idempotency_key: str = Header(min_length=1, max_length=128)):
@@ -118,10 +169,53 @@ def create_app(
                       idempotency_key: str = Header(min_length=1, max_length=128)):
         return adapter.call("create_source", session_id=session_id, body=body.model_dump(), key=idempotency_key)
 
+    document_body = {"requestBody": {"required": True, "content": {"multipart/form-data": {"schema": {
+        "type": "object", "required": ["file"],
+        "properties": {"file": {"type": "string", "format": "binary", "description": ".txt, .md (UTF-8) или .docx"}},
+    }}}}}
+
+    @app.post("/api/sessions/{session_id}/documents", response_model=DocumentUpload, status_code=201,
+              responses=document_errors, openapi_extra=document_body)
+    async def upload_document(session_id: str, request: Request,
+                              idempotency_key: str = Header(min_length=1, max_length=128)):
+        # Размер проверяется до разбора multipart, чтобы большой файл не попадал во временное хранилище.
+        length = request.headers.get("content-length", "")
+        if not length.isdigit():
+            raise ServiceError(411, "LENGTH_REQUIRED", "Content-Length is required for document upload")
+        if int(length) > settings.max_document_bytes + 64 * 1024:
+            raise ServiceError(413, "DOCUMENT_TOO_LARGE", f"Document exceeds {settings.max_document_bytes} bytes")
+        form = await request.form(max_files=1, max_fields=1)
+        try:
+            upload = form.get("file")
+            if not isinstance(upload, UploadFile):
+                raise ServiceError(422, "INVALID_REQUEST", "Multipart field 'file' is required")
+            data = await upload.read(settings.max_document_bytes + 1)
+            filename = upload.filename
+        finally:
+            await form.close()
+        return await run_in_threadpool(adapter.call, "create_document", session_id=session_id,
+                                       filename=filename, data=data, key=idempotency_key)
+
     @app.post("/api/sessions/{session_id}/messages", response_model=Run, status_code=202, responses=errors)
     def send_message(session_id: str, body: MessageCreate,
                      idempotency_key: str = Header(min_length=1, max_length=128)):
-        return adapter.call("send_message", session_id=session_id, body=body.model_dump(), key=idempotency_key)
+        return adapter.call("send_message", session_id=session_id, body=body.model_dump(exclude_none=True), key=idempotency_key)
+
+    @app.get("/api/sessions/{session_id}/dialogue", response_model=DialogueView, responses=errors)
+    def get_dialogue(session_id: str):
+        return adapter.call("get_dialogue", session_id=session_id)
+
+    @app.get("/api/sessions/{session_id}/agent-runs", response_model=AgentRunTracePage, responses=errors)
+    def get_agent_runs(session_id: str, before: Optional[int] = Query(None, ge=1), limit: int = Query(50, ge=1, le=100)):
+        return adapter.call("agent_runs", session_id=session_id, before=before, limit=limit)
+
+    @app.post("/api/sessions/{session_id}/pending/retry", response_model=Run, status_code=202, responses=errors)
+    def retry_pending(session_id: str, idempotency_key: str = Header(min_length=1, max_length=128)):
+        return adapter.call("retry_pending", session_id=session_id, key=idempotency_key)
+
+    @app.post("/api/sessions/{session_id}/pending/discard", response_model=DialogueView, responses=errors)
+    def discard_pending(session_id: str):
+        return adapter.call("discard_pending", session_id=session_id)
 
     @app.get("/api/runs/{run_id}", response_model=Run, responses=errors)
     def get_run(run_id: str):
@@ -172,6 +266,10 @@ def create_app(
     def get_check(run_id: str):
         return adapter.call("get_check", run_id=run_id)
 
+    @app.post("/api/checks/{run_id}/explanation", response_model=Run, status_code=202, responses=errors)
+    def create_explanation(run_id: str, idempotency_key: str = Header(min_length=1, max_length=128)):
+        return adapter.call("create_explanation", check_run_id=run_id, key=idempotency_key)
+
     @app.get("/api/checks/{run_id}/artifacts", responses=errors)
     def list_artifacts(run_id: str):
         return adapter.call("list_artifacts", run_id=run_id)
@@ -186,13 +284,29 @@ def create_app(
         schema = original_openapi()
         schema["components"]["schemas"]["Event"] = Event.model_json_schema()
         schema["info"]["description"] = (
-            "API foundation. Unconnected operations return 503. "
+            "Analyst dialogue, versioned models, TLC checks and explanations of saved reports. "
             "BehavioralModel 1.0 and VerificationResult 1.0 use shared contracts. "
-            "The checking engine is not connected by default."
+            "TLC runs only on an explicit check request; explanations never re-run TLC."
         )
         return schema
 
     app.openapi = openapi
+    if store is not None:
+        # Генерация кода и песочница тестов (#41, #48); у router собственный lifespan после старта backend.
+        from .codegen import create_codegen_router
+        from ..codegen.settings import CodegenSettings
+        router = create_codegen_router(store, codegen_settings or CodegenSettings.from_env(), codegen_sandbox)
+        app.state.codegen = router.codegen
+        app.include_router(router)
+        from ..images import create_images_router
+        images_router = create_images_router(store, image_limits, image_provider)
+        app.state.images = images_router.images
+        app.include_router(images_router)
+        import os
+        if mcp_policy is not None or os.getenv("PROVERYALKA_MCP_ENABLED") == "1":
+            from ..mcp import LocalAccessPolicy
+            from ..mcp.integration import install_mcp
+            install_mcp(app, adapter, app.state.codegen, mcp_policy or LocalAccessPolicy.from_env())
     return app
 
 

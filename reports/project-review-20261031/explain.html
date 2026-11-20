@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проверялка: архитектура, генерация и проверки</title>
+<style>
+:root{
+  --ink:var(--foreground,#1d1d1f);
+  --soft:var(--muted-foreground,#5b5f66);
+  --line:var(--border,#d9dadd);
+  --panel:var(--card,#f5f5f6);
+  --codebg:var(--code-background,#f2f2f4);
+  --acc:var(--primary,#a8481f);
+  --ok:var(--success,#1d7a46);
+  --bad:var(--destructive,#b42318);
+  --warn:var(--warning,#946200);
+  --inf:var(--info,#1f5fae);
+  --r:var(--radius,8px);
+  --sans:var(--font-sans,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif);
+  --mono:var(--font-mono,ui-monospace,SFMono-Regular,Menlo,Consolas,monospace);
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.6;-webkit-text-size-adjust:100%}
+.doc{container:doc/inline-size}
+a{color:var(--inf);text-underline-offset:2px}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--ring,var(--inf));outline-offset:2px;border-radius:4px}
+code,kbd{font-family:var(--mono);font-size:.86em;background:var(--codebg);padding:.08em .32em;border-radius:4px;overflow-wrap:anywhere}
+pre{font-family:var(--mono);font-size:13.5px;line-height:1.5;background:var(--codebg);border-radius:var(--r);padding:16px;overflow:auto;margin:12px 0 18px}
+pre code{background:none;padding:0;font-size:inherit;overflow-wrap:normal}
+h1{font-size:32px;line-height:1.2;margin:0 0 12px;letter-spacing:-.01em}
+h2{font-size:26px;line-height:1.25;margin:56px 0 14px;padding-top:12px;border-top:1px solid var(--line)}
+h3{font-size:20px;line-height:1.3;margin:34px 0 10px}
+h4{font-size:17px;margin:22px 0 6px}
+p,ul,ol{margin:0 0 14px}
+li{margin:4px 0}
+section,h3[id]{scroll-margin-top:16px}
+.meta{color:var(--soft);font-size:15px}
+.layout{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:250px minmax(0,1fr);gap:36px;padding:24px 16px 80px}
+.side{position:sticky;top:16px;align-self:start}
+.side-bar{display:none}
+#toc .toc-title{font-size:13px;font-weight:600;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px 12px}
+#toc ol{list-style:none;margin:0;padding:0}
+#toc li{margin:0}
+#toc a{display:block;padding:3px 10px;border-left:2px solid transparent;color:var(--soft);text-decoration:none;font-size:14px;line-height:1.35}
+#toc a:hover{color:var(--ink)}
+#toc a.active{color:var(--ink);border-left-color:var(--acc);font-weight:600}
+#toc ol ol a{padding-left:24px;font-size:13px}
+main{min-width:0;max-width:960px}
+.tbl{overflow-x:auto;margin:12px 0 18px}
+table{border-collapse:collapse;width:100%;font-size:15px;line-height:1.45}
+th,td{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--soft);font-size:13.5px;white-space:nowrap}
+td code{font-size:.84em;overflow-wrap:break-word}
+.num{text-align:right;white-space:nowrap}
+.box{background:var(--panel);border-radius:var(--r);padding:16px;margin:14px 0 18px}
+.box>:last-child{margin-bottom:0}
+.box h4:first-child{margin-top:0}
+.b{display:inline-block;font:600 12px/1.55 var(--mono);padding:0 6px;border-radius:4px;border:1px solid currentColor;white-space:nowrap;vertical-align:1px}
+.pass{color:var(--ok)}
+.fail{color:var(--bad)}
+.nr{color:var(--soft)}
+.open{color:var(--ok)}
+.merged{color:var(--chart-5,#7a4fbf)}
+.closed{color:var(--soft)}
+.wip{color:var(--warn)}
+.chg{background:color-mix(in srgb,var(--warn) 20%,transparent);font-weight:600}
+tr.viol td{background:color-mix(in srgb,var(--bad) 9%,transparent)}
+.add{color:var(--ok)}
+.del{color:var(--bad)}
+.fig{margin:16px 0 20px}
+.fig img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:var(--r)}
+.fig figcaption,.cap{font-size:14px;color:var(--soft);margin-top:6px}
+.scrollx{overflow-x:auto;margin:14px 0 18px;border:1px solid var(--line);border-radius:var(--r);padding:8px}
+.scrollx svg{display:block;min-width:680px;width:100%;height:auto}
+svg text{font-family:var(--sans);fill:var(--ink)}
+svg .mono{font-family:var(--mono)}
+svg .sub{fill:var(--soft)}
+svg .node{fill:var(--panel);stroke:var(--line);stroke-width:1.2}
+svg .node-bad{fill:color-mix(in srgb,var(--bad) 12%,transparent);stroke:var(--bad);stroke-width:1.5}
+svg .node-ext{fill:none;stroke:var(--soft);stroke-dasharray:4 3}
+svg .node-key{fill:var(--panel);stroke:var(--acc);stroke-width:1.5}
+svg .edge{stroke:var(--soft);stroke-width:1.4;fill:none}
+svg .edge-bad{stroke:var(--bad);stroke-width:1.8;fill:none;stroke-dasharray:6 4}
+svg .edge-dash{stroke:var(--soft);stroke-width:1.2;fill:none;stroke-dasharray:4 3}
+svg .ah{fill:var(--soft)}
+svg .ah-bad{fill:var(--bad)}
+svg .lbl{font-size:12px}
+svg .lbl-bad{font-size:12px;fill:var(--bad);font-weight:600}
+.pipe{list-style:none;padding:0;margin:14px 0 18px;counter-reset:st}
+.pipe>li{position:relative;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px 12px 52px;margin:0 0 10px}
+.pipe>li::before{counter-increment:st;content:counter(st);position:absolute;left:14px;top:12px;width:26px;height:26px;border-radius:50%;background:var(--panel);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px}
+.pipe .io{font-size:14.5px;color:var(--soft);margin:4px 0 0}
+.pipe b{font-weight:600}
+.issue{border:1px solid var(--line);border-radius:var(--r);padding:4px 16px 8px;margin:16px 0 22px}
+.issue h3{margin:12px 0 8px}
+.issue dl{margin:0}
+.issue dt{font-weight:600;font-size:14px;color:var(--soft);margin-top:10px}
+.issue dd{margin:2px 0 6px}
+.issue dd ul{margin:2px 0 4px;padding-left:20px}
+details{margin:10px 0 16px;border:1px solid var(--line);border-radius:var(--r);padding:8px 14px}
+details>summary{cursor:pointer;font-weight:600;font-size:15px}
+details[open]>summary{margin-bottom:8px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.small{font-size:14px;color:var(--soft)}
+@container doc (max-width:979px){
+  .layout{font-size:16px}
+  .layout{display:block;padding:0 4px 60px}
+  .side{position:sticky;top:0;z-index:5;background:var(--background,#fff);border-bottom:1px solid var(--line);margin-bottom:12px}
+  .side-bar{display:flex;align-items:center;gap:10px;padding:8px 2px;min-width:0}
+  .side-bar button{flex:none;font:600 14px/1 var(--sans);color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:6px;padding:8px 12px;cursor:pointer}
+  .side-bar span{font-size:14px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  #toc{display:none;max-height:440px;overflow:auto;padding:4px 0 10px}
+  #toc .toc-title{display:none}
+  .side.open #toc{display:block}
+  section,h3[id]{scroll-margin-top:60px}
+  h1{font-size:26px}
+  h2{font-size:22px;margin-top:44px}
+  h3{font-size:18px}
+  .two{grid-template-columns:1fr}
+  table{font-size:14px}
+  .tbl table:has(th:nth-child(4)){min-width:620px}
+  .tbl table:has(th:nth-child(5)){min-width:780px}
+  .tbl table:has(th:nth-child(6)){min-width:960px}
+  th,td{padding:6px 8px}
+}
+@media (prefers-reduced-motion:no-preference){html,[data-scroller]{scroll-behavior:smooth}}
+
+#toc{max-height:600px;overflow:auto;overscroll-behavior:contain}
+.historical-note{font-size:14px;color:var(--soft);border-left:3px solid var(--line);padding-left:13px;margin:14px 0 20px}
+.integration-atlas figure{margin:18px 0 30px}
+.diagram-toolbar{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin:6px 0 8px;flex-wrap:wrap}
+.diagram-toolbar a{font-size:13px;margin-right:auto}
+.diagram-toolbar button{font:13px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:4px 9px;cursor:pointer}
+.atlas-diagram{overflow:auto;border:1px solid var(--line);border-radius:var(--r);padding:10px;overscroll-behavior-x:contain}
+.atlas-diagram svg{display:block;width:100%;height:auto;min-width:780px;max-width:none}
+@container doc (max-width:979px){#toc{max-height:440px}.atlas-diagram{padding:6px}}
+</style>
+</head>
+<body>
+<div class="doc">
+<div class="layout">
+<aside class="side">
+  <div class="side-bar">
+    <button id="tocToggle" type="button" aria-expanded="false" aria-controls="toc">Разделы</button>
+    <span id="tocCurrent">Текущее состояние</span>
+  </div>
+  <nav id="toc" aria-label="Оглавление">
+    <p class="toc-title">Оглавление</p>
+    <ol>
+      <li><a href="#summary">Текущее состояние</a></li>
+      <li><a href="#system-diagrams">Схемы системы</a><ol><li><a href="#diagram-components">Общая архитектура</a></li><li><a href="#diagram-analysis">Описание, модель и проверка</a></li><li><a href="#diagram-checker">Ядро проверки kontar0</a></li><li><a href="#diagram-storage">Версии, запуски и файлы</a></li><li><a href="#diagram-codegen">Генератор и песочница</a></li><li><a href="#diagram-connections">Источники, MCP и подключения</a></li><li><a href="#diagram-delivery">Запуск приложения и CI</a></li></ol></li>
+      <li><a href="#tz">Что требует ТЗ</a></li>
+      <li><a href="#case">Пример: заявка из ТЗ</a>
+        <ol>
+          <li><a href="#case-states">Достижимые состояния</a></li>
+          <li><a href="#case-trace">Контрпример TLC</a></li>
+          <li><a href="#case-fix">Исправление</a></li>
+        </ol>
+      </li>
+      <li><a href="#arch">Устройство: история</a></li>
+      <li><a href="#storage">Хранение: история</a></li>
+      <li><a href="#team">Команда: история</a>
+        <ol><li><a href="#branches">Ветки и PR</a></li></ol>
+      </li>
+      <li><a href="#mput13">План Mput13: история</a>
+        <ol>
+          <li><a href="#i32">#32 Рабочая область</a></li>
+          <li><a href="#i33">#33 Чат и события</a></li>
+          <li><a href="#i34">#34 Уточнения</a></li>
+          <li><a href="#i35">#35 Модель и версии</a></li>
+          <li><a href="#i36">#36 Запуск проверки</a></li>
+          <li><a href="#i37">#37 Контрпример</a></li>
+          <li><a href="#i38">#38 Сбои и восстановление</a></li>
+          <li><a href="#i39">#39 Сквозной сценарий</a></li>
+          <li><a href="#i40">#40 Диаграмма</a></li>
+          <li><a href="#i49">#49 Сгенерированный проект</a></li>
+        </ol>
+      </li>
+      <li><a href="#screen">Наброски: история</a></li>
+      <li><a href="#generator">Генерация проекта</a></li>
+      <li><a href="#review">Первичный аудит: история</a>
+        <ol><li><a href="#stages">Результаты старого аудита</a></li></ol>
+      </li>
+      <li><a href="#demo">План демонстрации: история</a></li>
+      <li><a href="#decisions">Решения и вопросы</a></li>
+      <li><a href="#sources">Источники</a></li>
+    </ol>
+  <a href="#agent-work">Ход работы агента</a></nav>
+</aside>
+
+<main>
+<header>
+  <h1>Проверялка: архитектура, генерация и проверки</h1>
+  <p class="meta">31.10.2026 · общая интеграция в <code>work/project-integration-20261031</code>, draft <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/71">PR #71</a>. Текущий сценарий и результаты — ниже; первичный аудит <code>62c12b8</code> сохранён в явно отмеченных исторических разделах.</p>
+</header>
+
+<!-- ============================================================ -->
+<section id="summary">
+<h2>Текущее состояние</h2>
+<p>Человек описывает поведение и уточняет правила; LLM формализует <code>BehavioralModel</code>. Человек просматривает модель и сам запускает TLC. Исправление создаёт новую версию только после явной реплики человека. Согласование разрешает использовать модель для кода; затем детерминированный генератор создаёт Python + FastAPI + pytest, а тесты запускаются отдельным действием.</p>
+<ul>
+<li><b>Общая поставка.</b> В draft <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/71">PR #71</a> объединены API, клиент Vite, источники, MCP и native launcher. Миграции SQLite 6 → 8 сохраняют данные. GitHub merge и закрытие issues не выполнялись.</li>
+<li><b>Общие проверки.</b> Backend: <b>522 PASS, 0 skipped</b> с <code>REQUIRE_TLC</code> и <code>REQUIRE_SANDBOX</code>; после последней правки UI: <b>38 frontend PASS + 1 opt-in skip</b>, <b>108 extensions PASS</b>, types/build PASS (<a href="final-demo/ui-feedback.json">квитанция UI</a>). Это локальные результаты; состояние GitHub CI ими не устанавливается.</li>
+<li><b>Живой сценарий #39/#49.</b> T3 Browser + GPT + TLC: v1 VIOLATED → явная правка guard → v2 HOLDS → согласование → 16 файлов → ZIP 20 392 байта → вопрос GPT о файле → refresh → Docker <b>54/54 PASS</b>. <a href="end-to-end-acceptance/receipt.md">Квитанция</a> относится к выполненному основному сценарию до подключения PR67–70; общая интеграция подтверждена отдельно <a href="integration/receipt.json">522 тестами</a>.</li>
+<li><b>Новый UI.</b> Кнопка «Согласовать для кода» называет действие прямо; разворачивание панели и закрытие обозначены иконками. Убрана лишняя метка «Анализатор», высота просмотра файла ограничена, базовое форматирование кода в сообщениях экранируется.</li>
+<li><b>Тесты на общем стенде.</b> После публикации UI5 запуск тестов через native UI на порту 5300 дал Docker <b>54/54 PASS</b>, <code>trun_fe56347d07154d83815d3f677f500ac5</code>; генерация не изменилась.</li>
+<li><b>Границы.</b> Изображения, снимки репозиториев и MCP подключены к общему backend; экранов изображений/репозиториев ещё нет. Автоматического image → BehavioralModel нет. <code>compare_with_code</code> проверяет только точную сохранённую генерацию. Корпус #30, установка на чистой машине и пользовательская визуальная приёмка остаются открытыми. Native screenshot/AX живого сценария завершился timeout; сохранённый DOM и его render не выдаются за screenshot.</li>
+</ul>
+<p><a href="http://127.0.0.1:5300/?ui=5">Общий локальный стенд</a> · <a href="final-demo/live-scenario.html">Ручной сценарий</a> · <a href="../../output/pdf/proveryalka-architecture.pdf">Семь схем в PDF</a>. Колонки Kanban не обновлены из-за прав доступа; тексты и чеклисты 23 открытых issues обновлены.</p>
+</section>
+
+<section id="agent-work"><h2>Ход работы агента</h2><p>В чате раскрывается журнал фактических операций: подготовка контекста, запрос и ответ модели, проверка структуры, повтор при ошибке и сохранение версии. Время берётся из сохранённых событий сервера. История восстанавливается после обновления страницы; прежним запускам неизвестные этапы и время не дописываются.</p><p>Новый настоящий запрос GPT выполнен за 37 секунд; тот же журнал восстановлен в другом браузерном профиле. <a href="http://127.0.0.1:5300/?ui=8#/s/s_38a15207f8d646b0860d70b4c96ca1c4?m=m_b68ace559a9d47489c51d4a79e27c83a&amp;v=1&amp;view=diagram">Открыть пример</a> · <a href="agent-trace/acceptance/receipt.json">Квитанция проверки</a>.</p><p>Граф занимает свободную высоту рабочей области. Разворачивание осталось в нижнем управлении; инспектор прокручивается отдельно. Подписи петель размещены сверху и снизу, длинный текст переносится.</p></section><section id="system-diagrams" class="integration-atlas">
+<h2>Схемы системы</h2>
+<div class="tbl"><table><thead><tr><th>Участник</th><th>Зона</th><th>Что передаёт другим компонентам</th></tr></thead><tbody>
+<tr><td>Mput13</td><td>UI · #32–#40, #49</td><td>Текст и ответы человека, выбранную версию и команды проверки, согласования, генерации и тестов; показывает трассу и сохранённые файлы.</td></tr>
+<tr><td>SOKLY6</td><td>API и delivery · #20–#27, #31, #44–#48</td><td>REST/SSE, SQLite, очередь, отмену, источники и выдачу файлов; общее приложение для клиента, аналитика и checker.</td></tr>
+<tr><td>kiruha355</td><td>Аналитик · #12–#19, #29–#30, #41</td><td>Требования с источниками, вопросы, BehavioralModel, объяснение сохранённого отчёта TLC. Генератор использует модель отдельно от LLM.</td></tr>
+<tr><td>kontar0</td><td>TLC · #1–#11, #28, #43</td><td>Контракты DSL, валидацию, TLA+, запуск SANY/TLC, статус, трассу, материалы проверки и кэш.</td></tr>
+</tbody></table></div>
+<p class="small">Это зоны задач в проекте, а не утверждение об авторстве каждым участником всех новых связующих изменений.</p>
+<h3 id="diagram-components">Общая архитектура</h3><p>HTTP API SOKLY6 связывает клиент Mput13, аналитик kiruha355 и ядро TLC kontar0 через строгие контракты. LLM, Java/TLC и Docker выполняют разные операции и возвращают отдельные результаты.</p>
+<figure><div class="diagram-toolbar"><a href="architecture/diagrams/01-components.svg">SVG</a><button type="button" data-diagram-zoom="minus" aria-label="Уменьшить схему: Общая архитектура">−</button><button type="button" data-diagram-zoom="reset">По ширине</button><button type="button" data-diagram-zoom="plus" aria-label="Увеличить схему: Общая архитектура">+</button></div><div class="atlas-diagram" data-base="980"><svg xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 980 650" width="980" height="650"><title>Компоненты приложения</title><desc>Клиент Mput13 обращается к API SOKLY6. API запускает аналитик kiruha355, ядро TLC kontar0 и генератор. История и версии сохраняются в SQLite, материалы проверки на диске. LLM, Java и Docker — отдельные исполнители.</desc><style>.integration-atlas svg text{font-family:var(--font-sans,system-ui,sans-serif);font-size:14px;fill:var(--foreground,#282b30)}.integration-atlas svg .small{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .tiny{font-size:11px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .title{font-size:15px;font-weight:650}.integration-atlas svg .owner{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .box{fill:var(--card,#fafafa);stroke:var(--border,#d2d5db);stroke-width:1.5}.integration-atlas svg .ui .box{stroke:var(--chart-1,#5077be)}.integration-atlas svg .api .box{stroke:var(--chart-2,#4c9480)}.integration-atlas svg .agent .box{stroke:var(--chart-3,#b27b35)}.integration-atlas svg .checker .box{stroke:var(--chart-4,#8d69a7)}.integration-atlas svg .band{fill:var(--secondary,#f1f2f4);stroke:var(--border,#d2d5db);stroke-width:1}.integration-atlas svg .frame{fill:none;stroke:var(--border,#d2d5db);stroke-width:1.3}.integration-atlas svg .pending{stroke-dasharray:6 5}.integration-atlas svg .line{fill:none;stroke:var(--muted-foreground,#666a72);stroke-width:1.6}.integration-atlas svg .accent{stroke:var(--primary,#5077be);stroke-width:2}.integration-atlas svg .bad{stroke:var(--destructive,#b9483e);stroke-width:1.8}.integration-atlas svg .badtext{fill:var(--destructive,#b9483e)}.integration-atlas svg .goodtext{fill:var(--success,#428662)}
+</style><defs><marker id="arr-01-components" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10" fill="var(--muted-foreground,#666a72)"/></marker></defs><rect class="frame " x="330" y="20" width="370" height="535" rx="6"/><text x="342" y="40" class="small" text-anchor="start">Python / FastAPI · один backend</text><g class="ui"><rect class="box" x="20" y="75" width="255" height="115" rx="5"/><text x="34" y="100" class="title" text-anchor="start">Клиент React / TypeScript</text><text x="34" y="123" class="small" text-anchor="start">Чат, требования, версии</text><text x="34" y="142" class="small" text-anchor="start">Граф, трасса, файлы и тесты</text><text x="34" y="178" class="owner" text-anchor="start">Mput13 · #32–#40, #49</text></g><g class="api"><rect class="box" x="350" y="65" width="330" height="75" rx="5"/><text x="364" y="90" class="title" text-anchor="start">HTTP API + очередь runs</text><text x="364" y="113" class="small" text-anchor="start">REST-запросы, отмена, SSE</text><text x="364" y="128" class="owner" text-anchor="start">SOKLY6 · #20–#27</text></g><g class="agent"><rect class="box" x="350" y="190" width="330" height="75" rx="5"/><text x="364" y="215" class="title" text-anchor="start">Аналитик требований</text><text x="364" y="238" class="small" text-anchor="start">Уточнения → строгая модель</text><text x="364" y="253" class="owner" text-anchor="start">kiruha355 · #12–#19, #29</text></g><g class="checker"><rect class="box" x="350" y="315" width="330" height="75" rx="5"/><text x="364" y="340" class="title" text-anchor="start">TLCChecker</text><text x="364" y="363" class="small" text-anchor="start">DSL → TLA+ → отчёт и трасса</text><text x="364" y="378" class="owner" text-anchor="start">kontar0 · #2–#11, #43</text></g><g class="api"><rect class="box" x="350" y="440" width="330" height="75" rx="5"/><text x="364" y="465" class="title" text-anchor="start">CodegenService</text><text x="364" y="488" class="small" text-anchor="start">Модель → проект; отдельный test run</text><text x="364" y="503" class="owner" text-anchor="start">#41 + #48 · интеграция этого раунда</text></g><g class="agent"><rect class="box" x="750" y="190" width="210" height="75" rx="5"/><text x="764" y="215" class="title" text-anchor="start">LLM runtime</text><text x="764" y="238" class="small" text-anchor="start">GPT по подписке</text><text x="764" y="257" class="small" text-anchor="start">локальный codex app-server</text></g><g class="checker"><rect class="box" x="750" y="315" width="210" height="75" rx="5"/><text x="764" y="340" class="title" text-anchor="start">Java: SANY / TLC</text><text x="764" y="363" class="small" text-anchor="start">Синтаксис и проверка модели</text></g><g class="api"><rect class="box" x="750" y="440" width="210" height="75" rx="5"/><text x="764" y="465" class="title" text-anchor="start">DockerSandbox</text><text x="764" y="488" class="small" text-anchor="start">Изолированный pytest</text></g><g class="api"><rect class="box" x="20" y="430" width="255" height="100" rx="5"/><text x="34" y="455" class="title" text-anchor="start">SQLite</text><text x="34" y="478" class="small" text-anchor="start">История, источники, версии</text><text x="34" y="497" class="small" text-anchor="start">runs, отчёты, файлы генерации</text><text x="34" y="518" class="owner" text-anchor="start">SOKLY6 · storage</text></g><g class="checker"><rect class="box" x="350" y="575" width="330" height="65" rx="5"/><text x="364" y="600" class="title" text-anchor="start">Каталог материалов TLC</text><text x="364" y="623" class="small" text-anchor="start">Spec.tla, .cfg, trace, logs, manifest</text></g><path class="line " d="M275 112H350" marker-end="url(#arr-01-components)"/><text x="310" y="100" class="small" text-anchor="middle">REST</text><path class="line " d="M350 125H296V160H275" marker-end="url(#arr-01-components)"/><text x="307" y="182" class="small" text-anchor="middle">SSE</text><path class="line " d="M380 140V165H336V477"/><path class="line " d="M336 227H350" marker-end="url(#arr-01-components)"/><path class="line " d="M336 352H350" marker-end="url(#arr-01-components)"/><path class="line " d="M336 477H350" marker-end="url(#arr-01-components)"/><path class="line " d="M430 140V155H310V478H275" marker-end="url(#arr-01-components)"/><text x="286" y="330" class="small" text-anchor="end">сохранение</text><path class="line " d="M680 227H750" marker-end="url(#arr-01-components)"/><path class="line " d="M680 352H750" marker-end="url(#arr-01-components)"/><path class="line " d="M680 477H750" marker-end="url(#arr-01-components)"/><path class="line " d="M680 352H720V607H680" marker-end="url(#arr-01-components)"/><text x="710" y="570" class="small" text-anchor="end">артефакты</text><text x="490" y="55" class="small" text-anchor="middle">Общий язык обмена: BehavioralModel 1.0 + VerificationReport</text></svg></div><figcaption class="cap">Общая архитектура.</figcaption></figure>
+<h3 id="diagram-analysis">Описание, модель и проверка</h3><p>Исходный текст и ответы становятся требованиями и моделью. Человек запускает TLC вручную. Аналитик объясняет сохранённый отчёт той же версии; явная правка создаёт следующую версию, сохраняя прежний результат.</p>
+<figure><div class="diagram-toolbar"><a href="architecture/diagrams/02-analysis-check.svg">SVG</a><button type="button" data-diagram-zoom="minus" aria-label="Уменьшить схему: Описание, модель и проверка">−</button><button type="button" data-diagram-zoom="reset">По ширине</button><button type="button" data-diagram-zoom="plus" aria-label="Увеличить схему: Описание, модель и проверка">+</button></div><div class="atlas-diagram" data-base="980"><svg xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 980 525" width="980" height="525"><title>Путь описания и результата проверки</title><desc>Агент строит модель из исходных текстов и ответов, валидатор проверяет её структуру. Человек запускает проверку вручную. TLC возвращает отчёт, аналитик объясняет сохранённый отчёт. Явное исправление создаёт новую версию и новый запуск.</desc><style>.integration-atlas svg text{font-family:var(--font-sans,system-ui,sans-serif);font-size:14px;fill:var(--foreground,#282b30)}.integration-atlas svg .small{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .tiny{font-size:11px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .title{font-size:15px;font-weight:650}.integration-atlas svg .owner{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .box{fill:var(--card,#fafafa);stroke:var(--border,#d2d5db);stroke-width:1.5}.integration-atlas svg .ui .box{stroke:var(--chart-1,#5077be)}.integration-atlas svg .api .box{stroke:var(--chart-2,#4c9480)}.integration-atlas svg .agent .box{stroke:var(--chart-3,#b27b35)}.integration-atlas svg .checker .box{stroke:var(--chart-4,#8d69a7)}.integration-atlas svg .band{fill:var(--secondary,#f1f2f4);stroke:var(--border,#d2d5db);stroke-width:1}.integration-atlas svg .frame{fill:none;stroke:var(--border,#d2d5db);stroke-width:1.3}.integration-atlas svg .pending{stroke-dasharray:6 5}.integration-atlas svg .line{fill:none;stroke:var(--muted-foreground,#666a72);stroke-width:1.6}.integration-atlas svg .accent{stroke:var(--primary,#5077be);stroke-width:2}.integration-atlas svg .bad{stroke:var(--destructive,#b9483e);stroke-width:1.8}.integration-atlas svg .badtext{fill:var(--destructive,#b9483e)}.integration-atlas svg .goodtext{fill:var(--success,#428662)}
+</style><defs><marker id="arr-02-analysis-check" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10" fill="var(--muted-foreground,#666a72)"/></marker></defs><g class="api"><rect class="box" x="20" y="40" width="210" height="100" rx="5"/><text x="34" y="65" class="title" text-anchor="start">Исходные материалы</text><text x="34" y="88" class="small" text-anchor="start">Текст / TXT / MD / DOCX</text><text x="34" y="107" class="small" text-anchor="start">Source + точные цитаты</text><text x="34" y="128" class="owner" text-anchor="start">SOKLY6 + клиент Mput13</text></g><g class="agent"><rect class="box" x="285" y="40" width="270" height="100" rx="5"/><text x="299" y="65" class="title" text-anchor="start">LLM + валидация</text><text x="299" y="88" class="small" text-anchor="start">Требования, вопросы, guard/effects</text><text x="299" y="107" class="small" text-anchor="start">Ссылки, типы, явные исправления</text><text x="299" y="128" class="owner" text-anchor="start">kiruha355 · agent/*</text></g><g class="api"><rect class="box" x="615" y="40" width="340" height="100" rx="5"/><text x="629" y="65" class="title" text-anchor="start">Неизменяемая версия модели</text><text x="629" y="88" class="small" text-anchor="start">BehavioralModel: variables, transitions,</text><text x="629" y="107" class="small" text-anchor="start">properties, requirements, source_refs</text><text x="629" y="128" class="owner" text-anchor="start">model_id + version_id + spec_hash</text></g><path class="line " d="M230 90H285" marker-end="url(#arr-02-analysis-check)"/><path class="line " d="M555 90H615" marker-end="url(#arr-02-analysis-check)"/><path class="line " d="M350 140V180H125V140" marker-end="url(#arr-02-analysis-check)"/><text x="230" y="173" class="small" text-anchor="middle">вопрос → ответ пользователя</text><g class="ui"><rect class="box" x="615" y="230" width="340" height="85" rx="5"/><text x="629" y="255" class="title" text-anchor="start">«Проверить версию»</text><text x="629" y="278" class="small" text-anchor="start">Ручной запуск всех правил версии</text><text x="629" y="303" class="owner" text-anchor="start">Mput13 → API → kontar0</text></g><path class="line " d="M785 140V230" marker-end="url(#arr-02-analysis-check)"/><text x="800" y="184" class="small" text-anchor="start">после просмотра</text><text x="800" y="202" class="small" text-anchor="start">модели</text><g class="checker"><rect class="box" x="285" y="230" width="270" height="85" rx="5"/><text x="299" y="255" class="title" text-anchor="start">Сохранённый отчёт TLC</text><text x="299" y="278" class="small" text-anchor="start">Статус каждого правила + трасса</text><text x="299" y="303" class="owner" text-anchor="start">Сперва сохранение, затем объяснение</text></g><path class="line " d="M615 273H555" marker-end="url(#arr-02-analysis-check)"/><g class="agent"><rect class="box" x="20" y="230" width="210" height="85" rx="5"/><text x="34" y="255" class="title" text-anchor="start">Объяснение в чате</text><text x="34" y="278" class="small" text-anchor="start">Почему получился такой путь</text><text x="34" y="303" class="owner" text-anchor="start">LLM читает фактический отчёт</text></g><path class="line " d="M285 273H230" marker-end="url(#arr-02-analysis-check)"/><g class="ui"><rect class="box" x="285" y="385" width="390" height="100" rx="5"/><text x="299" y="410" class="title" text-anchor="start">Явное изменение пользователя</text><text x="299" y="433" class="small" text-anchor="start">Новая версия → новая ручная проверка</text><text x="299" y="452" class="small" text-anchor="start">Старая версия и её отчёт остаются</text><text x="299" y="473" class="owner" text-anchor="start">Решение по смыслу принимает человек</text></g><path class="line " d="M420 315V385" marker-end="url(#arr-02-analysis-check)"/><text x="430" y="353" class="small" text-anchor="start">при нарушении</text><path class="line accent" d="M675 428H970V25H785V40" marker-end="url(#arr-02-analysis-check)"/><text x="790" y="505" class="small" text-anchor="middle">без перезаписи старых результатов</text></svg></div><figcaption class="cap">Описание, модель и проверка.</figcaption></figure>
+<h3 id="diagram-checker">Ядро проверки kontar0</h3><p>Валидатор проверяет DSL, компилятор выпускает TLA+, SANY проверяет спецификацию, TLC исследует достижимые состояния. Парсер восстанавливает контрпример и сверяет его с исходной моделью; отчёт сохраняет смысл и пределы проверки.</p>
+<figure><div class="diagram-toolbar"><a href="architecture/diagrams/03-checker.svg">SVG</a><button type="button" data-diagram-zoom="minus" aria-label="Уменьшить схему: Ядро проверки kontar0">−</button><button type="button" data-diagram-zoom="reset">По ширине</button><button type="button" data-diagram-zoom="plus" aria-label="Увеличить схему: Ядро проверки kontar0">+</button></div><div class="atlas-diagram" data-base="980"><svg xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 980 385" width="980" height="385"><title>Внутреннее устройство ядра проверки</title><desc>DSL проходит семантическую валидацию, компиляцию в TLA+, SANY и TLC. Парсер восстанавливает трассу, которая ещё раз проверяется по исходному DSL. Возвращается VerificationReport. Кэш использует hash модели, параметры и версию движка.</desc><style>.integration-atlas svg text{font-family:var(--font-sans,system-ui,sans-serif);font-size:14px;fill:var(--foreground,#282b30)}.integration-atlas svg .small{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .tiny{font-size:11px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .title{font-size:15px;font-weight:650}.integration-atlas svg .owner{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .box{fill:var(--card,#fafafa);stroke:var(--border,#d2d5db);stroke-width:1.5}.integration-atlas svg .ui .box{stroke:var(--chart-1,#5077be)}.integration-atlas svg .api .box{stroke:var(--chart-2,#4c9480)}.integration-atlas svg .agent .box{stroke:var(--chart-3,#b27b35)}.integration-atlas svg .checker .box{stroke:var(--chart-4,#8d69a7)}.integration-atlas svg .band{fill:var(--secondary,#f1f2f4);stroke:var(--border,#d2d5db);stroke-width:1}.integration-atlas svg .frame{fill:none;stroke:var(--border,#d2d5db);stroke-width:1.3}.integration-atlas svg .pending{stroke-dasharray:6 5}.integration-atlas svg .line{fill:none;stroke:var(--muted-foreground,#666a72);stroke-width:1.6}.integration-atlas svg .accent{stroke:var(--primary,#5077be);stroke-width:2}.integration-atlas svg .bad{stroke:var(--destructive,#b9483e);stroke-width:1.8}.integration-atlas svg .badtext{fill:var(--destructive,#b9483e)}.integration-atlas svg .goodtext{fill:var(--success,#428662)}
+</style><defs><marker id="arr-03-checker" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10" fill="var(--muted-foreground,#666a72)"/></marker></defs><g class="checker"><rect class="box" x="20" y="50" width="200" height="85" rx="5"/><text x="34" y="75" class="title" text-anchor="start">BehavioralModel</text><text x="34" y="98" class="small" text-anchor="start">Конечные области, initial,</text><text x="34" y="117" class="small" text-anchor="start">guard/effects, свойства</text></g><g class="checker"><rect class="box" x="270" y="50" width="200" height="85" rx="5"/><text x="284" y="75" class="title" text-anchor="start">Валидация</text><text x="284" y="98" class="small" text-anchor="start">Типы, ссылки, области,</text><text x="284" y="117" class="small" text-anchor="start">готовность модели</text></g><g class="checker"><rect class="box" x="520" y="50" width="200" height="85" rx="5"/><text x="534" y="75" class="title" text-anchor="start">Компиляция</text><text x="534" y="98" class="small" text-anchor="start">Spec.tla + .cfg на свойство</text></g><g class="checker"><rect class="box" x="770" y="50" width="190" height="85" rx="5"/><text x="784" y="75" class="title" text-anchor="start">SANY → TLC</text><text x="784" y="98" class="small" text-anchor="start">Java subprocess</text><text x="784" y="117" class="small" text-anchor="start">Срок и лимит состояний</text></g><path class="line " d="M220 92H270" marker-end="url(#arr-03-checker)"/><path class="line " d="M470 92H520" marker-end="url(#arr-03-checker)"/><path class="line " d="M720 92H770" marker-end="url(#arr-03-checker)"/><g class="checker"><rect class="box" x="770" y="230" width="190" height="95" rx="5"/><text x="784" y="255" class="title" text-anchor="start">Парсер + валидация</text><text x="784" y="278" class="small" text-anchor="start">Статусы и шаги трассы</text><text x="784" y="297" class="small" text-anchor="start">Проверка шага по DSL</text></g><path class="line " d="M865 135V230" marker-end="url(#arr-03-checker)"/><g class="checker"><rect class="box" x="520" y="230" width="200" height="95" rx="5"/><text x="534" y="255" class="title" text-anchor="start">VerificationReport</text><text x="534" y="278" class="small" text-anchor="start">property_id, status,</text><text x="534" y="297" class="small" text-anchor="start">trace, changes, statistics</text></g><path class="line " d="M770 277H720" marker-end="url(#arr-03-checker)"/><g class="checker"><rect class="box" x="270" y="230" width="200" height="95" rx="5"/><text x="284" y="255" class="title" text-anchor="start">Материалы + кэш</text><text x="284" y="278" class="small" text-anchor="start">Версия движка, spec_hash,</text><text x="284" y="297" class="small" text-anchor="start">свойства и параметры</text></g><path class="line " d="M520 277H470" marker-end="url(#arr-03-checker)"/><g class="api"><rect class="box" x="20" y="230" width="200" height="95" rx="5"/><text x="34" y="255" class="title" text-anchor="start">API → интерфейс</text><text x="34" y="278" class="small" text-anchor="start">Отчёт отдельно от</text><text x="34" y="297" class="small" text-anchor="start">пояснения агента</text></g><path class="line " d="M270 277H220" marker-end="url(#arr-03-checker)"/><text x="490" y="185" class="small" text-anchor="middle">invariant · forbidden_state · reachable · deadlock_free</text><text x="490" y="365" class="small" text-anchor="middle">TIMEOUT / STATE_LIMIT_REACHED / ENGINE_ERROR не означают, что правило выполнено.</text></svg></div><figcaption class="cap">Ядро проверки kontar0.</figcaption></figure>
+<h3 id="diagram-storage">Версии, запуски и файлы</h3><p>Сессия, версия модели, проверка TLC, генерация и запуск pytest хранятся отдельно. Связь с immutable версией и хэшами не позволяет подменить старый результат новой моделью. Миграции 007/008 добавляют изображения и снимки репозиториев.</p>
+<figure><div class="diagram-toolbar"><a href="architecture/diagrams/04-storage.svg">SVG</a><button type="button" data-diagram-zoom="minus" aria-label="Уменьшить схему: Версии, запуски и файлы">−</button><button type="button" data-diagram-zoom="reset">По ширине</button><button type="button" data-diagram-zoom="plus" aria-label="Увеличить схему: Версии, запуски и файлы">+</button></div><div class="atlas-diagram" data-base="1000"><svg xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 1000 745" width="1000" height="745"><title>Связи версий, запусков и файлов</title><desc>Основные отношения SQLite: сессия содержит сообщения, источники и модели. Модель имеет версии. Запуск проверки привязан к версии и имеет события. Генерация привязана к версии, содержит файлы и запуски тестов.</desc><style>.integration-atlas svg text{font-family:var(--font-sans,system-ui,sans-serif);font-size:14px;fill:var(--foreground,#282b30)}.integration-atlas svg .small{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .tiny{font-size:11px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .title{font-size:15px;font-weight:650}.integration-atlas svg .owner{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .box{fill:var(--card,#fafafa);stroke:var(--border,#d2d5db);stroke-width:1.5}.integration-atlas svg .ui .box{stroke:var(--chart-1,#5077be)}.integration-atlas svg .api .box{stroke:var(--chart-2,#4c9480)}.integration-atlas svg .agent .box{stroke:var(--chart-3,#b27b35)}.integration-atlas svg .checker .box{stroke:var(--chart-4,#8d69a7)}.integration-atlas svg .band{fill:var(--secondary,#f1f2f4);stroke:var(--border,#d2d5db);stroke-width:1}.integration-atlas svg .frame{fill:none;stroke:var(--border,#d2d5db);stroke-width:1.3}.integration-atlas svg .pending{stroke-dasharray:6 5}.integration-atlas svg .line{fill:none;stroke:var(--muted-foreground,#666a72);stroke-width:1.6}.integration-atlas svg .accent{stroke:var(--primary,#5077be);stroke-width:2}.integration-atlas svg .bad{stroke:var(--destructive,#b9483e);stroke-width:1.8}.integration-atlas svg .badtext{fill:var(--destructive,#b9483e)}.integration-atlas svg .goodtext{fill:var(--success,#428662)}
+</style><defs><marker id="arr-04-storage" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10" fill="var(--muted-foreground,#666a72)"/></marker></defs><g class="api"><rect class="box" x="20" y="30" width="210" height="90" rx="5"/><text x="34" y="55" class="title" text-anchor="start">sessions</text><text x="34" y="78" class="small" text-anchor="start">id, title, mode</text><text x="34" y="97" class="small" text-anchor="start">Один рабочий диалог</text></g><g class="api"><rect class="box" x="300" y="30" width="210" height="90" rx="5"/><text x="314" y="55" class="title" text-anchor="start">models</text><text x="314" y="78" class="small" text-anchor="start">id, session_id</text><text x="314" y="97" class="small" text-anchor="start">Объект анализа</text></g><g class="api"><rect class="box" x="610" y="30" width="350" height="100" rx="5"/><text x="624" y="55" class="title" text-anchor="start">model_versions</text><text x="624" y="78" class="small" text-anchor="start">id, number, parent_id, spec</text><text x="624" y="97" class="small" text-anchor="start">spec_hash, approved</text><text x="624" y="118" class="owner" text-anchor="start">Изменение = новая строка</text></g><path class="line " d="M230 75H300" marker-end="url(#arr-04-storage)"/><text x="265" y="63" class="small" text-anchor="middle">1 → N</text><path class="line " d="M510 75H610" marker-end="url(#arr-04-storage)"/><text x="560" y="63" class="small" text-anchor="middle">1 → N</text><g class="api"><rect class="box" x="20" y="235" width="210" height="90" rx="5"/><text x="34" y="260" class="title" text-anchor="start">agent_messages</text><text x="34" y="283" class="small" text-anchor="start">sequence, message_data</text><text x="34" y="302" class="small" text-anchor="start">Реплики и состояния диалога</text></g><path class="line " d="M125 120V235" marker-end="url(#arr-04-storage)"/><text x="135" y="185" class="small" text-anchor="start">1 → N</text><g class="api"><rect class="box" x="290" y="235" width="220" height="90" rx="5"/><text x="304" y="260" class="title" text-anchor="start">sources</text><text x="304" y="283" class="small" text-anchor="start">kind=text, text</text><text x="304" y="302" class="small" text-anchor="start">Исходник и ответы</text></g><path class="line " d="M180 120V165H400V235" marker-end="url(#arr-04-storage)"/><text x="310" y="155" class="small" text-anchor="middle">1 → N</text><g class="api"><rect class="box" x="290" y="430" width="220" height="90" rx="5"/><text x="304" y="455" class="title" text-anchor="start">requirements</text><text x="304" y="478" class="small" text-anchor="start">number, text, source_id</text><text x="304" y="497" class="small" text-anchor="start">R1…Rn и источник</text></g><path class="line " d="M400 325V430" marker-end="url(#arr-04-storage)"/><text x="410" y="385" class="small" text-anchor="start">1 → N</text><g class="api"><rect class="box" x="610" y="235" width="350" height="90" rx="5"/><text x="624" y="260" class="title" text-anchor="start">runs</text><text x="624" y="283" class="small" text-anchor="start">kind: agent / check / explain</text><text x="624" y="302" class="small" text-anchor="start">version_id, result_json, parent_run_id</text></g><path class="line " d="M740 130V235" marker-end="url(#arr-04-storage)"/><text x="752" y="192" class="small" text-anchor="start">версия → проверки</text><g class="api"><rect class="box" x="20" y="430" width="210" height="90" rx="5"/><text x="34" y="455" class="title" text-anchor="start">run_events</text><text x="34" y="478" class="small" text-anchor="start">run_id, event_id, data</text><text x="34" y="497" class="small" text-anchor="start">Сохранённые события SSE</text></g><path class="line " d="M740 325V370H125V430" marker-end="url(#arr-04-storage)"/><text x="630" y="359" class="small" text-anchor="middle">1 run → N событий</text><g class="api"><rect class="box" x="610" y="430" width="350" height="90" rx="5"/><text x="624" y="455" class="title" text-anchor="start">codegen_generations</text><text x="624" y="478" class="small" text-anchor="start">generation_id, version_id</text><text x="624" y="497" class="small" text-anchor="start">spec_hash, code_hash, record_json</text></g><path class="line " d="M960 108H986V475H960" marker-end="url(#arr-04-storage)"/><text x="976" y="412" class="small" text-anchor="end">1 → N</text><g class="api"><rect class="box" x="450" y="605" width="240" height="75" rx="5"/><text x="464" y="630" class="title" text-anchor="start">codegen_files</text><text x="464" y="653" class="small" text-anchor="start">path, sha256, content bytes</text></g><g class="api"><rect class="box" x="720" y="605" width="260" height="75" rx="5"/><text x="734" y="630" class="title" text-anchor="start">codegen_test_runs</text><text x="734" y="653" class="small" text-anchor="start">status, log, result_json</text></g><path class="line " d="M785 520V560H570V605" marker-end="url(#arr-04-storage)"/><text x="640" y="551" class="small" text-anchor="middle">1 → N файлов</text><path class="line " d="M785 560H850V605" marker-end="url(#arr-04-storage)"/><text x="872" y="585" class="small" text-anchor="start">1 → N тестов</text><text x="500" y="725" class="small" text-anchor="middle">Состав модели и source_refs хранятся в spec JSON; не все служебные FK показаны.</text></svg></div><figcaption class="cap">Версии, запуски и файлы.</figcaption></figure>
+<h3 id="diagram-codegen">Генератор и песочница</h3><p>CodegenService детерминированно превращает согласованную версию в файлы Python + FastAPI + pytest по шаблонам, без LLM. Скачивание ZIP и запуск тестов — отдельные действия; результат pytest не заменяет результат TLC.</p>
+<figure><div class="diagram-toolbar"><a href="architecture/diagrams/05-codegen-sandbox.svg">SVG</a><button type="button" data-diagram-zoom="minus" aria-label="Уменьшить схему: Генератор и песочница">−</button><button type="button" data-diagram-zoom="reset">По ширине</button><button type="button" data-diagram-zoom="plus" aria-label="Увеличить схему: Генератор и песочница">+</button></div><div class="atlas-diagram" data-base="980"><svg xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 980 485" width="980" height="485"><title>Генерация проекта и запуск тестов</title><desc>Подтверждённая неизменяемая версия поступает в детерминированный генератор. Файлы и manifest сохраняются. Пользователь отдельно запускает тесты в Docker. Код и тесты связаны с хэшами версии и генерации; результат pytest отделён от результата TLC.</desc><style>.integration-atlas svg text{font-family:var(--font-sans,system-ui,sans-serif);font-size:14px;fill:var(--foreground,#282b30)}.integration-atlas svg .small{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .tiny{font-size:11px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .title{font-size:15px;font-weight:650}.integration-atlas svg .owner{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .box{fill:var(--card,#fafafa);stroke:var(--border,#d2d5db);stroke-width:1.5}.integration-atlas svg .ui .box{stroke:var(--chart-1,#5077be)}.integration-atlas svg .api .box{stroke:var(--chart-2,#4c9480)}.integration-atlas svg .agent .box{stroke:var(--chart-3,#b27b35)}.integration-atlas svg .checker .box{stroke:var(--chart-4,#8d69a7)}.integration-atlas svg .band{fill:var(--secondary,#f1f2f4);stroke:var(--border,#d2d5db);stroke-width:1}.integration-atlas svg .frame{fill:none;stroke:var(--border,#d2d5db);stroke-width:1.3}.integration-atlas svg .pending{stroke-dasharray:6 5}.integration-atlas svg .line{fill:none;stroke:var(--muted-foreground,#666a72);stroke-width:1.6}.integration-atlas svg .accent{stroke:var(--primary,#5077be);stroke-width:2}.integration-atlas svg .bad{stroke:var(--destructive,#b9483e);stroke-width:1.8}.integration-atlas svg .badtext{fill:var(--destructive,#b9483e)}.integration-atlas svg .goodtext{fill:var(--success,#428662)}
+</style><defs><marker id="arr-05-codegen-sandbox" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10" fill="var(--muted-foreground,#666a72)"/></marker></defs><g class="ui"><rect class="box" x="20" y="35" width="225" height="100" rx="5"/><text x="34" y="60" class="title" text-anchor="start">Подтверждённая версия</text><text x="34" y="83" class="small" text-anchor="start">version_id + spec_hash</text><text x="34" y="102" class="small" text-anchor="start">Снимок результатов TLC</text><text x="34" y="123" class="owner" text-anchor="start">Подтверждение ≠ успех TLC</text></g><g class="api"><rect class="box" x="300" y="35" width="285" height="100" rx="5"/><text x="314" y="60" class="title" text-anchor="start">Детерминированный генератор</text><text x="314" y="83" class="small" text-anchor="start">DSL → шаблоны Python</text><text x="314" y="102" class="small" text-anchor="start">FastAPI + pytest, без LLM</text><text x="314" y="123" class="owner" text-anchor="start">#41 · реализовано в PR64</text></g><g class="api"><rect class="box" x="640" y="35" width="320" height="100" rx="5"/><text x="654" y="60" class="title" text-anchor="start">Сохранённая генерация</text><text x="654" y="83" class="small" text-anchor="start">generation_id + code_hash</text><text x="654" y="102" class="small" text-anchor="start">Файлы, manifest, SHA-256, ZIP</text><text x="654" y="123" class="owner" text-anchor="start">SQLite: bytes и происхождение</text></g><path class="line " d="M245 85H300" marker-end="url(#arr-05-codegen-sandbox)"/><path class="line " d="M585 85H640" marker-end="url(#arr-05-codegen-sandbox)"/><g class="ui"><rect class="box" x="640" y="210" width="320" height="80" rx="5"/><text x="654" y="235" class="title" text-anchor="start">Просмотр файлов и ZIP</text><text x="654" y="258" class="small" text-anchor="start">Дерево, строки, связанные правила</text><text x="654" y="278" class="owner" text-anchor="start">Mput13 · #49</text></g><path class="line " d="M800 135V210" marker-end="url(#arr-05-codegen-sandbox)"/><rect class="frame " x="300" y="200" width="285" height="225" rx="6"/><text x="312" y="220" class="small" text-anchor="start">Docker · граница выполнения</text><g class="api"><rect class="box" x="320" y="240" width="245" height="95" rx="5"/><text x="334" y="265" class="title" text-anchor="start">pytest сгенерированного кода</text><text x="334" y="288" class="small" text-anchor="start">Сеть выключена; проект read-only</text><text x="334" y="307" class="small" text-anchor="start">Лимиты CPU / RAM / pids / времени</text></g><path class="line " d="M640 250H585" marker-end="url(#arr-05-codegen-sandbox)"/><text x="625" y="235" class="small" text-anchor="end">запустить тесты</text><g class="api"><rect class="box" x="20" y="240" width="225" height="95" rx="5"/><text x="34" y="265" class="title" text-anchor="start">Отчёт тестового запуска</text><text x="34" y="288" class="small" text-anchor="start">passed / failed / timeout / …</text><text x="34" y="307" class="small" text-anchor="start">Лог + связь с generation_id</text></g><path class="line " d="M320 285H245" marker-end="url(#arr-05-codegen-sandbox)"/><text x="442" y="367" class="small" text-anchor="middle">Каждый executor владеет своими контейнерами</text><text x="442" y="388" class="small" text-anchor="middle">Cancel / cleanup не трогают чужой run</text><text x="490" y="463" class="small" text-anchor="middle">pytest может подтвердить соответствие ошибочной модели — статус TLC при этом остаётся violated.</text></svg></div><figcaption class="cap">Генератор и песочница.</figcaption></figure>
+<h3 id="diagram-connections">Источники, MCP и подключения</h3><p>TXT/MD/DOCX входят в основной диалог. Изображения, репозитории и MCP уже подключены к create_app, но новых экранов для них нет. Vision возвращает typed extraction, а не готовую BehavioralModel; MCP compare_with_code ограничен точной сохранённой генерацией.</p>
+<figure><div class="diagram-toolbar"><a href="architecture/diagrams/06-connections.svg">SVG</a><button type="button" data-diagram-zoom="minus" aria-label="Уменьшить схему: Источники, MCP и подключения">−</button><button type="button" data-diagram-zoom="reset">По ширине</button><button type="button" data-diagram-zoom="plus" aria-label="Увеличить схему: Источники, MCP и подключения">+</button></div><div class="atlas-diagram" data-base="1000"><svg xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 1000 705" width="1000" height="705"><title>Источники, MCP и поставка приложения</title><desc>Текстовые документы входят в основное приложение. Репозитории, изображения и MCP подключены к основному create_app. Репозиторий превращается в ограниченный текстовый Source. Vision даёт typed extraction, но ещё не BehavioralModel. Delivery использует то же FastAPI приложение.</desc><style>.integration-atlas svg text{font-family:var(--font-sans,system-ui,sans-serif);font-size:14px;fill:var(--foreground,#282b30)}.integration-atlas svg .small{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .tiny{font-size:11px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .title{font-size:15px;font-weight:650}.integration-atlas svg .owner{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .box{fill:var(--card,#fafafa);stroke:var(--border,#d2d5db);stroke-width:1.5}.integration-atlas svg .ui .box{stroke:var(--chart-1,#5077be)}.integration-atlas svg .api .box{stroke:var(--chart-2,#4c9480)}.integration-atlas svg .agent .box{stroke:var(--chart-3,#b27b35)}.integration-atlas svg .checker .box{stroke:var(--chart-4,#8d69a7)}.integration-atlas svg .band{fill:var(--secondary,#f1f2f4);stroke:var(--border,#d2d5db);stroke-width:1}.integration-atlas svg .frame{fill:none;stroke:var(--border,#d2d5db);stroke-width:1.3}.integration-atlas svg .pending{stroke-dasharray:6 5}.integration-atlas svg .line{fill:none;stroke:var(--muted-foreground,#666a72);stroke-width:1.6}.integration-atlas svg .accent{stroke:var(--primary,#5077be);stroke-width:2}.integration-atlas svg .bad{stroke:var(--destructive,#b9483e);stroke-width:1.8}.integration-atlas svg .badtext{fill:var(--destructive,#b9483e)}.integration-atlas svg .goodtext{fill:var(--success,#428662)}
+</style><defs><marker id="arr-06-connections" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10" fill="var(--muted-foreground,#666a72)"/></marker></defs><g class="api"><rect class="box" x="20" y="40" width="215" height="85" rx="5"/><text x="34" y="65" class="title" text-anchor="start">Текст / TXT / MD / DOCX</text><text x="34" y="88" class="small" text-anchor="start">Извлечение и точные цитаты</text></g><g class="api"><rect class="box" x="295" y="40" width="245" height="85" rx="5"/><text x="309" y="65" class="title" text-anchor="start">Source(kind=text)</text><text x="309" y="88" class="small" text-anchor="start">Исходник с происхождением</text></g><g class="agent"><rect class="box" x="750" y="40" width="225" height="220" rx="5"/><text x="764" y="65" class="title" text-anchor="start">Основной аналитик</text><text x="764" y="88" class="small" text-anchor="start">Существующий send_message</text><text x="764" y="107" class="small" text-anchor="start">run_analyst → BehavioralModel</text><text x="764" y="145" class="small" text-anchor="start">Новый Source начинает диалог</text><text x="764" y="164" class="small" text-anchor="start">в новой сессии</text></g><path class="line " d="M235 82H295" marker-end="url(#arr-06-connections)"/><path class="line " d="M540 82H750" marker-end="url(#arr-06-connections)"/><rect class="frame " x="8" y="157" width="575" height="122" rx="6"/><text x="20" y="177" class="small" text-anchor="start">#46 · router включён в основной create_app</text><g class="api"><rect class="box" x="20" y="190" width="215" height="70" rx="5"/><text x="34" y="215" class="title" text-anchor="start">HTTPS-репозиторий</text><text x="34" y="238" class="small" text-anchor="start">Commit SHA, snapshot</text></g><g class="api"><rect class="box" x="295" y="190" width="270" height="70" rx="5"/><text x="309" y="215" class="title" text-anchor="start">Индекс → выбранные строки</text><text x="309" y="238" class="small" text-anchor="start">manifest/file hashes + Source</text></g><path class="line " d="M235 225H295" marker-end="url(#arr-06-connections)"/><path class="line " d="M565 225H750" marker-end="url(#arr-06-connections)"/><text x="660" y="210" class="small" text-anchor="middle">Source</text><rect class="frame " x="8" y="310" width="970" height="130" rx="6"/><text x="20" y="330" class="small" text-anchor="start">#45 · router и recovery подключены</text><g class="api"><rect class="box" x="20" y="345" width="215" height="75" rx="5"/><text x="34" y="370" class="title" text-anchor="start">Изображение / crop</text><text x="34" y="393" class="small" text-anchor="start">Очищенные PNG pixels</text></g><g class="agent"><rect class="box" x="295" y="345" width="245" height="75" rx="5"/><text x="309" y="370" class="title" text-anchor="start">Vision через Codex</text><text x="309" y="393" class="small" text-anchor="start">Native image input</text></g><g class="api"><rect class="box" x="600" y="345" width="360" height="75" rx="5"/><text x="614" y="370" class="title" text-anchor="start">Typed image analysis</text><text x="614" y="393" class="small" text-anchor="start">requirements + image refs + uncertainties</text></g><path class="line " d="M235 382H295" marker-end="url(#arr-06-connections)"/><path class="line " d="M540 382H600" marker-end="url(#arr-06-connections)"/><text x="780" y="465" class="small" text-anchor="middle">Автоматический переход image → BehavioralModel пока отсутствует.</text><rect class="frame " x="8" y="495" width="970" height="105" rx="6"/><text x="20" y="515" class="small" text-anchor="start">#47 · точный маршрут /mcp; общий lifecycle</text><g class="ui"><rect class="box" x="20" y="525" width="215" height="60" rx="5"/><text x="34" y="550" class="title" text-anchor="start">Кодинг-агент</text><text x="34" y="573" class="small" text-anchor="start">Совместимый MCP-клиент</text></g><g class="api"><rect class="box" x="295" y="525" width="245" height="60" rx="5"/><text x="309" y="550" class="title" text-anchor="start">MCP /mcp</text><text x="309" y="573" class="small" text-anchor="start">Модель, проверки, тесты и код</text></g><g class="api"><rect class="box" x="630" y="525" width="330" height="60" rx="5"/><text x="644" y="550" class="title" text-anchor="start">Те же backend / codegen services</text><text x="644" y="573" class="small" text-anchor="start">Без второго движка или SQLite worker</text></g><path class="line " d="M235 553H295" marker-end="url(#arr-06-connections)"/><path class="line " d="M540 553H630" marker-end="url(#arr-06-connections)"/><g class="api"><rect class="box" x="20" y="640" width="940" height="60" rx="5"/><text x="34" y="665" class="title" text-anchor="start">#31 / #44 / #48 · delivery + CI</text><text x="34" y="688" class="small" text-anchor="start">Native launcher → тот же create_app + Vite static; CI: frontend / backend-TLC / sandbox; provider lane отдельно</text></g></svg></div><figcaption class="cap">Источники, MCP и подключения.</figcaption></figure>
+<h3 id="diagram-delivery">Запуск приложения и CI</h3><p>Native launcher запускает общее FastAPI-приложение со статикой Vite. SQLite и материалы проверок живут в постоянных каталогах. На схеме показана конфигурация CI jobs; факт их успешного выполнения на GitHub здесь не заявлен.</p>
+<figure><div class="diagram-toolbar"><a href="architecture/diagrams/07-delivery-ci.svg">SVG</a><button type="button" data-diagram-zoom="minus" aria-label="Уменьшить схему: Запуск приложения и CI">−</button><button type="button" data-diagram-zoom="reset">По ширине</button><button type="button" data-diagram-zoom="plus" aria-label="Увеличить схему: Запуск приложения и CI">+</button></div><div class="atlas-diagram" data-base="980"><svg xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 980 625" width="980" height="625"><title>Запуск приложения и проверочные контуры</title><desc>Native launcher проверяет зависимости и запускает то же FastAPI приложение со статикой Vite. SQLite и материалы проверок остаются в постоянных каталогах. CI отдельно проверяет клиент, настоящий TLC и Docker; реальные LLM запросы вынесены в ручной provider lane.</desc><style>.integration-atlas svg text{font-family:var(--font-sans,system-ui,sans-serif);font-size:14px;fill:var(--foreground,#282b30)}.integration-atlas svg .small{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .tiny{font-size:11px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .title{font-size:15px;font-weight:650}.integration-atlas svg .owner{font-size:12px;fill:var(--muted-foreground,#666a72)}.integration-atlas svg .box{fill:var(--card,#fafafa);stroke:var(--border,#d2d5db);stroke-width:1.5}.integration-atlas svg .ui .box{stroke:var(--chart-1,#5077be)}.integration-atlas svg .api .box{stroke:var(--chart-2,#4c9480)}.integration-atlas svg .agent .box{stroke:var(--chart-3,#b27b35)}.integration-atlas svg .checker .box{stroke:var(--chart-4,#8d69a7)}.integration-atlas svg .band{fill:var(--secondary,#f1f2f4);stroke:var(--border,#d2d5db);stroke-width:1}.integration-atlas svg .frame{fill:none;stroke:var(--border,#d2d5db);stroke-width:1.3}.integration-atlas svg .pending{stroke-dasharray:6 5}.integration-atlas svg .line{fill:none;stroke:var(--muted-foreground,#666a72);stroke-width:1.6}.integration-atlas svg .accent{stroke:var(--primary,#5077be);stroke-width:2}.integration-atlas svg .bad{stroke:var(--destructive,#b9483e);stroke-width:1.8}.integration-atlas svg .badtext{fill:var(--destructive,#b9483e)}.integration-atlas svg .goodtext{fill:var(--success,#428662)}
+</style><defs><marker id="arr-07-delivery-ci" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10" fill="var(--muted-foreground,#666a72)"/></marker></defs><g class="api"><rect class="box" x="20" y="35" width="235" height="90" rx="5"/><text x="34" y="60" class="title" text-anchor="start">scripts/run-stack.sh</text><text x="34" y="83" class="small" text-anchor="start">Native запуск на loopback</text><text x="34" y="102" class="small" text-anchor="start">Без переноса auth в контейнер</text></g><g class="api"><rect class="box" x="315" y="35" width="260" height="90" rx="5"/><text x="329" y="60" class="title" text-anchor="start">Preflight + readiness</text><text x="329" y="83" class="small" text-anchor="start">Vite assets, SQLite, TLC</text><text x="329" y="102" class="small" text-anchor="start">Запись каталога материалов</text></g><g class="api"><rect class="box" x="635" y="35" width="325" height="90" rx="5"/><text x="649" y="60" class="title" text-anchor="start">Один Uvicorn / create_app</text><text x="649" y="83" class="small" text-anchor="start">REST + SSE + Vite static</text><text x="649" y="102" class="small" text-anchor="start">Существующий lifespan сервисов</text></g><path class="line " d="M255 80H315" marker-end="url(#arr-07-delivery-ci)"/><path class="line " d="M575 80H635" marker-end="url(#arr-07-delivery-ci)"/><g class="api"><rect class="box" x="20" y="205" width="260" height="85" rx="5"/><text x="34" y="230" class="title" text-anchor="start">Постоянные данные</text><text x="34" y="253" class="small" text-anchor="start">SQLite, TLC bundles, cache</text><text x="34" y="272" class="small" text-anchor="start">Переживают перезапуск приложения</text></g><g class="api"><rect class="box" x="340" y="205" width="620" height="85" rx="5"/><text x="354" y="230" class="title" text-anchor="start">Исполнители на том же компьютере</text><text x="354" y="253" class="small" text-anchor="start">Codex app-server  ·  Java / TLC  ·  Docker sandbox</text><text x="354" y="272" class="small" text-anchor="start">Каждый сервис штатно завершает принадлежащие ему операции</text></g><path class="line " d="M730 125V160H150V205" marker-end="url(#arr-07-delivery-ci)"/><path class="line " d="M800 125V205" marker-end="url(#arr-07-delivery-ci)"/><rect class="frame " x="8" y="335" width="970" height="225" rx="6"/><text x="20" y="355" class="small" text-anchor="start">Конфигурация GitHub CI в PR70</text><g class="ui"><rect class="box" x="20" y="375" width="280" height="85" rx="5"/><text x="34" y="400" class="title" text-anchor="start">frontend</text><text x="34" y="423" class="small" text-anchor="start">Typecheck / Vitest / build</text><text x="34" y="442" class="small" text-anchor="start">Основной клиент + extensions</text></g><g class="checker"><rect class="box" x="350" y="375" width="280" height="85" rx="5"/><text x="364" y="400" class="title" text-anchor="start">backend-tlc</text><text x="364" y="423" class="small" text-anchor="start">API + настоящий SANY / TLC</text><text x="364" y="442" class="small" text-anchor="start">Детерминированная граница LLM</text></g><g class="api"><rect class="box" x="680" y="375" width="280" height="85" rx="5"/><text x="694" y="400" class="title" text-anchor="start">sandbox</text><text x="694" y="423" class="small" text-anchor="start">Настоящий Docker / pytest</text><text x="694" y="442" class="small" text-anchor="start">Ownership и сохранение результатов</text></g><g class="api"><rect class="box" x="315" y="510" width="350" height="40" rx="5"/><text x="329" y="535" class="title" text-anchor="start">JUnit / logs / receipts / TLC bundles</text></g><path class="line " d="M160 460V485H490V510" marker-end="url(#arr-07-delivery-ci)"/><path class="line " d="M490 460V510" marker-end="url(#arr-07-delivery-ci)"/><path class="line " d="M820 460V485H490"/><text x="490" y="603" class="small" text-anchor="middle">Ручной provider lane: отдельный запуск, явный секрет/model и лимит запросов.</text></svg></div><figcaption class="cap">Запуск приложения и CI.</figcaption></figure>
+</section>
+
+<!-- ============================================================ -->
+<section id="tz">
+<h2>Что требует ТЗ</h2>
+<p>Кейс 2 «Разработка агента-аналитика» (<code>Кейс_2_агент_аналитики.docx</code>). Агент получает текстовое описание поведения модуля, строит формальную модель состояний и переходов, передаёт её детерминированному Model Checker и объясняет результат человеку на языке исходных требований. Критерий качества в ТЗ: система успешна, если из неформального описания получена явная модель и проверяемое свойство, проверка запущена, найдена неочевидная допустимая последовательность событий и возвращена человеку как понятный бизнес-сценарий. Генерация TLA+ — промежуточный шаг.</p>
+
+<h3>Граница между LLM и TLC</h3>
+<p>ТЗ разделяет две роли. LLM работает со смыслом и неопределённостью текста. Model Checker работает только с уже формализованной моделью и не использует LLM. LLM не перебирает состояния сама: «вот модель и свойство» — её ответ; «при этих правилах найден путь, нарушающий свойство» — ответ движка.</p>
+<div class="tbl"><table>
+<thead><tr><th>Вопрос</th><th>Кто отвечает</th><th>Пример на заявке</th></tr></thead>
+<tbody>
+<tr><td>Что пользователь имеет в виду?</td><td>LLM</td><td>«Отменить до исполнения» = Cancel разрешён в статусах Created и Approved</td></tr>
+<tr><td>Какие переменные образуют состояние?</td><td>LLM</td><td><code>status</code>, <code>approved</code>, <code>cancelled</code></td></tr>
+<tr><td>Какие события, условия (guard) и изменения (effects)?</td><td>LLM</td><td>Execute: условие <code>approved = true</code>, изменение <code>status := Executed</code></td></tr>
+<tr><td>Какое свойство стоит проверить?</td><td>LLM</td><td>«Отменённая заявка не исполняется» → запрещённое состояние <code>cancelled ∧ status = Executed</code></td></tr>
+<tr><td>Какие состояния достижимы?</td><td>TLC</td><td>6 различных состояний</td></tr>
+<tr><td>Есть ли путь, нарушающий свойство?</td><td>TLC</td><td>Created → Approve → Cancel → Execute</td></tr>
+<tr><td>Что это значит для бизнеса и что спросить?</td><td>LLM</td><td>«Cancel не снимает согласование; снимать его при отмене или проверять статус при исполнении?»</td></tr>
+</tbody></table></div>
+<p>Отдельное правило ТЗ: агент не исправляет модель автоматически. Контрпример может означать ошибку в требованиях, неверное понимание агентом или пропущенное правило. Агент формулирует гипотезу и уточняющий вопрос; модель меняется только после ответа человека.</p>
+
+<h3>Шесть статусов результата</h3>
+<p>Результат проверки одного свойства всегда имеет один из шести статусов. Поле <code>conclusive</code> равно <code>true</code> только у первых двух: только они дают вывод о свойстве.</p>
+<div class="tbl"><table>
+<thead><tr><th>Статус</th><th>Вывод</th><th>Что означает</th><th>Пример из проекта</th></tr></thead>
+<tbody>
+<tr><td><code>PROPERTY_HOLDS</code></td><td>есть</td><td>Нарушение не найдено во всей конечной модели при заданных лимитах. Это не доказательство корректности production-системы.</td><td>Исправленная заявка: 4 состояния, нарушения нет</td></tr>
+<tr><td><code>PROPERTY_VIOLATED</code></td><td>есть</td><td>Найден путь от начального состояния до нарушения; путь прилагается.</td><td>Approve → Cancel → Execute</td></tr>
+<tr><td><code>MODEL_INVALID</code></td><td>нет</td><td>Модель отклонена: ошибка типа, ссылки, области значений, переполнение целого. Ошибка указывает путь к полю.</td><td><code>transitions.Sell.guard.left: Неизвестная переменная</code> (из описания PR #56)</td></tr>
+<tr><td><code>TIMEOUT</code></td><td>нет</td><td>TLC не уложился во время, процесс остановлен.</td><td>Лимит <code>timeout_seconds</code>, по умолчанию 30 с</td></tr>
+<tr><td><code>STATE_LIMIT_REACHED</code></td><td>нет</td><td>Различных состояний больше <code>max_states</code> (по умолчанию 100 000) или превышена глубина; перебор неполный.</td><td>Большая модель <code>grid.json</code> в fixtures</td></tr>
+<tr><td><code>ENGINE_ERROR</code></td><td>нет</td><td>Сбой Java, SANY или TLC.</td><td><code>max_states = 2147483648</code> → «TLC can't handle a number this big»</td></tr>
+</tbody></table></div>
+<p><code>TIMEOUT</code> и <code>STATE_LIMIT_REACHED</code> по ТЗ нельзя трактовать как успех. Интерфейс должен показывать их как незавершённую проверку.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="case">
+<h2>Пример: заявка из ТЗ</h2>
+<p class="small">Ниже разобран исходный enum-fixture, а не модель из живого браузерного прогона. В актуальном сценарии v2 исправляет guard исполнения на <code>approved AND NOT cancelled</code>; его отдельные результаты описаны в <a href="end-to-end-acceptance/receipt.md">квитанции #39</a>.</p>
+<p>Исходная фраза ТЗ: «Заявка после согласования может быть исполнена. Пользователь может отменить заявку до исполнения». Проверяемое правило: отменённая заявка не должна быть исполнена. Ниже разобрана эталонная модель из репозитория — <code>tests/fixtures/models/order_bug.json</code>, написанная вручную в задаче #3. Текст в ней развёрнут в шесть явных правил; от агента ожидается такая же структура из живого текста.</p>
+
+<h3 id="case-req">Требования R1–R6</h3>
+<div class="tbl"><table>
+<thead><tr><th>R</th><th>Текст требования (цитата источника)</th><th>Что из него строится</th></tr></thead>
+<tbody>
+<tr><td>R1</td><td>Заявка имеет статус Created, Approved, Cancelled или Executed; признаки approved и cancelled логические. Изначально Created, approved=false, cancelled=false.</td><td>Переменные и начальное состояние</td></tr>
+<tr><td>R2</td><td>Заявку в статусе Created можно согласовать: статус Approved, approved=true.</td><td>Переход Approve</td></tr>
+<tr><td>R3</td><td>Заявку в статусе Created или Approved можно отменить: статус Cancelled, cancelled=true.</td><td>Переход Cancel</td></tr>
+<tr><td>R4</td><td>Исполнить можно только согласованную заявку: статус Executed.</td><td>Переход Execute, свойство CanExecute</td></tr>
+<tr><td>R5</td><td>Отменённая заявка не должна быть исполнена.</td><td>Свойство NoCancelledExecution</td></tr>
+<tr><td>R6</td><td>Процесс может завершиться только отменой или исполнением.</td><td>Свойство EndsProperly</td></tr>
+</tbody></table></div>
+<p>Каждое требование хранит <code>source_refs</code>: идентификатор источника, точную цитату и позиции символов в исходном тексте (у R2 это 158–233). Агент проверяет, что цитата действительно есть в источнике; по этим ссылкам интерфейс может подсветить исходный фрагмент.</p>
+
+<h3>Переменные и начальное состояние</h3>
+<p>Состояние — набор значений всех переменных. В модели заявки три переменные, поэтому одно состояние записывается как (status = Approved, approved = true, cancelled = false). Область значений каждой переменной конечна, иначе перебор невозможен.</p>
+<div class="tbl"><table>
+<thead><tr><th>id</th><th>Название</th><th>Область значений</th><th>Начальное</th><th>R</th></tr></thead>
+<tbody>
+<tr><td><code>status</code></td><td>Статус заявки</td><td>enum: Created, Approved, Cancelled, Executed</td><td>Created</td><td>R1</td></tr>
+<tr><td><code>approved</code></td><td>Согласована</td><td>boolean</td><td>false</td><td>R1</td></tr>
+<tr><td><code>cancelled</code></td><td>Отменена</td><td>boolean</td><td>false</td><td>R1</td></tr>
+</tbody></table></div>
+<p>В примере ТЗ есть ещё <code>attempts</code> (целое 0..3). В эталонной модели его нет: ни одно правило заявки его не использует. Целые переменные поддерживаются с границами <code>minimum..maximum</code>.</p>
+
+<h3>Переходы: условие и изменения</h3>
+<p>Переход — одно допустимое действие. <b>guard</b> — условие, при котором действие разрешено. <b>effects</b> — новые значения переменных после действия. Переменная, которой нет в effects, сохраняет прежнее значение.</p>
+<div class="tbl"><table>
+<thead><tr><th>Переход</th><th>guard</th><th>effects</th><th>R</th></tr></thead>
+<tbody>
+<tr><td>Approve «Согласовать»</td><td><code>status = Created</code></td><td><code>status := Approved</code>, <code>approved := true</code></td><td>R2</td></tr>
+<tr><td>Cancel «Отменить»</td><td><code>status = Created ∨ status = Approved</code></td><td><code>status := Cancelled</code>, <code>cancelled := true</code></td><td>R3</td></tr>
+<tr><td>Execute «Исполнить»</td><td><code>approved = true</code></td><td><code>status := Executed</code></td><td>R4</td></tr>
+</tbody></table></div>
+<p>Ошибка заложена в паре Cancel/Execute. Условие Execute проверяет признак <code>approved</code> и не проверяет статус. Cancel переводит заявку в Cancelled, но <code>approved</code> оставляет <code>true</code>. Значит, после отмены согласованной заявки Execute остаётся разрешённым. «Только согласованную» в R4 можно понять двумя способами — по статусу или по признаку; модель выбрала признак, и это решение агент обязан показать пользователю.</p>
+<details>
+<summary>Как Execute записан в DSL и как он выглядит в TLA+</summary>
+<p>В модели условие хранится деревом выражения, а не строкой кода:</p>
+<pre><code>{"id": "Execute", "name": "Исполнить", "requirement_ids": ["R4"],
+ "guard": {"kind": "binary", "op": "eq",
+           "left":  {"kind": "variable", "name": "approved"},
+           "right": {"kind": "literal",  "value": true}},
+ "effects": [{"variable": "status",
+              "value": {"kind": "literal", "value": "Executed"}}]}</code></pre>
+<p>Компилятор переводит его в действие TLA+ (из <code>Spec.tla</code> настоящего запуска):</p>
+<pre><code>\* Исполнить
+t_Execute ==
+    /\ (v_approved = TRUE)
+    /\ v_status' = "Executed"
+    /\ UNCHANGED &lt;&lt;v_approved, v_cancelled&gt;&gt;</code></pre>
+<p>Штрих <code>v_status'</code> означает значение в следующем состоянии. <code>UNCHANGED</code> явно сохраняет переменные, которых нет в effects.</p>
+</details>
+
+<h3>Свойства</h3>
+<div class="tbl"><table>
+<thead><tr><th>id</th><th>Вид</th><th>Что утверждает</th><th>R</th><th>Ошибочная модель</th><th>Исправленная</th></tr></thead>
+<tbody>
+<tr><td><code>NoCancelledExecution</code></td><td>forbidden_state</td><td>Состояние <code>cancelled ∧ status = Executed</code> никогда не достигается</td><td>R5</td><td><span class="b fail">VIOLATED</span></td><td><span class="b pass">HOLDS</span></td></tr>
+<tr><td><code>CanExecute</code></td><td>reachable</td><td>Существует путь к <code>status = Executed</code></td><td>R4</td><td><span class="b pass">HOLDS</span> путь Approve → Execute</td><td><span class="b pass">HOLDS</span> тот же путь</td></tr>
+<tr><td><code>EndsProperly</code></td><td>deadlock_free</td><td>В каждом достижимом состоянии разрешён хотя бы один переход, либо это допустимый конец: Cancelled или Executed</td><td>R6</td><td><span class="b pass">HOLDS</span></td><td><span class="b pass">HOLDS</span></td></tr>
+</tbody></table></div>
+<p class="small">Ожидания для трёх свойств взяты из <code>tests/fixtures/models/expected.json</code> и проверяются набором тестов. Квитанция 31.10 отдельно перепроверила только <code>NoCancelledExecution</code>.</p>
+<p>Четвёртый вид ТЗ — <b>invariant</b>: выражение истинно во всех достижимых состояниях. В модели заявки он не используется; <code>forbidden_state P</code> по смыслу равен инварианту <code>¬P</code>.</p>
+
+<h3 id="case-states">Какие состояния достижимы</h3>
+<p>TLC начинает с начального состояния, применяет все разрешённые переходы, запоминает новые состояния и повторяет, пока новые не перестанут появляться. Для заявки это можно проделать вручную. Перечисление ниже выведено из правил модели; число состояний совпадает с <code>distinct_states = 6</code>, которое сообщил TLC.</p>
+<figure class="fig">
+<div class="scrollx">
+<svg viewBox="0 0 800 300" role="img" aria-labelledby="sgT sgD">
+<title id="sgT">Достижимые состояния ошибочной модели заявки</title>
+<desc id="sgD">Шесть состояний S0–S5. Из Created переходы Approve и Cancel. Из Approved — Cancel в Cancelled с approved true и Execute в Executed. Из Cancelled с approved true переход Execute ведёт в запрещённое состояние Executed с cancelled true.</desc>
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+<marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-bad"/></marker>
+</defs>
+<rect class="node" x="10" y="117" width="160" height="66" rx="8"/>
+<text x="22" y="138" font-weight="600" font-size="14">S0 · Created</text>
+<text x="22" y="157" class="mono sub" font-size="11.5">approved = false</text>
+<text x="22" y="173" class="mono sub" font-size="11.5">cancelled = false</text>
+
+<rect class="node" x="230" y="30" width="160" height="66" rx="8"/>
+<text x="242" y="51" font-weight="600" font-size="14">S1 · Approved</text>
+<text x="242" y="70" class="mono sub" font-size="11.5">approved = true</text>
+<text x="242" y="86" class="mono sub" font-size="11.5">cancelled = false</text>
+
+<rect class="node" x="230" y="204" width="160" height="66" rx="8"/>
+<text x="242" y="225" font-weight="600" font-size="14">S2 · Cancelled</text>
+<text x="242" y="244" class="mono sub" font-size="11.5">approved = false</text>
+<text x="242" y="260" class="mono sub" font-size="11.5">cancelled = true</text>
+
+<rect class="node" x="430" y="117" width="160" height="66" rx="8"/>
+<text x="442" y="138" font-weight="600" font-size="14">S3 · Cancelled</text>
+<text x="442" y="157" class="mono" font-size="11.5" font-weight="600">approved = true</text>
+<text x="442" y="173" class="mono sub" font-size="11.5">cancelled = true</text>
+
+<rect class="node" x="630" y="30" width="160" height="66" rx="8"/>
+<text x="642" y="51" font-weight="600" font-size="14">S4 · Executed</text>
+<text x="642" y="70" class="mono sub" font-size="11.5">approved = true</text>
+<text x="642" y="86" class="mono sub" font-size="11.5">cancelled = false</text>
+
+<rect class="node-bad" x="630" y="204" width="160" height="66" rx="8"/>
+<text x="642" y="225" font-weight="600" font-size="14" style="fill:var(--bad)">S5 · Executed</text>
+<text x="642" y="244" class="mono" font-size="11.5">approved = true</text>
+<text x="642" y="260" class="mono" font-size="11.5" font-weight="600">cancelled = true</text>
+
+<path class="edge" d="M170,135 L228,80" marker-end="url(#ah)"/>
+<text class="lbl" x="150" y="98">Approve</text>
+<path class="edge" d="M170,165 L228,222" marker-end="url(#ah)"/>
+<text class="lbl" x="150" y="212">Cancel</text>
+<path class="edge" d="M390,80 L440,117" marker-end="url(#ah)"/>
+<text class="lbl" x="418" y="96">Cancel</text>
+<path class="edge" d="M390,52 L628,52" marker-end="url(#ah)"/>
+<text class="lbl" x="482" y="44">Execute</text>
+<path class="edge-bad" d="M560,183 L640,203" marker-end="url(#ahb)"/>
+<text class="lbl-bad" x="520" y="208">Execute</text>
+<path class="edge" d="M690,30 C690,4 734,4 734,28" marker-end="url(#ah)"/>
+<text class="lbl" x="742" y="16">Execute</text>
+</svg>
+</div>
+<figcaption>Ошибочная модель. Красное — запрещённое состояние S5 и единственный ведущий к нему переход. Из S2 и S3 Approve и Cancel запрещены; из S2 запрещён и Execute (approved = false). Из S4 и S5 Execute снова разрешён и оставляет состояние прежним.</figcaption>
+</figure>
+<div class="tbl"><table>
+<thead><tr><th>Состояние</th><th>status</th><th>approved</th><th>cancelled</th><th>Как получено</th></tr></thead>
+<tbody>
+<tr><td>S0</td><td>Created</td><td>false</td><td>false</td><td>начальное</td></tr>
+<tr><td>S1</td><td>Approved</td><td>true</td><td>false</td><td>Approve из S0</td></tr>
+<tr><td>S2</td><td>Cancelled</td><td>false</td><td>true</td><td>Cancel из S0</td></tr>
+<tr><td>S3</td><td>Cancelled</td><td class="chg">true</td><td>true</td><td>Cancel из S1 — признак согласования остался</td></tr>
+<tr><td>S4</td><td>Executed</td><td>true</td><td>false</td><td>Execute из S1</td></tr>
+<tr class="viol"><td>S5</td><td>Executed</td><td>true</td><td>true</td><td>Execute из S3 — нарушение R5</td></tr>
+</tbody></table></div>
+
+<h3 id="case-trace">Контрпример TLC</h3>
+<p>TLC обходит состояния в ширину, поэтому первым находит кратчайший путь к нарушению. Ниже результат из квитанции 31.10.2026: настоящие SANY и TLC, кэш выключен (<a href="checker/acceptance-receipt.json">acceptance-receipt.json</a>). Подсвечены значения, изменённые на шаге, — это содержимое <code>changes.json</code>.</p>
+<div class="tbl"><table>
+<thead><tr><th>Шаг</th><th>Переход</th><th>status</th><th>approved</th><th>cancelled</th><th>Требование перехода</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>начальное</td><td>Created</td><td>false</td><td>false</td><td>R1</td></tr>
+<tr><td>1</td><td>Approve</td><td class="chg">Approved</td><td class="chg">true</td><td>false</td><td>R2</td></tr>
+<tr><td>2</td><td>Cancel</td><td class="chg">Cancelled</td><td>true</td><td class="chg">true</td><td>R3</td></tr>
+<tr class="viol"><td>3</td><td>Execute</td><td class="chg">Executed</td><td>true</td><td>true</td><td>R4 → нарушено R5</td></tr>
+</tbody></table></div>
+<p>Статистика из того же отчёта: <code>states_generated = 6</code>, <code>distinct_states = 6</code>, <code>depth = 3</code>, 0,283 с. <code>related_requirements = [R2, R3, R4, R5]</code> вычисляется без LLM: требования проверенного свойства плюс требования каждого перехода в пути. Файлы запуска: <a href="checker/acceptance/checks/chk_e08a788de789a3b0/Spec.tla">Spec.tla</a>, <a href="checker/acceptance/checks/chk_e08a788de789a3b0/properties/NoCancelledExecution/Spec.cfg">Spec.cfg</a>, <a href="checker/acceptance/checks/chk_e08a788de789a3b0/properties/NoCancelledExecution/trace.json">trace.json</a>, <a href="checker/acceptance/checks/chk_e08a788de789a3b0/properties/NoCancelledExecution/changes.json">changes.json</a>, <a href="checker/acceptance/checks/chk_e08a788de789a3b0/properties/NoCancelledExecution/tlc.stdout.log">лог TLC</a>, <a href="checker/acceptance/checks/chk_e08a788de789a3b0/manifest.json">manifest.json</a>.</p>
+<div class="box">
+<h4>Как агент должен пересказать этот путь (по ТЗ)</h4>
+<ol>
+<li>Заявка создана.</li>
+<li>Заявка согласована: статус Approved, признак approved = true.</li>
+<li>Пользователь отменяет заявку: статус Cancelled, но признак approved остаётся true.</li>
+<li>Исполнение проверяет только признак approved, поэтому система разрешает Execute.</li>
+<li>Отменённая заявка исполнена — нарушено требование R5.</li>
+</ol>
+<p>Вывод — две гипотезы и вопрос к человеку: «отмена должна снимать согласование (approved = false)» или «исполнение должно требовать статус Approved». Агент не выбирает сам.</p>
+</div>
+
+<h3 id="case-fix">Исправление и повторная проверка</h3>
+<p>Acceptance test №2 ТЗ выбирает первую гипотезу: Cancel сбрасывает approved. В модели добавляется одно изменение перехода Cancel; текст R3 обновляется. Различие <code>order_bug.json</code> и <code>order_fixed.json</code>:</p>
+<pre><code>  R3: «…можно отменить: статус Cancelled, cancelled=true<span class="add">, согласование снимается: approved=false</span>.»
+
+  Cancel.effects:
+    status    := Cancelled
+    cancelled := true
+<span class="add">+   approved  := false</span>
+
+  TLA+:
+<span class="del">-   /\ UNCHANGED &lt;&lt;v_approved&gt;&gt;</span>
+<span class="add">+   /\ v_approved' = FALSE</span></code></pre>
+<p>Теперь отмена из Approved ведёт в то же состояние, что отмена из Created: (Cancelled, false, true). Состояние S3 исчезает, вместе с ним — путь к S5. Результат: <code>PROPERTY_HOLDS</code>, 4 различных состояния, 6 сгенерированных, глубина 2 перехода (<a href="checker/acceptance/checks/chk_5e887cfcb40f79c8/report.json">report.json</a>). TLC печатает глубину 3, потому что считает начальное состояние уровнем; парсер вычитает единицу.</p>
+<figure class="fig">
+<div class="scrollx">
+<svg viewBox="0 0 680 300" role="img" aria-labelledby="sfT">
+<title id="sfT">Достижимые состояния исправленной модели: четыре состояния, Executed с cancelled true недостижимо</title>
+<rect class="node" x="10" y="117" width="160" height="66" rx="8"/>
+<text x="22" y="138" font-weight="600" font-size="14">S0 · Created</text>
+<text x="22" y="157" class="mono sub" font-size="11.5">approved = false</text>
+<text x="22" y="173" class="mono sub" font-size="11.5">cancelled = false</text>
+<rect class="node" x="230" y="30" width="160" height="66" rx="8"/>
+<text x="242" y="51" font-weight="600" font-size="14">S1 · Approved</text>
+<text x="242" y="70" class="mono sub" font-size="11.5">approved = true</text>
+<text x="242" y="86" class="mono sub" font-size="11.5">cancelled = false</text>
+<rect class="node" x="230" y="204" width="160" height="66" rx="8"/>
+<text x="242" y="225" font-weight="600" font-size="14">S2 · Cancelled</text>
+<text x="242" y="244" class="mono sub" font-size="11.5">approved = false</text>
+<text x="242" y="260" class="mono sub" font-size="11.5">cancelled = true</text>
+<rect class="node" x="480" y="30" width="160" height="66" rx="8"/>
+<text x="492" y="51" font-weight="600" font-size="14">S4 · Executed</text>
+<text x="492" y="70" class="mono sub" font-size="11.5">approved = true</text>
+<text x="492" y="86" class="mono sub" font-size="11.5">cancelled = false</text>
+<path class="edge" d="M170,135 L228,80" marker-end="url(#ah)"/>
+<text class="lbl" x="150" y="98">Approve</text>
+<path class="edge" d="M170,165 L228,222" marker-end="url(#ah)"/>
+<text class="lbl" x="150" y="212">Cancel</text>
+<path class="edge" d="M310,96 L310,202" marker-end="url(#ah)"/>
+<text class="lbl" x="318" y="154">Cancel (approved := false)</text>
+<path class="edge" d="M390,62 L478,62" marker-end="url(#ah)"/>
+<text class="lbl" x="404" y="54">Execute</text>
+<path class="edge" d="M540,30 C540,4 584,4 584,28" marker-end="url(#ah)"/>
+<text class="lbl" x="592" y="16">Execute</text>
+</svg>
+</div>
+<figcaption>Исправленная модель. Обе отмены приходят в S2, где Execute запрещён.</figcaption>
+</figure>
+<p>Хэш спецификации меняется: <code>b3d2783b…</code> → <code>09d54e84…</code>. Результат проверки привязан к версии модели и её хэшу; вердикт v1 нельзя показывать рядом с v2 как текущий.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="arch">
+<h2>Устройство системы: первичный разбор · история</h2>
+<p class="historical-note"><b>Исторический раздел: до реализации и общей интеграции.</b> Описания готовности, находки и PASS / FAIL / NOT_RUN ниже относятся к первичному снимку <code>62c12b8</code> от 31.10.2026, а не к текущему стенду. Текущие результаты — в <a href="#summary">начале документа</a>, связи компонентов — в <a href="#system-diagrams">семи схемах</a>.</p>
+<p>Код — один Python-пакет <code>src/proveryalka</code> (4342 строки на <code>62c12b8</code>). Ссылки на файлы ниже ведут на этот коммит.</p>
+
+<h3>Цепочка компонентов</h3>
+<ol class="pipe">
+<li><b>Клиент</b> — проектируется, задачи Mput13 (#32–#40, #49). Кода нет.
+  <p class="io">Вход: действия пользователя. Выход: HTTP-запросы, подписка на события.</p></li>
+<li><b>HTTP API</b> — FastAPI, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/blob/62c12b8c300b5205b2ff1ee3dec96e44d29786d7/src/proveryalka/api/app.py">api/app.py</a>. Проверяет тела запросов (неизвестные поля запрещены), требует <code>Idempotency-Key</code> у создающих POST, отдаёт ошибки как <code>{"error":{"code","message","details"}}</code>.
+  <p class="io">Повтор запроса с тем же ключом и телом возвращает первый ответ; с другим телом — <code>409 IDEMPOTENCY_CONFLICT</code>.</p></li>
+<li><b>Очередь задач</b> — <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/blob/62c12b8c300b5205b2ff1ee3dec96e44d29786d7/src/proveryalka/api/backend.py">api/backend.py</a>. Каждая долгая операция — run с <code>run_id</code>: ответ <code>202</code> сразу, работа в фоне. Два вида: <code>agent</code> (ход аналитика) и <code>check</code> (проверка TLC). По умолчанию по 2 параллельно, очередь до 32, один активный ход аналитика на сессию. События run пишутся в SQLite и отдаются потоком SSE.
+  <p class="io">Состояния run: queued → running → completed / failed; отмена: cancelling → cancelled. После перезапуска сервера незавершённые получают failed / <code>SERVER_RESTARTED</code>.</p></li>
+<li><b>Аналитик</b> — <code>agent/</code>. LLM вызывается через OpenAI Agents SDK (Responses API). <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/blob/62c12b8c300b5205b2ff1ee3dec96e44d29786d7/src/proveryalka/agent/llm_config.py">llm_config.py</a> читает <code>OPENAI_BASE_URL</code>, <code>OPENAI_API_KEY</code>, <code>OPENAI_MODEL</code> (по умолчанию <code>deepseek-v4.1-flash</code>). Принято: в runtime используется GPT по подписке ChatGPT/Codex; способ подключения — backend-задача, вызов модели ещё не проверен.
+  <p class="io">Один ответ LLM содержит разбор, вопросы, ответы на вопросы и исправления (<code>DialogueDraft</code>). Из него детерминированно собираются: требования с проверенными цитатами (<code>analysis.py</code>), открытые вопросы и предположения (<code>clarification.py</code>, до 5 раундов), BehavioralModel без второго вызова LLM (<code>formalization.py</code>). После проверки: объяснение результата (<code>verification.py</code>), сравнение до и после исправления (<code>revision.py</code>). Объяснение и сравнение пока вызываются только из Python, не из HTTP.</p></li>
+<li><b>Контракт модели</b> — <code>behavior/</code>. Pydantic-схема BehavioralModel 1.0: типы, ссылки на переменные и требования, области значений, семантика одного шага (по ней сервер перепроверяет трассу TLC).</li>
+<li><b>Ядро проверки</b> — <code>checker/</code>, детерминированное, без LLM.
+  <p class="io"><code>preflight.py</code> — проверки до Java, включая 32-битные границы целых → <code>tla.py</code> — выражения в TLA+ → <code>spec.py</code> — <code>Spec.tla</code> и отдельный <code>Spec.cfg</code> на каждое свойство → <code>runner.py</code> — SANY и TLC отдельными процессами с таймаутом и остановкой → <code>parser.py</code> — статус, трасса, изменения, статистика → <code>artifacts.py</code> — папка файлов с manifest и SHA-256. <code>cache.py</code> — кэш завершённых проверок по хэшу спецификации, свойству и версии движка.</p></li>
+<li><b>Хранилище</b> — <code>storage/</code>: SQLite и папка файлов проверок. Подробно — в разделе <a href="#storage">«Хранение данных»</a>.</li>
+</ol>
+
+<h3>Выражения DSL и перевод в TLA+</h3>
+<p>Условия и свойства — дерево выражения в JSON. Узлы четырёх видов: <code>literal</code>, <code>variable</code>, <code>unary</code> (<code>not</code>, <code>neg</code>), <code>binary</code> (<code>and</code>, <code>or</code>, <code>implies</code>, <code>eq</code>, <code>ne</code>, <code>lt</code>, <code>le</code>, <code>gt</code>, <code>ge</code>, <code>add</code>, <code>sub</code>, <code>mul</code>). Произвольного кода нет. Компилятор полностью расставляет скобки, добавляет префиксы <code>v_</code>, <code>t_</code>, <code>p_</code>, чтобы имена не совпали со словами TLA+, и экранирует строки.</p>
+<div class="tbl"><table>
+<thead><tr><th>Что</th><th>DSL (сокращённо)</th><th>TLA+</th></tr></thead>
+<tbody>
+<tr><td>Условие Cancel</td><td><code>or(eq(status,"Created"), eq(status,"Approved"))</code></td><td><code>((v_status = "Created") \/ (v_status = "Approved"))</code></td></tr>
+<tr><td>Изменение</td><td><code>{variable: cancelled, value: true}</code></td><td><code>v_cancelled' = TRUE</code></td></tr>
+<tr><td>Не упомянутая переменная</td><td>—</td><td><code>UNCHANGED &lt;&lt;v_approved&gt;&gt;</code></td></tr>
+<tr><td>Свойство NoCancelledExecution</td><td><code>and(cancelled, eq(status,"Executed"))</code>, вид forbidden_state</td><td><code>p_NoCancelledExecution == ~(v_cancelled /\ (v_status = "Executed"))</code></td></tr>
+</tbody></table></div>
+
+<h3>Как вид свойства превращается в проверку TLC</h3>
+<p>TLC умеет проверять инварианты: формулу, которая должна быть истинна в каждом достижимом состоянии. Все четыре вида свойств сведены к инварианту. Каждое свойство проверяется отдельным запуском TLC со своим <code>Spec.cfg</code>.</p>
+<div class="tbl"><table>
+<thead><tr><th>Вид</th><th>Инвариант для TLC</th><th>TLC нашёл нарушение инварианта</th><th>Перебор закончен без нарушения</th></tr></thead>
+<tbody>
+<tr><td>invariant P</td><td><code>P</code></td><td>VIOLATED + путь</td><td>HOLDS</td></tr>
+<tr><td>forbidden_state P</td><td><code>~P</code></td><td>VIOLATED + путь</td><td>HOLDS</td></tr>
+<tr><td>reachable P</td><td><code>~P</code></td><td>HOLDS + путь-свидетель</td><td>VIOLATED: цель недостижима</td></tr>
+<tr><td>deadlock_free P</td><td><code>P \/ guard₁ \/ guard₂ \/ …</code></td><td>VIOLATED: тупик в недопустимом состоянии</td><td>HOLDS</td></tr>
+</tbody></table></div>
+<p>Для <code>reachable</code> смысл обратный: «нарушение» инварианта <code>~P</code> означает, что путь к цели существует. Поэтому у <code>CanExecute</code> статус HOLDS сопровождается трассой Approve → Execute. Флаг TLC <code>-deadlock</code> отключает встроенную проверку тупиков: тупики оценивает только свойство <code>deadlock_free</code>, где P — допустимые конечные состояния.</p>
+
+<h3>Запуск SANY и TLC, лимиты</h3>
+<p>SANY — анализатор TLA+, проверяет <code>Spec.tla</code> до перебора. Затем TLC запускается отдельным процессом Java; это позволяет ограничить время и принудительно остановить зависший процесс. Команда из manifest настоящего запуска:</p>
+<pre><code>java -Xmx512m -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -tool -workers 1 -fp 1 -deadlock \
+  -noGenerateSpecTE -metadir properties/NoCancelledExecution/states \
+  -dumpTrace json properties/NoCancelledExecution/trace.json \
+  -config properties/NoCancelledExecution/Spec.cfg Spec.tla</code></pre>
+<p>Лимит состояний — дополнительный «сторожевой» инвариант <code>LimitStates == TLCGet("distinct") &lt;= 100000</code>. Его нарушение означает неполный перебор и даёт <code>STATE_LIMIT_REACHED</code>, а не ошибку модели. Глубина ограничивается так же через <code>TLCGet("level")</code>. Верхней границы значений лимитов нет — см. находку F7.</p>
+
+<h3>Разбор результата TLC</h3>
+<p>В режиме <code>-tool</code> TLC печатает сообщения с числовыми кодами. <code>parser.py</code> определяет по ним статус, читает трассу из <code>trace.json</code>, переводит имена действий (<code>t_Approve</code> → <code>Approve</code>), строит <code>changes.json</code> и берёт статистику только из того, что TLC сообщил; отсутствующее значение остаётся <code>null</code>. Затем <code>validate_report</code> сверяет отчёт с запросом: тот же хэш спецификации, лимиты и свойства, трасса воспроизводится по правилам модели, <code>related_requirements</code> пересчитываются.</p>
+
+<h3>HTTP API и события</h3>
+<p>Полный контракт с типами — <a href="frontend-contract.md">frontend-contract.md</a>. Основные маршруты:</p>
+<div class="tbl"><table>
+<thead><tr><th>Группа</th><th>Маршруты</th></tr></thead>
+<tbody>
+<tr><td>Готовность</td><td><code>GET /health</code>; <code>GET /ready</code> — SQLite и Java/TLC, флаг <code>agent_configured</code> (вызов LLM не проверяет)</td></tr>
+<tr><td>Сессии</td><td><code>POST/GET /api/sessions</code>, <code>GET /api/sessions/{id}</code> — сообщения, источники, требования</td></tr>
+<tr><td>Источники</td><td><code>POST /api/sessions/{id}/sources</code> — только текст, до 100 000 символов</td></tr>
+<tr><td>Ход аналитика</td><td><code>POST /api/sessions/{id}/messages</code> <code>{text}</code> → <code>202 Run</code>; <code>GET /api/runs/{id}</code>; <code>POST /api/runs/{id}/cancel</code>; <code>GET /api/runs/{id}/events</code> (SSE, <code>Last-Event-ID</code>)</td></tr>
+<tr><td>Модели и версии</td><td><code>POST/GET /api/sessions/{id}/models</code>; <code>POST/GET /api/models/{id}/versions</code>; <code>GET …/versions/{n}</code>; <code>POST …/versions/{n}/approve</code></td></tr>
+<tr><td>Проверки</td><td><code>POST …/versions/{n}/checks</code> <code>{property_ids?, limits?}</code> → <code>202 Run</code>; <code>GET /api/checks/{run_id}</code>; <code>GET /api/checks/{run_id}/artifacts</code> и <code>…/artifacts/{name}</code></td></tr>
+</tbody></table></div>
+<div class="tbl"><table>
+<thead><tr><th>Событие SSE</th><th>Данные</th><th>Что делает клиент</th></tr></thead>
+<tbody>
+<tr><td><code>clarification_requested</code></td><td>id, text, reason, kind (missing / conflict / assumption), assumption</td><td>Показывает вопрос и варианты ответа</td></tr>
+<tr><td><code>model_proposed</code></td><td>model_id, version_id, number</td><td>Загружает новую версию модели</td></tr>
+<tr><td><code>message_delta</code></td><td>text — сейчас только тема разбора или статус («Заявка»)</td><td>Показывает ответ агента (сейчас ответа фактически нет, см. F2)</td></tr>
+<tr><td><code>check_started</code>, <code>check_finished</code></td><td>check_run_id, version_id</td><td>По завершении загружает результат GET check</td></tr>
+<tr><td><code>error</code>, <code>run_finished</code></td><td>code / state</td><td>Закрывает поток, перечитывает run и сессию</td></tr>
+</tbody></table></div>
+<p><b>Чего в API нет на <code>62c12b8</code>:</b> объяснения сохранённой проверки, ответа на конкретный вопрос (<code>question_id</code>), отказа от незавершённого хода, типизированного состояния диалога (сейчас его можно достать только из служебной истории SDK), списка runs по сессии, загрузки документов, генерации кода и тестов, CORS. Для клиента на отдельном dev-сервере нужен proxy на <code>/api</code>, <code>/health</code>, <code>/ready</code>.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="storage">
+<h2>Хранение: первичный разбор · история</h2>
+<p class="historical-note"><b>Исторический раздел: до реализации и общей интеграции.</b> Описания готовности, находки и PASS / FAIL / NOT_RUN ниже относятся к первичному снимку <code>62c12b8</code> от 31.10.2026, а не к текущему стенду. Текущие результаты — в <a href="#summary">начале документа</a>, связи компонентов — в <a href="#system-diagrams">семи схемах</a>.</p>
+<p>Один файл SQLite на один процесс приложения и каталог файлов проверок. Схема задаётся четырьмя миграциями: <code>001_sessions.sql</code>, <code>002_versions.sql</code>, <code>003_runs.sql</code>, <code>004_events.sql</code>.</p>
+
+<h3>Таблицы</h3>
+<div class="tbl"><table>
+<thead><tr><th>Таблица</th><th>Одна строка — это</th><th>Ключевые поля</th><th>Зачем</th></tr></thead>
+<tbody>
+<tr><td><code>sessions</code></td><td>один чат</td><td><code>id</code> (s_…), <code>title</code>, <code>mode</code>: analyzer / debugger / overview / codegen, <code>created_at</code></td><td>Список чатов слева; режим хранится, но все сообщения сейчас идут одному аналитику</td></tr>
+<tr><td><code>agent_messages</code></td><td>один элемент истории SDK</td><td><code>session_id</code>, <code>sequence</code> (уникален в сессии), <code>message_data</code> JSON</td><td>Общая память агента: текст пользователя и служебные JSON-записи <code>analyst_dialogue</code>, <code>analyst_pending</code>, <code>analyst_verification</code></td></tr>
+<tr><td><code>sources</code></td><td>один исходный текст</td><td><code>id</code> (src_…), <code>session_id</code>, <code>kind</code> = только <code>'text'</code>, <code>text</code></td><td>Первое описание и каждый ответ пользователя на вопрос. На них ссылаются цитаты требований</td></tr>
+<tr><td><code>requirements</code></td><td>требование с номером R<i>n</i></td><td><code>source_id</code>+<code>session_id</code>, <code>number</code>, <code>text</code></td><td>Заполняется при загрузке источника со списком требований; требования аналитика сюда не проецируются, они внутри модели</td></tr>
+<tr><td><code>models</code></td><td>модель как сущность</td><td><code>id</code> (m_…), <code>session_id</code>, <code>name</code></td><td>Аналитик использует одну модель на сессию «Analyst model»</td></tr>
+<tr><td><code>model_versions</code></td><td>неизменяемая версия модели</td><td><code>id</code> (v_…), <code>model_id</code>, <code>number</code>, <code>parent_id</code>, <code>spec</code> JSON, <code>spec_hash</code>, <code>approved</code></td><td>Каждое изменение — новая строка со ссылкой на родителя той же модели; согласование меняет только флаг</td></tr>
+<tr><td><code>runs</code></td><td>одна фоновая задача</td><td><code>run_id</code> (agent_… / chk_…), <code>session_id</code>, <code>version_id</code>, <code>kind</code>, <code>state</code>, <code>request_json</code>, <code>result_json</code>, <code>error_code</code></td><td>У проверки <code>result_json</code> — отчёт по всем выбранным свойствам сразу</td></tr>
+<tr><td><code>run_events</code></td><td>одно событие run</td><td><code>run_id</code>+<code>event_id</code> (с 1 в каждом run), <code>event_json</code></td><td>Повтор событий после переподключения SSE</td></tr>
+<tr><td><code>idempotency</code></td><td>первый ответ на ключ</td><td><code>scope</code>+<code>key</code>, <code>request_json</code>, <code>response_json</code></td><td>Защита от двойной отправки</td></tr>
+</tbody></table></div>
+
+<h3>Связи</h3>
+<figure class="fig">
+<div class="scrollx">
+<svg viewBox="0 0 920 470" style="min-width:820px" role="img" aria-labelledby="erT erD">
+<title id="erT">Связи таблиц SQLite и файлов проверки</title>
+<desc id="erD">sessions связана один-ко-многим с agent_messages, sources, models и runs. sources — с requirements. models — с model_versions, у версии есть родитель. model_versions — с runs через version_id. runs — с run_events и с папкой файлов проверки на диске.</desc>
+<defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker></defs>
+<rect class="node-key" x="370" y="10" width="190" height="78" rx="8"/>
+<text x="382" y="32" font-weight="600" font-size="14">sessions</text>
+<text x="382" y="52" class="mono sub" font-size="11.5">id · title · mode</text>
+<text x="382" y="70" class="mono sub" font-size="11.5">created_at</text>
+
+<rect class="node" x="10" y="150" width="190" height="78" rx="8"/>
+<text x="22" y="172" font-weight="600" font-size="14">agent_messages</text>
+<text x="22" y="192" class="mono sub" font-size="11.5">session_id · sequence</text>
+<text x="22" y="210" class="mono sub" font-size="11.5">message_data (JSON)</text>
+
+<rect class="node" x="240" y="150" width="190" height="78" rx="8"/>
+<text x="252" y="172" font-weight="600" font-size="14">sources</text>
+<text x="252" y="192" class="mono sub" font-size="11.5">id · session_id</text>
+<text x="252" y="210" class="mono sub" font-size="11.5">kind='text' · text</text>
+
+<rect class="node" x="470" y="150" width="190" height="78" rx="8"/>
+<text x="482" y="172" font-weight="600" font-size="14">models</text>
+<text x="482" y="192" class="mono sub" font-size="11.5">id · session_id</text>
+<text x="482" y="210" class="mono sub" font-size="11.5">name</text>
+
+<rect class="node" x="710" y="150" width="200" height="96" rx="8"/>
+<text x="722" y="172" font-weight="600" font-size="14">runs</text>
+<text x="722" y="192" class="mono sub" font-size="11.5">run_id · kind · state</text>
+<text x="722" y="210" class="mono sub" font-size="11.5">session_id · version_id?</text>
+<text x="722" y="228" class="mono sub" font-size="11.5">request_json · result_json</text>
+
+<rect class="node" x="240" y="300" width="190" height="78" rx="8"/>
+<text x="252" y="322" font-weight="600" font-size="14">requirements</text>
+<text x="252" y="342" class="mono sub" font-size="11.5">source_id · number</text>
+<text x="252" y="360" class="mono sub" font-size="11.5">text</text>
+
+<rect class="node-key" x="470" y="300" width="200" height="96" rx="8"/>
+<text x="482" y="322" font-weight="600" font-size="14">model_versions</text>
+<text x="482" y="342" class="mono sub" font-size="11.5">id · model_id · number</text>
+<text x="482" y="360" class="mono sub" font-size="11.5">parent_id · approved</text>
+<text x="482" y="378" class="mono sub" font-size="11.5">spec (JSON) · spec_hash</text>
+
+<rect class="node" x="710" y="300" width="200" height="60" rx="8"/>
+<text x="722" y="322" font-weight="600" font-size="14">run_events</text>
+<text x="722" y="342" class="mono sub" font-size="11.5">run_id · event_id · JSON</text>
+
+<rect class="node-ext" x="710" y="400" width="200" height="60" rx="8"/>
+<text x="722" y="422" font-weight="600" font-size="14">Файлы на диске</text>
+<text x="722" y="442" class="mono sub" font-size="11.5">checks/{run_id}/…</text>
+
+<rect class="node" x="10" y="300" width="190" height="60" rx="8"/>
+<text x="22" y="322" font-weight="600" font-size="14">idempotency</text>
+<text x="22" y="342" class="mono sub" font-size="11.5">scope · key → ответ</text>
+
+<path class="edge" d="M410,88 L120,148" marker-end="url(#ah2)"/>
+<path class="edge" d="M440,88 L340,148" marker-end="url(#ah2)"/>
+<path class="edge" d="M490,88 L560,148" marker-end="url(#ah2)"/>
+<path class="edge" d="M540,88 L790,148" marker-end="url(#ah2)"/>
+<text class="lbl sub" x="235" y="112">1 : N</text>
+<text class="lbl sub" x="660" y="112">1 : N</text>
+<path class="edge" d="M335,228 L335,298" marker-end="url(#ah2)"/>
+<text class="lbl sub" x="342" y="268">1 : N</text>
+<path class="edge" d="M565,228 L565,298" marker-end="url(#ah2)"/>
+<text class="lbl sub" x="572" y="268">1 : N</text>
+<path class="edge" d="M670,330 C700,300 700,280 750,248" marker-end="url(#ah2)"/>
+<text class="lbl sub" x="676" y="284">0..1 : N</text>
+<path class="edge" d="M810,246 L810,298" marker-end="url(#ah2)"/>
+<path class="edge-dash" d="M900,246 C930,320 930,380 905,400" marker-end="url(#ah2)"/>
+<text class="lbl sub" x="836" y="390">0..1</text>
+<path class="edge" d="M520,396 C520,440 600,440 610,398" marker-end="url(#ah2)"/>
+<text class="lbl sub" x="500" y="452">parent_id → версия той же модели</text>
+</svg>
+</div>
+<figcaption>Сплошные стрелки — внешние ключи SQLite. Пунктир — папка файлов, связанная с run по имени. <code>version_id</code> у run может отсутствовать: ход аналитика без модели.</figcaption>
+</figure>
+<p>Часть связей находится внутри JSON модели и проверяется кодом, а не внешним ключом:</p>
+<ul>
+<li><code>spec.sources[].id</code> ↔ <code>sources.id</code>: при создании версии сервер проверяет, что источник из той же сессии и с тем же текстом.</li>
+<li><code>requirement_ids</code> переменных, переходов и свойств → <code>spec.requirements[].id</code>; <code>source_refs</code> требований → источник, цитата, позиции.</li>
+<li><code>VerificationResult.version_id</code> и <code>spec_hash</code> → конкретная строка <code>model_versions</code>; <code>related_requirements</code> → требования внутри той же версии.</li>
+</ul>
+
+<h3>Файлы проверки</h3>
+<p>Для каждой проверки создаётся папка <code>{artifacts_path}/checks/{run_id}/</code>. Пример — настоящая папка запуска ошибочной заявки:</p>
+<pre><code>chk_e08a788de789a3b0/
+  manifest.json        команды, коды возврата, время, версия TLC, SHA-256 каждого файла
+  request.json         модель, свойства, лимиты
+  report.json          итог по всем свойствам
+  Spec.tla             сгенерированная спецификация
+  sany.stdout.log      sany.stderr.log
+  properties/NoCancelledExecution/
+    Spec.cfg           SPECIFICATION Spec / INVARIANT TypeOK, LimitStates, p_NoCancelledExecution
+    tlc.stdout.log     tlc.stderr.log
+    trace.json         трасса от TLC
+    changes.json       изменения переменных по шагам</code></pre>
+<p>API отдаёт файл только из списка manifest и только если его байты совпадают с записанным SHA-256; до окончания проверки — <code>409 CHECK_PENDING</code>.</p>
+
+<h3>Что записывается за один сценарий</h3>
+<ol>
+<li><code>POST /sessions</code> → строка <code>sessions</code>.</li>
+<li><code>POST /messages</code> с текстом требований → <code>runs</code> (kind=agent); аналитик сохраняет текст в <code>sources</code>, историю — в <code>agent_messages</code>.</li>
+<li>Если есть вопросы — события <code>clarification_requested</code> в <code>run_events</code>; ответ пользователя — новый <code>sources</code> (answer_…) и новый ход.</li>
+<li>Когда модель готова — <code>models</code> «Analyst model» (одна на сессию), <code>model_versions</code> v1; событие <code>model_proposed</code>.</li>
+<li>Пользователь нажимает «Проверить» → <code>runs</code> (kind=check, version_id=v1) → папка файлов → <code>result_json</code> с VIOLATED и трассой.</li>
+<li>Пользователь подтверждает исправление → новый ход → <code>model_versions</code> v2 с <code>parent_id</code> = v1. Строки v1 и её проверки не меняются.</li>
+<li>Проверка v2 → новый <code>runs</code> → HOLDS. Обе проверки остаются в базе.</li>
+</ol>
+
+<h3>Отличия от схемы в README</h3>
+<ul>
+<li>README описывает <code>CHECK_RUN</code> как проверку одного свойства; в коде одна строка <code>runs</code> хранит отчёт по всем выбранным свойствам.</li>
+<li>Таблиц <code>ARTIFACT</code> (код) и <code>TEST_RUN</code> (тесты в песочнице) нет — это будущие #41, #48, #49.</li>
+<li>У версии вместо поля <code>state</code> «черновик / утверждена» — логический <code>approved</code>.</li>
+<li>Строки 29–30 README утверждают, что маршруты агента и версий возвращают 503; на <code>62c12b8</code> они работают (находка F9).</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="team">
+<h2>Работа команды до интеграции · история</h2>
+<p class="historical-note"><b>Исторический раздел: до реализации и общей интеграции.</b> Описания готовности, находки и PASS / FAIL / NOT_RUN ниже относятся к первичному снимку <code>62c12b8</code> от 31.10.2026, а не к текущему стенду. Текущие результаты — в <a href="#summary">начале документа</a>, связи компонентов — в <a href="#system-diagrams">семи схемах</a>.</p>
+<p>Распределение по исполнителям взято из назначений issues. Состояние PR и веток — на 31.10, 07:18 UTC.</p>
+
+<h3>kontar0 — ядро проверки на TLC</h3>
+<p><b>Сделано.</b> Валидация модели с путями к полям (#2); эталонные модели и ожидания: заявка с ошибкой и исправленная, билеты, переполнение, большая модель для лимитов, 13 ошибочных моделей (#3); компилятор выражений (#4); <code>Spec.tla</code> и <code>.cfg</code> на свойство для четырёх видов свойств (#5, #6); управляемый запуск SANY/TLC (#7); разбор вывода и восстановление контрпримера (#8); <code>TLCChecker</code>, CLI и папка файлов запуска (#9, #10); регрессия на настоящем TLC в CI (#11); кэш завершённых проверок (код к #43). 11 коммитов 29.10 (автор в Git — Konstantin Tarasenko), PR <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/56">#56</a> <span class="b merged">MERGED</span> в <code>main</code> 30.10.</p>
+<p><b>Пределы.</b> Issues <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/1">#1</a> (контракты), <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/28">#28</a> (интеграция с приложением и эксплуатация) и <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/43">#43</a> (кэш) открыты, хотя код кэша уже в #56. Ядро проверено на написанных вручную моделях; моделей, построенных LLM, через него в сквозном сценарии ещё не проходило. Закреплённая контрольная сумма TLC устарела (F6), лимиты не ограничены сверху (F7).</p>
+
+<h3>kiruha355 — агент-аналитик</h3>
+<p><b>Сделано.</b> Подключение LLM через Agents SDK (#12); извлечение требований с цитатами (#13); вопросы и фиксация предположений (#14); BehavioralModel в строгом DSL (#15); свойства со ссылками на требования (#16); <code>check_behavior</code> как детерминированный инструмент (#17); объяснение контрпримера и всех статусов (#18); сбои провайдера и лимит агентных циклов (#19); сравнение результатов до и после исправления — коммит «ошибки и повторная проверка (#19, #29)». PR <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/52">#52</a> и <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/53">#53</a> <span class="b merged">MERGED</span> в <code>docs/db-api</code> 27.10; тот же код есть в <code>main</code>. Наборы живых примеров: <code>tests/evals/run_requirements.py</code>, <code>live_requirements_cases.json</code>, <code>deepseek_ten_cases.json</code>.</p>
+<p><b>Пределы.</b> Объяснение проверки и повторная проверка после исправления работают только через Python-функции; HTTP их не вызывает (F1). Issues <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/29">#29</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/30">#30</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/41">#41</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/42">#42</a> открыты. Живые прогоны LLM в этом ревью не запускались. В <code>llm_config.py</code> для <code>api-ai.mai.ru</code> отключена проверка TLS (F8).</p>
+
+<h3>SOKLY6 — сервер</h3>
+<p><b>Сделано.</b> Каркас API и контракты (#20), SQLite-хранилище сессий, сообщений и требований (#21) — PR <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/51">#51</a> <span class="b merged">MERGED</span> в <code>develop</code> 27.10. Затем стопка из шести PR от 30.10, все <span class="b open">OPEN</span>, не draft, base <code>develop</code>:</p>
+<div class="tbl"><table>
+<thead><tr><th>PR</th><th>Issue</th><th>Содержание</th><th>Head</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/57">#57</a></td><td>#22</td><td>Неизменяемые версии моделей, принадлежность источников сессии</td><td><code>0fd4aaa</code></td></tr>
+<tr><td><a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/58">#58</a></td><td>#23</td><td>Фоновые проверки версий через TLC, сохранение результатов</td><td><code>729498f</code></td></tr>
+<tr><td><a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/59">#59</a></td><td>#25</td><td>Выдача результатов и проверенных файлов</td><td><code>3f0cc4d</code></td></tr>
+<tr><td><a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/60">#60</a></td><td>#24</td><td>Ходы аналитика и возобновляемый SSE</td><td><code>668d97b</code></td></tr>
+<tr><td><a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/61">#61</a></td><td>#27</td><td>Отмена, ограничения очереди, восстановление после рестарта</td><td><code>92eff77</code></td></tr>
+<tr><td><a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/62">#62</a></td><td>#26</td><td>Закреплённое окружение, <code>/ready</code>, HTTP acceptance на настоящем TLC; CI <code>tests</code> зелёный 30.10</td><td><code>62c12b8</code></td></tr>
+</tbody></table></div>
+<p>По описанию PR #62 сливать нужно по порядку #57 → #58 → #59 → #60 → #61 → #62 merge-коммитами; при squash или rebase последующие ветки придётся обновлять.</p>
+<p><b>Пределы.</b> Issues #22–#27 закрыты, хотя их PR открыты: кода нет ни в <code>develop</code>, ни в <code>main</code>. HTTP-проверка не передаётся агенту, <code>question_id</code> не принимается, отменённый ход блокирует сессию, <code>message_delta</code> несёт только тему разбора (F1–F4). Issues <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/31">#31</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/44">#44</a>–<a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/48">#48</a> открыты.</p>
+
+<h3 id="branches">Ветки и PR</h3>
+<p>Что из кода есть в какой ветке. «Есть» означает наличие кода в дереве ветки, а не проверку на этой ветке; тесты запускались только на <code>62c12b8</code>.</p>
+<div class="tbl"><table>
+<thead><tr><th>Компонент</th><th><code>main</code> 64d1096</th><th><code>develop</code> b141e52</th><th><code>docs/db-api</code> 66d55c6 (по умолчанию)</th><th><code>26-runtime</code> 62c12b8 (PR #62)</th></tr></thead>
+<tbody>
+<tr><td>API-каркас, SQLite сессий (#20, #21)</td><td>есть</td><td>есть, старая раскладка <code>proveryalka/</code></td><td>есть</td><td>есть</td></tr>
+<tr><td>Агент-аналитик (#12–#19)</td><td>есть</td><td>нет</td><td>есть</td><td>есть</td></tr>
+<tr><td>Ядро проверки TLC (#2–#11)</td><td>есть</td><td>нет</td><td>нет</td><td>есть</td></tr>
+<tr><td>Версии, проверки, файлы, SSE, отмена, runtime (#22–#27)</td><td>нет</td><td>нет</td><td>нет</td><td>есть, PR открыты</td></tr>
+<tr><td>HTTP acceptance на TLC</td><td>нет</td><td>нет</td><td>нет</td><td>есть</td></tr>
+<tr><td>Клиент (#32–#40)</td><td>нет</td><td>нет</td><td>нет</td><td>нет</td></tr>
+<tr><td>Генерация кода, песочница, просмотр (#41, #48, #49)</td><td>нет</td><td>нет</td><td>нет</td><td>нет</td></tr>
+</tbody></table></div>
+<pre><code>develop      b141e52  #20 API, #21 SQLite (PR #51)
+main         64d1096  агент + ядро TLC (PR #56, 30.10)
+                │
+26-runtime   febb68b  merge(develop, main)
+             0fd4aaa  #22  PR #57
+             729498f  #23  PR #58
+             3f0cc4d  #25  PR #59
+             668d97b  #24  PR #60
+             92eff77  #27  PR #61   = вершина 27-run-resilience
+             62c12b8  #26  PR #62   = вершина 26-runtime, проверенный код
+
+docs/db-api  66d55c6  merge PR #54 (старый main) и #55 (develop); не предок 26-runtime, ядра TLC нет</code></pre>
+<p>Номер в скобках у коммита — номер issue, не PR. <code>main</code> и <code>develop</code> — предки <code>26-runtime</code>; <code>26-runtime</code> на 8 коммитов впереди <code>main</code> и на 30 — впереди <code>develop</code>.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="mput13">
+<h2>Исходный план задач Mput13 · история</h2>
+<p class="historical-note"><b>Исторический раздел: до реализации и общей интеграции.</b> Описания готовности, находки и PASS / FAIL / NOT_RUN ниже относятся к первичному снимку <code>62c12b8</code> от 31.10.2026, а не к текущему стенду. Текущие результаты — в <a href="#summary">начале документа</a>, связи компонентов — в <a href="#system-diagrams">семи схемах</a>.</p>
+<p>Mput13 назначены десять issues — #32–#40 и #49, все <span class="b open">OPEN</span>. Это весь клиент: от пустой рабочей области до сквозного сценария, интерактивной диаграммы и просмотра сгенерированного проекта. Принято делать все десять полностью, включая #40 и #49, и вести работу в draft PR без слияния и закрытия issues по результатам на fixtures.</p>
+
+<h3>Порядок и зависимости</h3>
+<figure class="fig">
+<div class="scrollx">
+<svg viewBox="0 0 1100 330" style="min-width:980px" role="img" aria-labelledby="dgT dgD">
+<title id="dgT">Зависимости задач Mput13</title>
+<desc id="dgD">#32 ведёт к #33 и #35. #33 к #34 и #38. #35 к #36. #36 к #37 и #38. #34, #37 и #38 к #39. #39 к #40. #49 зависит от генератора #41 и песочницы #48.</desc>
+<defs><marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker></defs>
+<g font-size="12">
+<rect class="node" x="10" y="115" width="150" height="62" rx="8"/><text x="22" y="137" font-weight="600" font-size="14">#32</text><text x="22" y="154">Рабочая область</text><text x="22" y="169" class="sub">сервер: #1, #20</text>
+<rect class="node" x="200" y="40" width="150" height="62" rx="8"/><text x="212" y="62" font-weight="600" font-size="14">#33</text><text x="212" y="79">Чат, сессии, SSE</text><text x="212" y="94" class="sub">сервер: #24</text>
+<rect class="node" x="200" y="190" width="150" height="62" rx="8"/><text x="212" y="212" font-weight="600" font-size="14">#35</text><text x="212" y="229">Модель и версии</text><text x="212" y="244" class="sub">сервер: #1, #22</text>
+<rect class="node" x="390" y="40" width="150" height="62" rx="8"/><text x="402" y="62" font-weight="600" font-size="14">#34</text><text x="402" y="79">Уточнения</text><text x="402" y="94" class="sub">#14 + question_id</text>
+<rect class="node" x="390" y="190" width="150" height="62" rx="8"/><text x="402" y="212" font-weight="600" font-size="14">#36</text><text x="402" y="229">Запуск проверки</text><text x="402" y="244" class="sub">сервер: #23, #25</text>
+<rect class="node" x="580" y="115" width="150" height="62" rx="8"/><text x="592" y="137" font-weight="600" font-size="14">#38</text><text x="592" y="154">Сбои, восстановление</text><text x="592" y="169" class="sub">#27 + отказ от хода</text>
+<rect class="node" x="580" y="240" width="150" height="62" rx="8"/><text x="592" y="262" font-weight="600" font-size="14">#37</text><text x="592" y="279">Контрпример</text><text x="592" y="294" class="sub">#8, #18 + объяснение</text>
+<rect class="node-key" x="770" y="115" width="150" height="62" rx="8"/><text x="782" y="137" font-weight="600" font-size="14">#39</text><text x="782" y="154">Сквозной сценарий</text><text x="782" y="169" class="sub">#30 + GPT-подписка</text>
+<rect class="node" x="950" y="40" width="140" height="62" rx="8"/><text x="962" y="62" font-weight="600" font-size="14">#40</text><text x="962" y="79">Диаграмма</text><text x="962" y="94" class="sub">после #39</text>
+<rect class="node" x="950" y="240" width="140" height="62" rx="8"/><text x="962" y="262" font-weight="600" font-size="14">#49</text><text x="962" y="279">Проект и экспорт</text><text x="962" y="294" class="sub">#41, #48</text>
+<rect class="node-ext" x="770" y="240" width="150" height="62" rx="8"/><text x="782" y="262" font-weight="600" font-size="14">#41 · #48</text><text x="782" y="279">Генератор, песочница</text><text x="782" y="294" class="sub">отдельный draft PR</text>
+</g>
+<path class="edge" d="M160,135 L198,80" marker-end="url(#ah3)"/>
+<path class="edge" d="M160,158 L198,212" marker-end="url(#ah3)"/>
+<path class="edge" d="M350,71 L388,71" marker-end="url(#ah3)"/>
+<path class="edge" d="M350,221 L388,221" marker-end="url(#ah3)"/>
+<path class="edge" d="M350,90 L578,135" marker-end="url(#ah3)"/>
+<path class="edge" d="M540,210 L578,160" marker-end="url(#ah3)"/>
+<path class="edge" d="M540,236 L578,262" marker-end="url(#ah3)"/>
+<path class="edge" d="M540,71 C700,71 760,100 790,113" marker-end="url(#ah3)"/>
+<path class="edge" d="M730,146 L768,146" marker-end="url(#ah3)"/>
+<path class="edge" d="M730,262 L790,180" marker-end="url(#ah3)"/>
+<path class="edge" d="M920,135 L948,90" marker-end="url(#ah3)"/>
+<path class="edge" d="M920,271 L948,271" marker-end="url(#ah3)"/>
+</svg>
+</div>
+<figcaption>Подпись «сервер» — задачи коллег, от которых зависит клиент. «+ question_id», «+ объяснение», «+ отказ от хода» — недостающие серверные части, их сейчас добавляет backend-задача. Обведённая пунктиром рамка — генератор, отдельная задача.</figcaption>
+</figure>
+<p>Рабочая последовательность: <b>#32 → #33 → #35 → #34 → #36 → #37 → #38 → #39</b> — это реальный чекпоинт. Затем <b>#40</b> (диаграмма; просмотр можно начать раньше на тех же данных) и <b>#49</b> (просмотр проекта, параллельно с генератором). #32 можно начинать на тестовых адаптерах, но приёмка каждой задачи — на настоящем сервере.</p>
+
+<div class="issue" id="i32">
+<h3>#32 Подготовить рабочую область основного анализа</h3>
+<dl>
+<dt>Что видит пользователь</dt>
+<dd>Экран из наброска 1: слева список чатов, в середине диалог с полем ввода, справа рабочая область с вкладками «Диаграмма» и «Файлы», кнопками «Проверить» и «Экспорт». Пустое состояние: «Модель появится здесь». Если <code>/ready</code> отвечает 503 — одна строка о недоступности проверки вместо пустого экрана.</dd>
+<dt>Данные и API</dt>
+<dd>React + TypeScript + Vite, API-клиент с типами из <a href="frontend-contract.md">frontend-contract.md</a> (OpenAPI <code>/openapi.json</code>); адрес сервера в конфигурации, proxy на <code>/api</code>, <code>/health</code>, <code>/ready</code> (CORS на сервере нет). Тестовые адаптеры на fixtures для разработки без сервера.</dd>
+<dt>Зависит от</dt>
+<dd>Начинается независимо; синхронизация контрактов с #1 и #20.</dd>
+<dt>Приёмка</dt>
+<dd><ul><li>Рабочая область загружается с настоящим сервером, показывает состояние <code>/ready</code>.</li><li>Состояния загрузки и ошибки различимы; ошибка загрузки не выглядит как пустой список.</li><li>Всё управление доступно с клавиатуры, фокус виден.</li><li>Компонентные тесты на тестовых данных.</li></ul></dd>
+</dl>
+</div>
+
+<div class="issue" id="i33">
+<h3>#33 Реализовать чат, историю сессий и события агента</h3>
+<dl>
+<dt>Что видит пользователь</dt>
+<dd>«Новый чат», список чатов по дням (как в наброске 3), отправка текста или документа TXT/MD/DOCX, ход работы агента одной спокойной строкой, ответ агента, после перезагрузки — та же история.</dd>
+<dt>Данные и API</dt>
+<dd><code>POST /api/sessions</code>, <code>GET /api/sessions</code>; <code>POST …/messages</code> с <code>Idempotency-Key</code> → <code>run_id</code>; SSE <code>GET /api/runs/{id}/events</code>: слушать события по имени (<code>addEventListener</code>), отбрасывать повторный <code>event_id</code>, курсор хранить отдельно для каждого run. <code>run_id</code> хранить на клиенте — списка runs по сессии в API нет. История в <code>SessionDetail.messages</code> — служебный формат SDK, показывать его как реплики нельзя; нужен типизированный GET состояния диалога. Загрузка DOCX требует серверной части (#45 без изображений): сейчас источники только текстовые.</dd>
+<dt>Зависит от</dt>
+<dd>#32, #24 (PR #60).</dd>
+<dt>Приёмка</dt>
+<dd><ul><li>Текст → run queued → running → completed, события приходят без дублей после разрыва соединения.</li><li>Повторное нажатие «Отправить» не создаёт второй run (тот же ключ); <code>409 SESSION_BUSY</code> показан как «агент ещё работает».</li><li>Смена сессии не смешивает события.</li><li>Компонентные и интеграционные тесты с API.</li></ul></dd>
+</dl>
+</div>
+
+<div class="issue" id="i34">
+<h3>#34 Добавить работу с уточнениями и исходными требованиями</h3>
+<dl>
+<dt>Что видит пользователь</dt>
+<dd>Список R1…R<i>n</i> с подсветкой цитаты в исходном тексте; предположения агента отдельно от подтверждённого текста; вопрос с вариантами ответа кнопками и свободным ответом (набросок 2: «Согласование сбрасывается / сохраняется»). После ответа — признак «ожидает повторного анализа», старый результат остаётся видимым до появления нового.</dd>
+<dt>Данные и API</dt>
+<dd>Событие <code>clarification_requested</code> (id, text, reason, kind, assumption); требования и <code>source_refs</code> — из <code>version.spec.requirements</code>. Ответ на конкретный вопрос требует <code>question_id</code> в <code>MessageCreate</code>: сейчас это 422 (F3). Ответ пользователя сохраняется сервером как новый источник.</dd>
+<dt>Зависит от</dt>
+<dd>#33, #14; серверное исправление <code>question_id</code> и GET состояния диалога.</dd>
+<dt>Приёмка</dt>
+<dd><ul><li>Многоходовое уточнение: два открытых вопроса, ответ на второй адресован второму.</li><li>После перезагрузки открытые вопросы и предположения на месте.</li><li>Цитата требования совпадает с текстом источника по позициям.</li></ul></dd>
+</dl>
+</div>
+
+<div class="issue" id="i35">
+<h3>#35 Показывать модель, свойства и версии в таблицах</h3>
+<dl>
+<dt>Что видит пользователь</dt>
+<dd>Таблицы переменных (область значений, начальное), переходов (guard и effects читаемой записью: <code>approved = true</code>, <code>status := Executed</code>) и свойств с объяснением и ссылками на R. Выбор версии v1 / v2, отметка «согласована», различие версий: в примере заявки — одно добавленное изменение Cancel. Ошибки модели с путём к полю. Пользователь просматривает модель здесь и только потом нажимает «Проверить» — автоматической проверки нет.</dd>
+<dt>Данные и API</dt>
+<dd><code>GET …/models</code>, <code>GET …/versions</code>, <code>GET …/versions/{n}</code>, <code>POST …/approve</code>; обновление по <code>model_proposed</code>. Не путать <code>number</code> версии и <code>version_id</code>.</dd>
+<dt>Зависит от</dt>
+<dd>#32, #1, #22 (PR #57).</dd>
+<dt>Приёмка</dt>
+<dd><ul><li>Модель отсутствует, одна версия, несколько версий, ошибочное содержимое — четыре различимых состояния.</li><li>Данные разных версий не смешиваются ни в таблицах, ни в результатах.</li><li>После перезапуска клиента выбранная версия восстанавливается.</li></ul></dd>
+</dl>
+</div>
+
+<div class="issue" id="i36">
+<h3>#36 Реализовать запуск проверки и отображение всех статусов</h3>
+<dl>
+<dt>Что видит пользователь</dt>
+<dd>Кнопка «Проверить» для выбранной версии, выбор свойств (по умолчанию все), ход проверки, отдельный результат каждого свойства, отметка «Найдено нарушение» в заголовке рабочей области (набросок 3). <code>TIMEOUT</code> и <code>STATE_LIMIT_REACHED</code> — «проверка не завершена», без зелёного цвета. Статистика как есть; неизвестное значение — «нет данных», не 0. Список файлов проверки с размером и SHA-256, скачивание.</dd>
+<dt>Данные и API</dt>
+<dd><code>POST …/versions/{n}/checks</code> → run; <code>check_finished</code> → <code>GET /api/checks/{run_id}</code>; пока отчёта нет, <code>results = []</code> — это не «нарушений нет». Файлы: <code>GET …/artifacts</code>, <code>…/artifacts/{name}</code>. Проверять совпадение <code>version_id</code> и <code>spec_hash</code> отчёта с выбранной версией.</dd>
+<dt>Зависит от</dt>
+<dd>#35, #23 (PR #58), #25 (PR #59).</dd>
+<dt>Приёмка</dt>
+<dd><ul><li>Каждый из шести статусов отображается по-своему (на fixtures и на настоящем TLC).</li><li>Повторный запрос, смена версии во время проверки, повтор с тем же ключом.</li><li>Ссылки на файлы открывают настоящие байты из manifest.</li></ul></dd>
+</dl>
+</div>
+
+<div class="issue" id="i37">
+<h3>#37 Показывать контрпример по шагам и объяснение нарушения</h3>
+<dl>
+<dt>Что видит пользователь</dt>
+<dd>Таблица шагов, как в разделе <a href="#case-trace">«Контрпример TLC»</a>: начальное состояние и переходы с именами, значения всех переменных, подсветка изменённых, отмеченный шаг нарушения, ссылки R2–R5. Рядом — объяснение агента на языке требований и вопрос об исправлении; каждое утверждение объяснения можно сверить со строкой трассы. Путь-свидетель <code>reachable</code> (CanExecute) показывается отдельно от нарушения.</dd>
+<dt>Данные и API</dt>
+<dd><code>trace</code>, <code>related_requirements</code> из отчёта; изменения — сравнением соседних шагов или из <code>changes.json</code>. Объяснение по HTTP сейчас не создаётся (F1): нужен серверный запуск объяснения сохранённой проверки без повторного TLC, с хранением и GET.</dd>
+<dt>Зависит от</dt>
+<dd>#36, #8, #18; серверное объяснение проверки.</dd>
+<dt>Приёмка</dt>
+<dd><ul><li>Трасса заявки — ровно 4 строки, шаг 3 отмечен.</li><li>Нарушение уже в начальном состоянии (есть в fixtures билетов) — одна строка.</li><li>Отчёт без трассы и сбой объяснения: трасса TLC остаётся видимой.</li></ul></dd>
+</dl>
+</div>
+
+<div class="issue" id="i38">
+<h3>#38 Обработать отмену, обрывы связи и незавершённые проверки</h3>
+<dl>
+<dt>Что видит пользователь</dt>
+<dd>«Остановить» для активного хода и проверки с фактическим статусом (cancelling → cancelled). Сетевые ошибки, недоступный сервер или LLM, превышение лимита не стирают введённый текст. После обновления страницы — та же сессия, версия и результаты. Ошибка — в одном месте с понятным действием: «Повторить» или «Отказаться от сообщения».</dd>
+<dt>Данные и API</dt>
+<dd><code>POST /api/runs/{id}/cancel</code>; <code>SERVER_RESTARTED</code>, <code>RUN_TIMEOUT</code>, <code>QUEUE_FULL</code>, <code>INPUT_LIMIT</code>. После отмены незавершённый ход блокирует новый текст (<code>PENDING_MESSAGE</code>, F4): нужен HTTP-маршрут отказа от хода (в Python есть <code>cancel_pending</code>). Повтор того же сообщения — исходный текст и новый ключ.</dd>
+<dt>Зависит от</dt>
+<dd>#33, #36, #27 (PR #61); серверный отказ от хода.</dd>
+<dt>Приёмка</dt>
+<dd><ul><li>Отмена хода → новое сообщение отправляется после явного отказа от прежнего.</li><li>Остановка сервера во время проверки → после запуска видно <code>SERVER_RESTARTED</code>, без ложного результата.</li><li>Сообщения об ошибках доступны screen reader, фокус переходит к действию.</li></ul></dd>
+</dl>
+</div>
+
+<div class="issue" id="i39">
+<h3>#39 Проверить сквозной пользовательский сценарий по ТЗ</h3>
+<dl>
+<dt>Что видит пользователь</dt>
+<dd>Это и есть чекпоинт: текст требований → уточнение → модель → «Проверить» → нарушение и объяснение → явно согласованное исправление → новая версия → HOLDS → перезагрузка с восстановлением. Сценарий описан в разделе <a href="#demo">«Демонстрация чекпоинта»</a>.</dd>
+<dt>Данные и API</dt>
+<dd>Автоматизированный браузерный прогон против настоящего сервера, настоящего TLC и настоящей LLM (GPT по подписке). Отдельно — детерминированный прогон на fixtures для CI, явно помеченный как прогон без LLM.</dd>
+<dt>Зависит от</dt>
+<dd>#34, #37, #38, #30; серверные исправления F1–F5; проверенный вызов LLM по подписке.</dd>
+<dt>Приёмка</dt>
+<dd><ul><li>Ошибочная заявка и повторная проверка после явного согласования, обе проверки в истории.</li><li>Все технические статусы отображаются, результат соответствует выбранной версии.</li><li>Прогон человеком без знания TLA+, только с клавиатуры.</li><li>Запись прогона, база, папки проверок и журнал сервера сохранены как доказательство.</li></ul></dd>
+</dl>
+</div>
+
+<div class="issue" id="i40">
+<h3>#40 Добавить интерактивную диаграмму состояний и редактирование графа</h3>
+<dl>
+<dt>Что видит пользователь</dt>
+<dd>Диаграмма этапов процесса, как на набросках 2 и 3: узлы — значения переменной этапа (для заявки <code>status</code>: Создана, Согласована, Отменена, Исполнена), рёбра — переходы. Масштаб, выбор узла или ребра, инспектор с описанием и источником («Из описания пользователя»). Кнопки «Назад / Шаг / Сбросить» и «Шаг 2 из 4» проигрывают трассу проверки с подсветкой. Редактирование guard и effects создаёт новую версию.</dd>
+<dt>Данные и API</dt>
+<dd>React Flow. Принято: диаграмма — проекция на этапы, а не полный граф состояний; полные значения переменных видны в инспекторе и в шагах трассы. Следствие для заявки: условие Execute (<code>approved = true</code>) не упоминает статус, поэтому ребро «Исполнить» нельзя честно привязать к одному этапу. Диаграмма не должна рисовать ребро, которого нет в модели, и не должна скрывать такой переход — его условие показывается в инспекторе, а путь Отменена → Исполнена подсвечивается по трассе TLC. Конкретное правило отрисовки — решение реализации. Правка: <code>POST /api/models/{id}/versions</code> с <code>parent_id</code>.</dd>
+<dt>Зависит от</dt>
+<dd>#39 по issue; просмотр без редактирования можно начать после #35 и #37.</dd>
+<dt>Приёмка</dt>
+<dd><ul><li>Диаграмма совпадает с DSL выбранной версии: каждый переход модели виден, лишних рёбер нет.</li><li>Шаги контрпримера подсвечиваются и синхронны с таблицей трассы.</li><li>Правка guard → новая версия → «Проверить» → новый результат; старая версия не меняется.</li><li>Большая модель (fixtures <code>grid.json</code>) остаётся управляемой; доступность с клавиатуры.</li></ul></dd>
+</dl>
+</div>
+
+<div class="issue" id="i49">
+<h3>#49 Добавить просмотр сгенерированного проекта и экспорт файлов</h3>
+<dl>
+<dt>Что видит пользователь</dt>
+<dd>Набросок 4: вкладка «Файлы» — дерево проекта, просмотр файла, ссылка «Показать в файле» из ответа агента на строку с правилом, отметка версии модели, для которой созданы файлы, результаты pytest, «Скачать проект».</dd>
+<dt>Данные и API</dt>
+<dd>Генератор Python + FastAPI + pytest и запуск тестов в изоляции делаются отдельным draft PR (см. <a href="#generator">«Генерация проекта»</a>). Маршрутов генерации, списка файлов, запуска тестов и архива на <code>62c12b8</code> нет; их контракт фиксируется вместе с генератором. Скачивание архива — с защитой от небезопасных путей (<code>..</code>, абсолютные пути, символические ссылки).</dd>
+<dt>Зависит от</dt>
+<dd>#41 (генерация), #48 (песочница).</dd>
+<dt>Приёмка</dt>
+<dd><ul><li>Файлы привязаны к версии и её <code>spec_hash</code>; смена версии не показывает чужие файлы.</li><li>Результаты pytest — из настоящего прогона в изоляции, с журналом.</li><li>Архив не содержит путей вне корня проекта; тест на вредоносное имя файла.</li></ul></dd>
+</dl>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="screen">
+<h2>Исходные наброски интерфейса · история</h2>
+<p class="historical-note"><b>Исторический раздел: до реализации и общей интеграции.</b> Описания готовности, находки и PASS / FAIL / NOT_RUN ниже относятся к первичному снимку <code>62c12b8</code> от 31.10.2026, а не к текущему стенду. Текущие результаты — в <a href="#summary">начале документа</a>, связи компонентов — в <a href="#system-diagrams">семи схемах</a>.</p>
+<p>Ниже четыре наброска пользователя. Это проектируемая функциональность, готового интерфейса нет. Интерфейс не считается принятым, пока пользователь не обсудил основной сценарий и первый экран. Под каждым — откуда берутся данные элементов и что входит в первую демонстрацию. Примеры процессов на набросках разные: заявка с отменой (3), повторное согласование (2), генерация модуля (4).</p>
+
+<figure class="fig">
+<img src="sketches/1-workspace-empty.jpg" alt="Набросок: пустой чат «Новый чат», меню режимов Анализатор, Дебаггер, Обзор проекта, Генератор кода; справа рабочая область с вкладками Диаграмма и Файлы и надписью «Модель появится здесь»">
+<figcaption>Набросок пользователя 1 — пустой чат и рабочая область.</figcaption>
+</figure>
+<div class="tbl"><table>
+<thead><tr><th>Элемент</th><th>Откуда данные, какая задача</th><th>Первая демонстрация</th></tr></thead>
+<tbody>
+<tr><td>Меню режимов: Анализатор, Дебаггер, Обзор проекта, Генератор кода</td><td><code>sessions.mode</code> хранится; сейчас все сообщения идут одному аналитику</td><td>Анализатор и Генератор кода</td></tr>
+<tr><td>Вложения «Требования.docx», «Схема.png», меню «+»: файл, изображение, репозиторий, API</td><td>#45, #46; API принимает только текст</td><td>Файлы TXT/MD/DOCX; изображения, репозитории и API — нет</td></tr>
+<tr><td>«Модель появится здесь», «Добавить сущность»</td><td>Пустое состояние #32; ручное добавление — новая версия (#40)</td><td>Пустое состояние</td></tr>
+<tr><td>«Запустить», «Экспорт»</td><td>Проверка #36; экспорт проекта #49</td><td>Да</td></tr>
+</tbody></table></div>
+
+<figure class="fig">
+<img src="sketches/2-clarification-graph.jpg" alt="Набросок: чат «Повторное согласование» с вопросом и вариантами «Согласование сбрасывается» и «Согласование сохраняется»; справа диаграмма Черновик, На согласовании, На доработке, Согласована с выбранным узлом, кнопки Назад, Шаг, Сбросить, Шаг 2 из 4, инспектор сущности">
+<figcaption>Набросок пользователя 2 — уточнение, диаграмма этапов, инспектор.</figcaption>
+</figure>
+<div class="tbl"><table>
+<thead><tr><th>Элемент</th><th>Откуда данные, какая задача</th><th>Первая демонстрация</th></tr></thead>
+<tbody>
+<tr><td>Вопрос агента с вариантами ответа</td><td><code>clarification_requested</code>; ответ с <code>question_id</code> (#34, сейчас 422)</td><td>Да, после серверного исправления</td></tr>
+<tr><td>«Правило согласовано»</td><td>Согласованная версия модели (<code>approved</code>) после явного ответа (#35, #29)</td><td>Да</td></tr>
+<tr><td>Диаграмма этапов с выбранным узлом, масштаб</td><td>#40, проекция на переменную этапа</td><td>Да, если #40 готов к демонстрации; иначе таблицы #35</td></tr>
+<tr><td>«Назад / Шаг / Сбросить», «Шаг 2 из 4»</td><td>Проигрывание трассы TLC (#37 в таблице, #40 на диаграмме)</td><td>Да</td></tr>
+<tr><td>Инспектор «Описание сущности», «Из описания пользователя»</td><td><code>source_refs</code> и <code>requirement_ids</code> элемента (#34, #35)</td><td>Да</td></tr>
+<tr><td>Вложение агента «Процесс.png»</td><td>Экспорт изображения диаграммы — маршрута нет</td><td>Нет</td></tr>
+</tbody></table></div>
+
+<figure class="fig">
+<img src="sketches/3-counterexample.jpg" alt="Набросок: чат «Отмена заявки» в режиме Дебаггер, ответ «Нашёл путь, который нарушает правило» с тремя шагами и пометкой «После отмены approved остаётся true»; справа диаграмма Создана, Согласована, Отменена, Исполнена с перечёркнутым переходом Исполнить, всплывающее окно «Переход: Execute, Условие approved == true», панель с JSON заявки">
+<figcaption>Набросок пользователя 3 — контрпример отмены заявки.</figcaption>
+</figure>
+<div class="tbl"><table>
+<thead><tr><th>Элемент</th><th>Откуда данные, какая задача</th><th>Первая демонстрация</th></tr></thead>
+<tbody>
+<tr><td>Список чатов «Сегодня / Вчера»</td><td><code>GET /api/sessions</code>, группировка по <code>created_at</code> (#33)</td><td>Да</td></tr>
+<tr><td>«Нашёл путь, который нарушает правило», шаги, «После отмены approved остаётся true»</td><td>Объяснение агента по сохранённой проверке (#37; по HTTP сейчас нет, F1). Шаги объяснения должны совпадать с трассой TLC: в трассе 3 перехода и 4 состояния</td><td>Да, после серверного исправления</td></tr>
+<tr><td>«Показать сценарий», «Обсудить исправление»</td><td>Переход к трассе; вопрос об исправлении с гипотезами (#37, #34, #29)</td><td>Да</td></tr>
+<tr><td>«Найдено нарушение»</td><td>Статус свойства в отчёте (#36)</td><td>Да</td></tr>
+<tr><td>Диаграмма с перечёркнутым «Исполнить» из «Отменена»</td><td>Подсветка шага трассы на проекции этапов (#40)</td><td>Да, при готовом #40</td></tr>
+<tr><td>«Переход: Execute», «Условие: approved == true»</td><td>guard из модели (#35, #40)</td><td>Да</td></tr>
+<tr><td>Панель «Заявка» с JSON состояния</td><td>Состояние шага трассы (#37). В настоящем шаге три переменные: панель должна показывать и <code>cancelled: true</code></td><td>Да</td></tr>
+<tr><td>«Подключён: orders-api», ссылки <code>src/transitions.py:42</code>, <code>src/models.py:18</code></td><td>Репозиторий как источник (#46)</td><td>Нет</td></tr>
+</tbody></table></div>
+
+<figure class="fig">
+<img src="sketches/4-generated-project.jpg" alt="Набросок: чат «Реализация заявок» в режиме Генератор кода; справа вкладка Файлы с деревом orders-service: app/models.py, transitions.py, api.py, tests/test_transitions.py, requirements.txt, README.md; открыт transitions.py с функциями execute и cancel; внизу вкладка test_transitions.py «Пишу тест отмены»; кнопка «Скачать проект»">
+<figcaption>Набросок пользователя 4 — сгенерированный проект, просмотр файлов и тесты.</figcaption>
+</figure>
+<div class="tbl"><table>
+<thead><tr><th>Элемент</th><th>Откуда данные, какая задача</th><th>Первая демонстрация</th></tr></thead>
+<tbody>
+<tr><td>«Модель заявки», режим «Генератор кода»</td><td>Согласованная версия, для которой создан проект (#41, #49)</td><td>Да, после доказанной работы генератора</td></tr>
+<tr><td>«Готово 5 из 7 файлов», «Пишу тест отмены…»</td><td>События создания файлов (<code>file_written</code> есть в перечне событий, сервер их пока не выдаёт)</td><td>Да, после генератора</td></tr>
+<tr><td>Дерево <code>orders-service/app</code>, <code>tests</code>, <code>requirements.txt</code>, <code>README.md</code></td><td>Выход генератора Python + FastAPI + pytest (#41), просмотр (#49)</td><td>Да</td></tr>
+<tr><td>«Показать в файле»</td><td>Связь функции с переходом и требованием (#49)</td><td>Да</td></tr>
+<tr><td>Результаты тестов</td><td>pytest в изоляции (#48)</td><td>Да, только настоящий прогон</td></tr>
+<tr><td>«Скачать проект»</td><td>Архив с безопасными путями (#49)</td><td>Да</td></tr>
+</tbody></table></div>
+<p>В наброске функция <code>execute</code> проверяет <code>status != APPROVED</code>. В согласованной версии v2 условие Execute — <code>approved = true</code>; исправление было в Cancel. Генератор обязан переносить guard модели как есть, иначе код и проверенная модель расходятся.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="generator">
+<h2>Генерация проекта Python + FastAPI + pytest</h2>
+<ol class="pipe">
+<li><b>Человек описывает поведение и отвечает на уточнения.</b><p class="io">LLM выделяет требования с источниками и формализует BehavioralModel: переменные, переходы, guards/effects и свойства. Неясный смысл остаётся вопросом человеку.</p></li>
+<li><b>Человек просматривает модель и нажимает «Проверить».</b><p class="io">TLC проверяет конкретную неизменяемую версию. LLM объясняет сохранённый отчёт; HOLDS означает отсутствие нарушения в исследованной конечной модели при её условиях и лимитах.</p></li>
+<li><b>Явная правка создаёт новую версию.</b><p class="io">В выполненном сценарии после VIOLATED человек добавил в guard исполнения <code>NOT cancelled</code>. V1 сохранилась; для v2 человек отдельно запустил TLC и получил HOLDS.</p></li>
+<li><b>«Согласовать для кода» фиксирует решение человека.</b><p class="io">Смысл согласования: «эта модель отражает мои требования, её можно использовать для кода». Оно не создаёт HOLDS и не заменяет проверку TLC.</p></li>
+<li><b>«Создать проект» вызывает CodegenService.</b><p class="io">Генератор без LLM применяет шаблоны к этой BehavioralModel: Python-состояние и правила, FastAPI и pytest. Версия и spec_hash сохраняются; генератор не дописывает отсутствующие бизнес-правила.</p></li>
+<li><b>Человек просматривает файлы или скачивает ZIP.</b><p class="io">В живом прогоне созданы 16 файлов, архив — 20 392 байта. SHA-256 всех файлов совпали с manifest. Для вопроса о файле backend проверяет generation/version/path/hash и передаёт GPT именно сохранённые байты.</p></li>
+<li><b>«Запустить тесты» — отдельная операция.</b><p class="io">Docker исполняет сохранённый проект и pytest в изоляции. В этом прогоне 54/54 PASS. Такой результат проверяет исполняемый код в тестовых случаях и хранится отдельно от отчёта TLC.</p></li>
+<li><b>Вопрос GPT о файле остаётся read-only.</b><p class="io">Ответ объясняет реализацию по проверенным байтам и точной версии модели. Источники, требования и версии не меняются; refresh восстанавливает сессию и ссылку на ту же генерацию.</p></li>
+</ol>
+<p>Квитанции: <a href="end-to-end-acceptance/receipt.md">браузерный сценарий, ZIP, read-only вопрос и Docker</a>; <a href="integration/receipt.json">общая интеграция</a>. В живом сценарии <code>allow_unverified=false</code>. Возможность явного обхода проверки есть в реализации, но политика генерации при VIOLATED или незавершённой проверке пользователем ещё не принята.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="review">
+<h2>Первичный аудит 62c12b8 · история</h2>
+<p class="historical-note"><b>Исторический раздел: до реализации и общей интеграции.</b> Описания готовности, находки и PASS / FAIL / NOT_RUN ниже относятся к первичному снимку <code>62c12b8</code> от 31.10.2026, а не к текущему стенду. Текущие результаты — в <a href="#summary">начале документа</a>, связи компонентов — в <a href="#system-diagrams">семи схемах</a>.</p>
+<p>Ревью проводилось на <code>62c12b8</code> в отдельном checkout без изменения кода. Номера строк — по этому коммиту.</p>
+
+<h3>Находки</h3>
+<div class="tbl"><table>
+<thead><tr><th>#</th><th>Находка</th><th>Где</th><th>Воспроизведение</th><th>Минимальное исправление</th><th>Состояние</th></tr></thead>
+<tbody>
+<tr><td>F1</td><td>Проверка через HTTP не доходит до агента: нет объяснения, следующий ход не получает результат проверки</td><td><code>api/backend.py:119–128</code>, <code>agent/dialogue.py:107–116</code></td><td><a href="analyst/repro.json">repro.json</a> <code>http_report_gap</code>: <code>load_verification</code> = null, <code>verification_context</code> отсутствует</td><td>HTTP-запуск объяснения сохранённой проверки без повторного TLC; хранение объяснения с <code>version_id</code>/<code>spec_hash</code>; GET результата; сбой LLM не удаляет отчёт TLC</td><td>Исправляется backend-задачей, не проверено</td></tr>
+<tr><td>F2</td><td><code>message_delta</code> содержит только тему разбора («Заявка») или статус — ответа агента в чате нет</td><td><code>api/backend.py:91–92</code></td><td><code>followup_message_delta = [{"text":"Заявка"}]</code> в repro.json</td><td>Типизированное состояние диалога и текст ответа агента в событии</td><td>Связано с F1, отдельно не назначено</td></tr>
+<tr><td>F3</td><td>Ответ на конкретный вопрос невозможен: <code>question_id</code> отклоняется</td><td><code>contracts.py:63–64</code>, <code>api/analyst.py:19</code></td><td>POST message с <code>question_id</code> → 422 <code>extra_forbidden</code> (<a href="frontend-contract.md">frontend-contract.md</a>)</td><td>Необязательный <code>question_id</code> в <code>MessageCreate</code>, тест с двумя открытыми вопросами</td><td>Исправляется, не проверено</td></tr>
+<tr><td>F4</td><td>После отмены хода новый текст падает с <code>PENDING_MESSAGE</code>; HTTP-способа отказаться от хода нет</td><td><code>api/analyst.py:8–14</code>, <code>agent/dialogue.py:125–128</code></td><td>Отправить A → отменить → отправить B → failed / <code>PENDING_MESSAGE</code> (frontend-contract.md)</td><td>Маршрут явного отказа от незавершённого хода, сохраняющий историю</td><td>Исправляется, не проверено</td></tr>
+<tr><td>F5</td><td><code>verify_dialogue</code> игнорирует незавершённый ход и проверяет старую модель</td><td><code>agent/verification.py:202–206</code></td><td>repro.json <code>pending_turn_gap</code>: ход «при Cancel approved сбрасывается» ожидает, проверка вернула VIOLATED по старой модели</td><td>Отказ проверки, пока есть незавершённый ход</td><td>Исправляется, не проверено</td></tr>
+<tr><td>F6</td><td>Установка TLC на чистой машине падает: ассет prerelease v1.8.0 заменён 30.10</td><td><code>scripts/fetch_tla2tools.sh:6–7</code></td><td>Ожидается <code>fc6878c6…</code>, загружается <code>011267fc…</code></td><td>Закрепить новый хэш и версию TLC (<code>2026.10.30.154139 rev 090e85c</code>) или неизменяемый источник jar</td><td>Исправляется, не проверено</td></tr>
+<tr><td>F7</td><td>Лимиты проверки без верхней границы: огромное число проходит схему и даёт <code>ENGINE_ERROR</code></td><td><code>verification/contracts.py:17–20</code></td><td><a href="checker/edge-probes.json">edge-probes.json</a>: <code>max_states = 2147483648</code>, <code>max_depth = 2147483648</code> → «TLC can't handle a number this big»</td><td>Верхние границы в <code>CheckLimits</code> → 422 на входе</td><td>Не назначено</td></tr>
+<tr><td>F8</td><td>Для <code>api-ai.mai.ru</code> отключена проверка TLS-сертификата (ключ уходит без проверки сервера)</td><td><code>agent/llm_config.py:13,19</code></td><td>Чтение кода; живой вызов не делался</td><td>Убрать исключение. API МАИ отложен, отладка не планируется</td><td>Историческая</td></tr>
+<tr><td>F9</td><td>README сообщает, что маршруты агента и версий отвечают 503</td><td><code>README.md:29–30</code></td><td>На <code>62c12b8</code> маршруты работают (<code>tests/test_api_tlc.py</code>)</td><td>Обновить текст</td><td>Не назначено</td></tr>
+<tr><td>F10</td><td>Состояния issues не совпадают с кодом: #22–#27 закрыты при открытых PR; #43 открыт при слитом кэше</td><td>GitHub</td><td><a href="snapshot.json">snapshot.json</a></td><td>Закрывать issue слиянием PR</td><td>Процессная</td></tr>
+</tbody></table></div>
+
+<h3 id="stages">Что проверено: PASS / FAIL / NOT_RUN</h3>
+<div class="tbl"><table>
+<thead><tr><th>Этап</th><th>Результат</th><th>Доказательство</th><th>Что не покрыто</th></tr></thead>
+<tbody>
+<tr><td>Полный набор тестов, <code>PROVERYALKA_REQUIRE_TLC=1</code>, Python 3.12, Java 25, новый jar</td><td><span class="b pass">PASS</span></td><td>250 passed за 30,69 с — <a href="file:///tmp/prov-review-pytest.log">/tmp/prov-review-pytest.log</a>, копия в snapshot.json</td><td>Без живой LLM и интерфейса</td></tr>
+<tr><td>Квитанция ядра: order_bug и order_fixed на настоящих SANY/TLC без кэша</td><td><span class="b pass">PASS</span></td><td><a href="checker/acceptance-receipt.json">acceptance-receipt.json</a>, папки <code>checker/acceptance/checks/</code></td><td>Две модели, написанные вручную</td></tr>
+<tr><td>HTTP + SQLite + TLC: версия → проверка → файлы → перезапуск сервера</td><td><span class="b pass">PASS</span></td><td><code>tests/test_api_tlc.py</code> в составе 250</td><td>Модели из fixtures, без LLM</td></tr>
+<tr><td>CI PR #62</td><td><span class="b pass">PASS</span></td><td>Проверка <code>tests</code>, 30.10 11:54 UTC</td><td>После замены jar не перезапускался</td></tr>
+<tr><td>Имена enum с Unicode и экранированием</td><td><span class="b pass">PASS</span></td><td>edge-probes.json</td><td>—</td></tr>
+<tr><td>Установка TLC на чистой машине</td><td><span class="b fail">FAIL</span></td><td>F6</td><td>—</td></tr>
+<tr><td>Огромные лимиты</td><td><span class="b fail">FAIL</span></td><td>F7, edge-probes.json</td><td>—</td></tr>
+<tr><td>Проверка по HTTP → объяснение агента</td><td><span class="b fail">FAIL</span></td><td>F1, repro.json</td><td>Repro с подменённой LLM и подменённым checker</td></tr>
+<tr><td>Ответ на конкретный вопрос по HTTP</td><td><span class="b fail">FAIL</span></td><td>F3</td><td>—</td></tr>
+<tr><td>Новое сообщение после отмены хода</td><td><span class="b fail">FAIL</span></td><td>F4</td><td>—</td></tr>
+<tr><td>Проверка при незавершённом ходе</td><td><span class="b fail">FAIL</span></td><td>F5, repro.json</td><td>—</td></tr>
+<tr><td>Серверные исправления F1, F3–F6</td><td><span class="b nr">NOT_RUN</span></td><td>В работе отдельной задачей</td><td>Здесь не проверялись</td></tr>
+<tr><td>Вызов LLM: GPT по подписке</td><td><span class="b nr">NOT_RUN</span></td><td>Подтверждена только авторизация подписки</td><td>Ни одного вызова модели</td></tr>
+<tr><td>Текст → модель на настоящей LLM (#30)</td><td><span class="b nr">NOT_RUN</span></td><td>—</td><td>—</td></tr>
+<tr><td>Загрузка TXT/MD/DOCX</td><td><span class="b nr">NOT_RUN</span></td><td>Маршрута нет</td><td>—</td></tr>
+<tr><td>Клиент #32–#40, #49</td><td><span class="b nr">NOT_RUN</span></td><td>Кода в origin нет</td><td>—</td></tr>
+<tr><td>Генератор и pytest в изоляции</td><td><span class="b nr">NOT_RUN</span></td><td>Отдельная задача стартует</td><td>—</td></tr>
+<tr><td>Сквозной сценарий интерфейс + LLM + TLC (#39)</td><td><span class="b nr">NOT_RUN</span></td><td>—</td><td>—</td></tr>
+</tbody></table></div>
+<p class="small">API МАИ: живой вызов не выполнялся; TLS-цепочка <code>api-ai.mai.ru</code> не проходила проверку из-за отсутствующего промежуточного сертификата Russian Trusted Sub CA. Направление отложено решением пользователя.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="demo">
+<h2>Первоначальный план демонстрации · история</h2>
+<p class="historical-note"><b>Исторический раздел: до реализации и общей интеграции.</b> Описания готовности, находки и PASS / FAIL / NOT_RUN ниже относятся к первичному снимку <code>62c12b8</code> от 31.10.2026, а не к текущему стенду. Текущие результаты — в <a href="#summary">начале документа</a>, связи компонентов — в <a href="#system-diagrams">семи схемах</a>.</p>
+<h3>Условия, без которых демонстрация не считается реальной</h3>
+<ul>
+<li>Одна ветка интеграции содержит стопку #57–#62, серверные исправления F1, F3–F6, загрузку TXT/MD/DOCX и клиент.</li>
+<li>TLC ставится по закреплённой контрольной сумме; <code>GET /ready</code> → <code>checker: "TLC"</code>, <code>agent_configured: true</code>.</li>
+<li>Вызов GPT по подписке проверен настоящим запросом до демонстрации.</li>
+<li>Чистый файл SQLite и пустой каталог файлов проверок.</li>
+</ul>
+
+<h3>Сценарий, около 7 минут</h3>
+<div class="tbl"><table>
+<thead><tr><th>Время</th><th>Действие</th><th>Что видно</th><th>Что сохраняется</th></tr></thead>
+<tbody>
+<tr><td>0:00</td><td>Открыть приложение, «Новый чат», режим «Анализатор»</td><td>Пустая рабочая область, проверка доступна</td><td><code>sessions</code></td></tr>
+<tr><td>0:30</td><td>Прикрепить <code>Требования.docx</code> (или вставить текст) и отправить</td><td>Строка хода агента; затем вопрос с вариантами</td><td><code>sources</code>, agent run, события</td></tr>
+<tr><td>1:30</td><td>Ответить на вопрос кнопкой</td><td>Требования R1…R<i>n</i> с цитатами, модель v1</td><td>источник-ответ, <code>model_versions</code> v1</td></tr>
+<tr><td>2:15</td><td>Просмотреть таблицы модели, показать условие Execute; нажать «Проверить»</td><td>Ход проверки; NoCancelledExecution — нарушение, CanExecute — достижимо</td><td>check run, папка файлов</td></tr>
+<tr><td>3:00</td><td>Открыть трассу, пройти «Шаг» по диаграмме</td><td>4 шага, изменённые значения, шаг нарушения, R2–R5</td><td>—</td></tr>
+<tr><td>3:45</td><td>Прочитать объяснение агента; выбрать «Отмена снимает согласование»</td><td>Две гипотезы, явный выбор пользователя</td><td>новый ход, ответ как источник</td></tr>
+<tr><td>4:30</td><td>Показать v2 и различие с v1; согласовать v2; «Проверить»</td><td>Одно добавленное изменение Cancel; HOLDS, 4 состояния; результат v1 остался в истории</td><td><code>model_versions</code> v2 с <code>parent_id</code>, второй check run</td></tr>
+<tr><td>5:30</td><td>Обновить страницу</td><td>Та же сессия, обе версии, оба результата, вопросы и ответы</td><td>—</td></tr>
+<tr><td>6:00</td><td>Открыть файлы проверки: <code>Spec.tla</code>, <code>trace.json</code>, SHA-256</td><td>Байты, совпадающие с manifest</td><td>—</td></tr>
+<tr><td>6:15</td><td>Режим «Генератор кода» для v2 — только если генератор доказан квитанцией</td><td>Дерево проекта, функция Cancel с <code>approved := false</code>, результат pytest, «Скачать проект»</td><td>файлы проекта, квитанция pytest</td></tr>
+</tbody></table></div>
+<p>Что HOLDS означает, сказать одной фразой: в этой конечной модели при этих лимитах нарушения нет; это не доказательство корректности production-системы.</p>
+
+<h3>Входной текст</h3>
+<p>Рекомендуемый текст повторяет правила ТЗ и явно называет признак, который проверяет исполнение:</p>
+<pre><code>Заявка создаётся в статусе Created, признаки approved и cancelled равны false.
+Заявку в статусе Created можно согласовать: статус Approved, approved = true.
+Пользователь может отменить заявку до исполнения: из Created или Approved,
+статус Cancelled, cancelled = true.
+Исполнить можно заявку с approved = true: статус Executed.
+Отменённая заявка не должна быть исполнена.
+Процесс завершается только отменой или исполнением.</code></pre>
+<p>Ошибка следует из записанных правил; LLM не просят ошибаться. Если агент сам добавит в Execute проверку статуса, это молчаливое исправление, запрещённое ТЗ: его нужно показать как находку, а не скрывать сменой текста. Короткая фраза из ТЗ («после согласования может быть исполнена…») допустима как дополнительный прогон: в ней больше неоднозначности и больше уточняющих вопросов.</p>
+
+<h3>Восстановление сессии</h3>
+<p>Клиент хранит <code>run_id</code> и курсоры событий локально: списка runs по сессии в API нет. После обновления: <code>GET /api/sessions/{id}</code>, модели и версии, результаты проверок по сохранённым <code>run_id</code>; незавершённые runs — повторная подписка на события с последнего <code>event_id</code>. Если сервер перезапускался во время работы — <code>SERVER_RESTARTED</code> у прерванного run, без автоматического повтора.</p>
+
+<h3>Запасной вариант</h3>
+<ul>
+<li><b>Запись прошлого живого прогона</b> с подписью: дата, коммит, модель LLM, путь к сохранённой базе и папкам проверок. Показывать как запись, не как живой прогон.</li>
+<li><b>Прогон без LLM</b>: модель загружается из <code>tests/fixtures/models/order_bug.json</code> через <code>POST …/versions</code>, проверка идёт настоящим TLC по HTTP (так работает <code>tests/test_api_tlc.py</code>). Назвать вслух: «модель из файла, без агента». Цепочку «текст → модель» этот вариант не демонстрирует.</li>
+</ul>
+
+<h3>Что сохранить как доказательство</h3>
+<p>Видео прогона; копию файла SQLite; папки <code>checks/{run_id}</code> обеих проверок; журнал сервера; квитанцию pytest генератора, если он показан. Хранить отдельно от runtime в <code>reports/checkpoint-&lt;дата&gt;/</code>, без секретов и токенов подписки.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="decisions">
+<h2>Решения и открытые вопросы</h2>
+<div class="tbl"><table><thead><tr><th>Предмет</th><th>Решение или граница</th></tr></thead><tbody>
+<tr><td>Изменение модели</td><td>Человек определяет смысл требований; явная правка создаёт новую версию. Проверку TLC человек запускает вручную.</td></tr>
+<tr><td>Согласование</td><td>«Модель отражает требования, использовать для кода». Отдельно от результата TLC.</td></tr>
+<tr><td>Генерация</td><td>Детерминированный CodegenService по шаблонам Python + FastAPI + pytest, без LLM. Тесты запускаются отдельно в Docker.</td></tr>
+<tr><td>Разговор о файле</td><td>GPT объясняет сохранённые проверенные байты; не меняет требования и версии.</td></tr>
+<tr><td>Диаграмма</td><td>Проекция этапов процесса; значения переменных и точная трасса доступны отдельно. Это не полный граф всех состояний.</td></tr>
+<tr><td>Готовность</td><td>Draft PR #71 и локальные результаты не означают merge, закрытие issues, CI green или пользовательскую приёмку.</td></tr>
+</tbody></table></div>
+<p>Открыты: политика <code>allow_unverified</code>, корпусная оценка #30, установка на чистой машине, экраны источников изображений/репозиториев и пользовательская визуальная приёмка. Точный список ограничений нового backend — в <a href="#diagram-connections">схеме подключений</a>.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="sources">
+<h2>Источники</h2>
+<h3>Текущие материалы</h3><ul>
+<li><a href="integration/receipt.json">Общая интеграция: 513 backend PASS</a>, <a href="end-to-end-acceptance/receipt.md">живой сценарий #39/#49</a>, <a href="final-demo/live-scenario.html">ручной сценарий стенда</a>.</li>
+<li><a href="architecture/diagrams.zip">Семь SVG</a>, <a href="../../output/pdf/proveryalka-architecture.pdf">PDF схем</a>, <a href="integration/github-issues-receipt.json">обновления issues</a> и <a href="integration/github-access-diagnosis.md">ограничение прав Kanban</a>.</li>
+</ul><h3>Материалы первичного аудита 62c12b8</h3>
+<ul>
+<li>ТЗ: <a href="file:///tmp/tz_case2/case2.txt">/tmp/tz_case2/case2.txt</a> (текст), <a href="file:///tmp/tz_case2/case2.docx">/tmp/tz_case2/case2.docx</a> — «Кейс_2_агент_аналитики.docx».</li>
+<li>Снимок issues и PR: <a href="snapshot.json">snapshot.json</a> (07:18 UTC), <a href="file:///tmp/prov-issues.json">/tmp/prov-issues.json</a>, <a href="file:///tmp/prov-prs.json">/tmp/prov-prs.json</a>.</li>
+<li>Проверенный код: <code>/tmp/prov-review</code> на <code>62c12b8</code>; это база первичного аудита; текущая ветка интеграции с тех пор изменена.</li>
+<li>Журнал тестов: <a href="file:///tmp/prov-review-pytest.log">/tmp/prov-review-pytest.log</a>.</li>
+<li>Квитанция ядра и сценарий: <a href="checker/acceptance-receipt.json">checker/acceptance-receipt.json</a>, <a href="checker/acceptance.py">checker/acceptance.py</a>, папки <code>checker/acceptance/checks/chk_e08a788de789a3b0</code> (ошибка) и <code>chk_5e887cfcb40f79c8</code> (исправление).</li>
+<li>Пограничные проверки: <a href="checker/edge-probes.json">checker/edge-probes.json</a>, папки <code>checker/edge-probes/checks/</code>.</li>
+<li>Воспроизведение разрывов аналитика: <a href="analyst/repro.json">analyst/repro.json</a>, <a href="analyst/repro.py">analyst/repro.py</a> (подменённые LLM и checker, без TLC).</li>
+<li>Контракт для клиента: <a href="frontend-contract.md">frontend-contract.md</a>.</li>
+<li>Наброски пользователя: <code>sketches/1-workspace-empty.jpg</code>, <code>2-clarification-graph.jpg</code>, <code>3-counterexample.jpg</code>, <code>4-generated-project.jpg</code>.</li>
+</ul>
+<h3>GitHub: ссылки исходного снимка 07:18 UTC</h3><p class="small">Состояния старых PR ниже сохранены как история. Общая текущая поставка — draft <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/71">PR #71</a>.</p>
+<ul>
+<li>Доска: <a href="https://github.com/users/kiruha355/projects/3/views/1">Project 3</a>.</li>
+<li>Issues Mput13: <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/32">#32</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/33">#33</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/34">#34</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/35">#35</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/36">#36</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/37">#37</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/38">#38</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/39">#39</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/40">#40</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/49">#49</a>.</li>
+<li>Связанные: <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/41">#41</a> генерация, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/45">#45</a> документы, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/48">#48</a> песочница, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/29">#29</a> согласуемое исправление, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/issues/30">#30</a> оценка LLM.</li>
+<li>PR: <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/56">#56</a> (merged, ядро), <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/51">#51</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/52">#52</a>, <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/53">#53</a> (merged), <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/57">#57</a>–<a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/pull/62">#62</a> (open).</li>
+<li>Код на проверенном коммите: <a href="https://github.com/kiruha355/Proveryalka_vipolnyalka/tree/62c12b8c300b5205b2ff1ee3dec96e44d29786d7/src/proveryalka">src/proveryalka @ 62c12b8</a>.</li>
+</ul>
+</section>
+</main>
+</div>
+</div>
+
+<script>
+(function(){
+
+  document.querySelectorAll('[data-diagram-zoom]').forEach(function(button){button.addEventListener('click',function(){
+    var diagram=button.closest('figure').querySelector('.atlas-diagram');var svg=diagram.querySelector('svg');
+    var scale=Number(diagram.dataset.scale||1);
+    if(button.dataset.diagramZoom==='reset'){diagram.dataset.scale='1';svg.style.width='100%';return;}
+    scale=Math.max(.7,Math.min(2.2,scale+(button.dataset.diagramZoom==='plus'?.2:-.2)));
+    diagram.dataset.scale=String(scale);svg.style.width=Math.round(Number(diagram.dataset.base)*scale)+'px';
+  });});
+  var side=document.querySelector('.side');
+  var btn=document.getElementById('tocToggle');
+  var cur=document.getElementById('tocCurrent');
+  var links=[].slice.call(document.querySelectorAll('#toc a'));
+  var scroller=document.querySelector('[data-scroller]');
+  function setOpen(o){side.classList.toggle('open',o);btn.setAttribute('aria-expanded',o?'true':'false');}
+  btn.addEventListener('click',function(){setOpen(!side.classList.contains('open'));});
+  links.forEach(function(a){a.addEventListener('click',function(){setOpen(false);});});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&side.classList.contains('open')){setOpen(false);btn.focus();}});
+  var items=links.map(function(a){return {a:a,el:document.getElementById(a.getAttribute('href').slice(1))};}).filter(function(x){return x.el;});
+  var ticking=false;
+  function update(){
+    ticking=false;
+    var top=scroller?scroller.getBoundingClientRect().top:0;
+    var limit=top+90;
+    var active=items[0];
+    for(var i=0;i<items.length;i++){ if(items[i].el.getBoundingClientRect().top<=limit) active=items[i]; }
+    links.forEach(function(a){a.classList.toggle('active',a===active.a); if(a===active.a)a.setAttribute('aria-current','location'); else a.removeAttribute('aria-current');});
+    cur.textContent=active.a.textContent;
+  }
+  (scroller||window).addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(update);}},{passive:true});
+  window.addEventListener('resize',update);
+  update();
+})();
+</script>
+</body>
+</html>

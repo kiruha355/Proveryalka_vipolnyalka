@@ -10,7 +10,7 @@ LLM формализует и объясняет. Перебор состоян�
 требований. Инструкции запуска и контракты: [docs/api.md](docs/api.md).
 Транзакции, миграции и единая история для SDK: [docs/storage.md](docs/storage.md).
 Снимок OpenAPI: [docs/openapi.json](docs/openapi.json).
-Агент находится в `src/proveryalka/agent/`: Responses API, DeepSeek V4.1 Flash,
+Агент находится в `src/proveryalka/agent/`: Responses API и настраиваемый GPT/Codex subscription provider,
 инструкции аналитика и запуск через `run_message(message, session)`.
 Для истории используется `StoredSession` из серверного компонента.
 Извлечение требований и формат аналитического результата: [docs/agent.md](docs/agent.md).
@@ -26,9 +26,16 @@ JSON Schema и полные примеры находятся в `docs/schemas/`
 Проверяющее ядро на настоящих SANY/TLC — `src/proveryalka/checker/`: установка,
 поддерживаемый DSL, лимиты, статусы и материалы запусков описаны в
 [src/proveryalka/checker/README.md](src/proveryalka/checker/README.md).
-Агент пока не подключён к HTTP-запускам и SSE; эти маршруты и версии
-моделей возвращают 503.
-Остальные разделы ниже описывают целевую архитектуру.
+HTTP-контракт основного сценария (текст или документ → уточнения → модель →
+ручной запуск TLC → объяснение отчёта → правка и повторная проверка):
+[src/proveryalka/api/README.md](src/proveryalka/api/README.md).
+Разделы «Схема БД», «API» и «MCP» ниже частично описывают целевую архитектуру.
+MCP остаётся целевой архитектурой; генератор Python/FastAPI/pytest и Docker-песочница подключены в `src/proveryalka/codegen/`.
+
+Веб-клиент, запуск live/demo и границы проверок: [frontend/README.md](frontend/README.md).
+Поставка frontend + backend + SQLite + TLC одним native-процессом, persistence,
+readiness/shutdown, обязательный CI и ручной provider lane:
+[Запуск основной версии](reports/runtime-runbook.md).
 
 ## Структура проекта
 
@@ -144,14 +151,24 @@ Content-Type: application/json
 
 ### MCP (`/mcp`, Streamable HTTP)
 
-Инструменты для кодинг-агентов (Claude Code, Cursor):
+Опциональный [MCP сервер](src/proveryalka/mcp/README.md) предоставляет `get_model`,
+`check_behavior`, `get_tests` и `compare_with_code` через официальный SDK. Он использует
+те же backend/TLC/CodegenService и требует явной локальной политики доступа.
+`get_tests` читает существующую генерацию; `compare_with_code` запускает её тесты в Docker
+по точным model reference / code_hash. Проверка произвольного кода не поддерживается.
+В основном приложении MCP включается через `PROVERYALKA_MCP_ENABLED=1`;
+модели задаются `PROVERYALKA_MCP_MODEL_IDS`, разрешённые инструменты —
+`PROVERYALKA_MCP_TOOLS`. Точный маршрут `/mcp` работает вместе с REST API
+и статикой клиента. Standalone доступен через `python -m proveryalka.mcp`.
 
-| Инструмент | Что возвращает |
-|---|---|
-| `get_model(model_id, version?)` | Утверждённую модель |
-| `check_behavior(model_id, version, property_ids?)` | Результаты проверки свойств |
-| `get_tests(model_id, version)` | Тесты, выведенные из модели |
-| `compare_with_code(model_id, version, files)` | Места, где код расходится с моделью |
+### Изображения и репозитории
+
+Основной `create_app` подключает [изображения](src/proveryalka/images/README.md)
+и [снимки репозиториев](src/proveryalka/sources/repositories/README.md), миграции 007 и 008.
+Изображения дают структурированный разбор со ссылками на пиксельную область;
+автоматическое построение BehavioralModel из них пока не реализовано. Выбранные
+строки репозитория создают текстовый Source для нового аналитического диалога.
+Новые источники доступны через API; общий клиент пока поддерживает текст и TXT/MD/DOCX.
 
 ## Версии моделей (#22)
 
@@ -201,6 +218,27 @@ Last-Event-ID — номер события внутри этого run; кур�
 фрагментом после генерации, не имитирует поток токенов. События check_started и
 check_finished доступны для run проверок. Ошибки провайдера не отражают секреты.
 
+## Диалог, объяснение проверки и документы
+
+`GET /api/sessions/{id}/dialogue` возвращает типизированное состояние разбора:
+требования с кодами R1…Rn и цитатами, вопросы и их статусы, явные правки,
+готовность модели, ссылку на версию и незавершённый ход. Ответ на конкретный
+вопрос — `{"text", "question_id"}` в `POST /messages`; разбор документа —
+`{"source_id"}` после `POST /api/sessions/{id}/documents` (TXT, MD, DOCX).
+TLC запускается только запросом проверки версии. С `"explain": true` после
+сохранения отчёта объяснение того же отчёта ставится в очередь отдельным run;
+сбой объяснения не меняет результат проверки, повтор —
+`POST /api/checks/{id}/explanation` без нового запуска TLC. Явная отмена хода
+освобождает диалог, сбой провайдера или остановка сервера сохраняют ход для
+`pending/retry` либо `pending/discard`. Подробности и коды ошибок — в
+[src/proveryalka/api/README.md](src/proveryalka/api/README.md).
+
+Аналитик по умолчанию в `.env.example` работает через локальный
+`codex app-server` с подпиской ChatGPT (`PROVERYALKA_LLM_PROVIDER=codex`,
+нужен выполненный `codex login`); приложение запускает отдельный процесс без
+инструментов, сети и MCP-серверов пользователя. `PROVERYALKA_LLM_PROVIDER=openai`
+оставляет OpenAI-совместимый Responses API по ключу.
+
 ## Отмена и лимиты (#27)
 
 `POST /api/runs/{id}/cancel` идемпотентен: активный запуск сначала cancelling,
@@ -220,6 +258,11 @@ PROVERYALKA_TLC_PARALLEL отдельно ограничивает процес�
 
 Проверенное окружение: Python 3.12.14, Temurin JRE 21.0.13+9,
 TLA+ Tools v1.8.0 (SHA-256 проверяется scripts/fetch_tla2tools.sh).
+v1.8.0 — prerelease, его ассет 30.10.2026 заменён сборкой TLC 2026.10.30.154139
+rev 090e85c с SHA-256 `011267fc…0e7e10cd`; прежний pin `fc6878c6…` больше не
+скачивается. Новый digest совпадает с digest ассета в GitHub API, тесты с настоящим
+TLC пройдены на этой сборке (Java 25, Python 3.12). При следующей замене ассета
+скрипт остановится с ошибкой sha256 — обновляйте pin так же осознанно.
 Полный набор Python-зависимостей закреплён в requirements-runtime.lock.
 На чистой машине установите Python 3.12 и Temurin 21, затем из корня:
 
@@ -229,11 +272,17 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install --no-deps -e .
 sh scripts/fetch_tla2tools.sh
 cp .env.example .env
-# Укажите ключ/адрес/модель LLM; секреты не коммитятся.
+# Для GPT-подписки оставьте provider=codex и настройте локальный app-server.
+# Для явно выбранного Responses API нужны endpoint/model/key; секреты не коммитятся.
 sh scripts/run-server.sh
 ```
 
 Это документированный локальный вариант поставки, без Docker.
+Команда выше запускает только API. Для собранного UI на том же origin выполните
+`npm --prefix frontend ci`, `npm --prefix frontend-extensions ci`,
+`npm --prefix frontend run build`, затем `sh scripts/run-stack.sh`.
+Требуется Node.js 24; интерфейс откроется на `http://127.0.0.1:8000`.
+Docker нужен отдельно для песочницы generated tests, без переноса подписочной авторизации.
 Если Java не в PATH, укажите абсолютный PROVERYALKA_JAVA в .env.
 `python -m proveryalka.runtime` проверяет SQLite, запись артефактов, Java и jar
 до запуска сервера; ключ LLM не проверяется запросом и не выводится.

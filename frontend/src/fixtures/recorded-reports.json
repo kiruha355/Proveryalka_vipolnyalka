@@ -1,0 +1,511 @@
+{
+  "_meta": {
+    "recorded_at": "2026-10-31",
+    "backend_commit": "62c12b8c300b5205b2ff1ee3dec96e44d29786d7",
+    "command": "proveryalka.verification.check_behavior + proveryalka.checker.TLCChecker (SANY/TLC, tla2tools v1.8.0); engine_unavailable uses PROVERYALKA_JAVA=/nonexistent/java",
+    "note": "Recorded checker output for demo fixtures. Not a live TLC run."
+  },
+  "order_bug": {
+    "fixture": "order_bug",
+    "spec_hash": "b3d2783b161af79ec841ea791d94f874b3c05c2439c79468fd0372a7999588a3",
+    "report": {
+      "schema_version": "1.0",
+      "results": [
+        {
+          "schema_version": "1.0",
+          "spec_hash": "b3d2783b161af79ec841ea791d94f874b3c05c2439c79468fd0372a7999588a3",
+          "version_id": "demo_order_v1",
+          "mode": "engine",
+          "executed": true,
+          "engine": {
+            "name": "TLC",
+            "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+          },
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "NoCancelledExecution",
+          "status": "PROPERTY_VIOLATED",
+          "conclusive": true,
+          "message": "Найдено нарушение за 3 шаг(ов)",
+          "trace": [
+            {
+              "number": 0,
+              "transition_id": null,
+              "state": {
+                "status": "Created",
+                "approved": false,
+                "cancelled": false
+              }
+            },
+            {
+              "number": 1,
+              "transition_id": "Approve",
+              "state": {
+                "status": "Approved",
+                "approved": true,
+                "cancelled": false
+              }
+            },
+            {
+              "number": 2,
+              "transition_id": "Cancel",
+              "state": {
+                "status": "Cancelled",
+                "approved": true,
+                "cancelled": true
+              }
+            },
+            {
+              "number": 3,
+              "transition_id": "Execute",
+              "state": {
+                "status": "Executed",
+                "approved": true,
+                "cancelled": true
+              }
+            }
+          ],
+          "statistics": {
+            "states_generated": 6,
+            "distinct_states": 6,
+            "depth": 3,
+            "elapsed_seconds": 0.32
+          },
+          "related_requirements": [
+            "R2",
+            "R3",
+            "R4",
+            "R5"
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "spec_hash": "b3d2783b161af79ec841ea791d94f874b3c05c2439c79468fd0372a7999588a3",
+          "version_id": "demo_order_v1",
+          "mode": "engine",
+          "executed": true,
+          "engine": {
+            "name": "TLC",
+            "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+          },
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "CanExecute",
+          "status": "PROPERTY_HOLDS",
+          "conclusive": true,
+          "message": "Цель достижима за 2 шаг(ов)",
+          "trace": [
+            {
+              "number": 0,
+              "transition_id": null,
+              "state": {
+                "status": "Created",
+                "approved": false,
+                "cancelled": false
+              }
+            },
+            {
+              "number": 1,
+              "transition_id": "Approve",
+              "state": {
+                "status": "Approved",
+                "approved": true,
+                "cancelled": false
+              }
+            },
+            {
+              "number": 2,
+              "transition_id": "Execute",
+              "state": {
+                "status": "Executed",
+                "approved": true,
+                "cancelled": false
+              }
+            }
+          ],
+          "statistics": {
+            "states_generated": 5,
+            "distinct_states": 5,
+            "depth": 2,
+            "elapsed_seconds": 0.313
+          },
+          "related_requirements": [
+            "R2",
+            "R4"
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "spec_hash": "b3d2783b161af79ec841ea791d94f874b3c05c2439c79468fd0372a7999588a3",
+          "version_id": "demo_order_v1",
+          "mode": "engine",
+          "executed": true,
+          "engine": {
+            "name": "TLC",
+            "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+          },
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "EndsProperly",
+          "status": "PROPERTY_HOLDS",
+          "conclusive": true,
+          "message": "Свойство выполняется: полностью исследовано 6 различных состояний",
+          "trace": [],
+          "statistics": {
+            "states_generated": 8,
+            "distinct_states": 6,
+            "depth": 3,
+            "elapsed_seconds": 0.259
+          },
+          "related_requirements": [
+            "R6"
+          ]
+        }
+      ]
+    }
+  },
+  "order_fixed": {
+    "fixture": "order_fixed",
+    "spec_hash": "09d54e84e8ad2b638a3701536cd38b6b89442684952a8784d6b5f3471042f6ac",
+    "report": {
+      "schema_version": "1.0",
+      "results": [
+        {
+          "schema_version": "1.0",
+          "spec_hash": "09d54e84e8ad2b638a3701536cd38b6b89442684952a8784d6b5f3471042f6ac",
+          "version_id": "demo_order_v2",
+          "mode": "engine",
+          "executed": true,
+          "engine": {
+            "name": "TLC",
+            "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+          },
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "NoCancelledExecution",
+          "status": "PROPERTY_HOLDS",
+          "conclusive": true,
+          "message": "Свойство выполняется: полностью исследовано 4 различных состояний",
+          "trace": [],
+          "statistics": {
+            "states_generated": 6,
+            "distinct_states": 4,
+            "depth": 2,
+            "elapsed_seconds": 0.293
+          },
+          "related_requirements": [
+            "R5"
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "spec_hash": "09d54e84e8ad2b638a3701536cd38b6b89442684952a8784d6b5f3471042f6ac",
+          "version_id": "demo_order_v2",
+          "mode": "engine",
+          "executed": true,
+          "engine": {
+            "name": "TLC",
+            "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+          },
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "CanExecute",
+          "status": "PROPERTY_HOLDS",
+          "conclusive": true,
+          "message": "Цель достижима за 2 шаг(ов)",
+          "trace": [
+            {
+              "number": 0,
+              "transition_id": null,
+              "state": {
+                "status": "Created",
+                "approved": false,
+                "cancelled": false
+              }
+            },
+            {
+              "number": 1,
+              "transition_id": "Approve",
+              "state": {
+                "status": "Approved",
+                "approved": true,
+                "cancelled": false
+              }
+            },
+            {
+              "number": 2,
+              "transition_id": "Execute",
+              "state": {
+                "status": "Executed",
+                "approved": true,
+                "cancelled": false
+              }
+            }
+          ],
+          "statistics": {
+            "states_generated": 5,
+            "distinct_states": 4,
+            "depth": 2,
+            "elapsed_seconds": 0.299
+          },
+          "related_requirements": [
+            "R2",
+            "R4"
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "spec_hash": "09d54e84e8ad2b638a3701536cd38b6b89442684952a8784d6b5f3471042f6ac",
+          "version_id": "demo_order_v2",
+          "mode": "engine",
+          "executed": true,
+          "engine": {
+            "name": "TLC",
+            "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+          },
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "EndsProperly",
+          "status": "PROPERTY_HOLDS",
+          "conclusive": true,
+          "message": "Свойство выполняется: полностью исследовано 4 различных состояний",
+          "trace": [],
+          "statistics": {
+            "states_generated": 6,
+            "distinct_states": 4,
+            "depth": 2,
+            "elapsed_seconds": 0.253
+          },
+          "related_requirements": [
+            "R6"
+          ]
+        }
+      ]
+    }
+  },
+  "grid_state_limit": {
+    "fixture": "grid",
+    "spec_hash": "3595a9a94d2ca4b7e533780b7fec66e03a4d8cda4960ca73d0a4ce5f80fbd4c3",
+    "report": {
+      "schema_version": "1.0",
+      "results": [
+        {
+          "schema_version": "1.0",
+          "spec_hash": "3595a9a94d2ca4b7e533780b7fec66e03a4d8cda4960ca73d0a4ce5f80fbd4c3",
+          "version_id": "demo_grid_v1",
+          "mode": "engine",
+          "executed": true,
+          "engine": {
+            "name": "TLC",
+            "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+          },
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 1000,
+            "max_depth": null
+          },
+          "property_id": "SumNonNegative",
+          "status": "STATE_LIMIT_REACHED",
+          "conclusive": false,
+          "message": "Достигнут лимит max_states=1000; исследование неполное",
+          "trace": [],
+          "statistics": {
+            "states_generated": 1913,
+            "distinct_states": 1001,
+            "depth": 44,
+            "elapsed_seconds": 0.268
+          },
+          "related_requirements": [
+            "R3"
+          ]
+        }
+      ]
+    }
+  },
+  "grid_timeout": {
+    "fixture": "grid",
+    "spec_hash": "3595a9a94d2ca4b7e533780b7fec66e03a4d8cda4960ca73d0a4ce5f80fbd4c3",
+    "report": {
+      "schema_version": "1.0",
+      "results": [
+        {
+          "schema_version": "1.0",
+          "spec_hash": "3595a9a94d2ca4b7e533780b7fec66e03a4d8cda4960ca73d0a4ce5f80fbd4c3",
+          "version_id": "demo_grid_v1",
+          "mode": "engine",
+          "executed": true,
+          "engine": {
+            "name": "TLC",
+            "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+          },
+          "limits": {
+            "timeout_seconds": 3.0,
+            "max_states": 50000000,
+            "max_depth": null
+          },
+          "property_id": "SumNonNegative",
+          "status": "TIMEOUT",
+          "conclusive": false,
+          "message": "Проверка остановлена по лимиту времени; исследование неполное",
+          "trace": [],
+          "statistics": {
+            "states_generated": null,
+            "distinct_states": null,
+            "depth": null,
+            "elapsed_seconds": 2.533
+          },
+          "related_requirements": [
+            "R3"
+          ]
+        }
+      ]
+    }
+  },
+  "counter_overflow": {
+    "fixture": "counter_overflow",
+    "spec_hash": "781e8def651e18f6d6b4c46bd3447dae856858330e730eef1a31f6db98e3c1cd",
+    "report": {
+      "schema_version": "1.0",
+      "results": [
+        {
+          "schema_version": "1.0",
+          "spec_hash": "781e8def651e18f6d6b4c46bd3447dae856858330e730eef1a31f6db98e3c1cd",
+          "version_id": "demo_counter_v1",
+          "mode": "engine",
+          "executed": true,
+          "engine": {
+            "name": "TLC",
+            "version": "2026.10.30.154139 rev 090e85c jar:011267fca25d"
+          },
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "NonNegative",
+          "status": "MODEL_INVALID",
+          "conclusive": false,
+          "message": "MODEL_INVALID: переход Inc выводит n=3 за область (путь: Inc → Inc → Inc)",
+          "trace": [],
+          "statistics": {
+            "states_generated": 4,
+            "distinct_states": 4,
+            "depth": 3,
+            "elapsed_seconds": 0.248
+          },
+          "related_requirements": [
+            "R3"
+          ]
+        }
+      ]
+    }
+  },
+  "engine_unavailable": {
+    "fixture": "order_bug",
+    "spec_hash": "b3d2783b161af79ec841ea791d94f874b3c05c2439c79468fd0372a7999588a3",
+    "report": {
+      "schema_version": "1.0",
+      "results": [
+        {
+          "schema_version": "1.0",
+          "spec_hash": "b3d2783b161af79ec841ea791d94f874b3c05c2439c79468fd0372a7999588a3",
+          "version_id": "demo_engine_v1",
+          "mode": "engine",
+          "executed": false,
+          "engine": null,
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "NoCancelledExecution",
+          "status": "ENGINE_ERROR",
+          "conclusive": false,
+          "message": "ENGINE_UNAVAILABLE: Java не найдена: установите JDK 11+ или задайте PROVERYALKA_JAVA",
+          "trace": [],
+          "statistics": {
+            "states_generated": null,
+            "distinct_states": null,
+            "depth": null,
+            "elapsed_seconds": null
+          },
+          "related_requirements": [
+            "R5"
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "spec_hash": "b3d2783b161af79ec841ea791d94f874b3c05c2439c79468fd0372a7999588a3",
+          "version_id": "demo_engine_v1",
+          "mode": "engine",
+          "executed": false,
+          "engine": null,
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "CanExecute",
+          "status": "ENGINE_ERROR",
+          "conclusive": false,
+          "message": "ENGINE_UNAVAILABLE: Java не найдена: установите JDK 11+ или задайте PROVERYALKA_JAVA",
+          "trace": [],
+          "statistics": {
+            "states_generated": null,
+            "distinct_states": null,
+            "depth": null,
+            "elapsed_seconds": null
+          },
+          "related_requirements": [
+            "R4"
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "spec_hash": "b3d2783b161af79ec841ea791d94f874b3c05c2439c79468fd0372a7999588a3",
+          "version_id": "demo_engine_v1",
+          "mode": "engine",
+          "executed": false,
+          "engine": null,
+          "limits": {
+            "timeout_seconds": 30.0,
+            "max_states": 100000,
+            "max_depth": null
+          },
+          "property_id": "EndsProperly",
+          "status": "ENGINE_ERROR",
+          "conclusive": false,
+          "message": "ENGINE_UNAVAILABLE: Java не найдена: установите JDK 11+ или задайте PROVERYALKA_JAVA",
+          "trace": [],
+          "statistics": {
+            "states_generated": null,
+            "distinct_states": null,
+            "depth": null,
+            "elapsed_seconds": null
+          },
+          "related_requirements": [
+            "R6"
+          ]
+        }
+      ]
+    }
+  }
+}

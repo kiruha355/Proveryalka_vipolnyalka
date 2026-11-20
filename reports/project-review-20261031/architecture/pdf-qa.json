@@ -1,0 +1,9 @@
+{
+  "pages": 7,
+  "format": "A4 landscape",
+  "pdf_sha256": "a34e64228c3c5f1938b68821603e27138509423b8c54f78e92032d47bc6ed7e2",
+  "render": "pdftoppm -scale-to 1350 -png",
+  "review": "All seven pages visually inspected; page1 artifact label moved to remove frame overlap",
+  "searchable_text": true,
+  "vector_diagrams": true
+}

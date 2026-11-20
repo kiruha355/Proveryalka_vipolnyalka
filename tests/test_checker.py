@@ -340,3 +340,12 @@ def test_cache_ignores_inconclusive_results(tmp_path):
     for status in ("TIMEOUT", "STATE_LIMIT_REACHED", "ENGINE_ERROR", "MODEL_INVALID"):
         cache.put(cached_result(model, CheckLimits(), status=status))
     assert not list(tmp_path.rglob("*.json"))
+
+
+def test_limits_fit_tlc_32_bit_integers():
+    limits = CheckLimits(max_states=2_147_483_647, max_depth=2_147_483_646)
+    assert "LimitDepth == TLCGet(\"level\") <= 2147483647" in generate(BehavioralModel.model_validate_json(
+        (Path("tests/fixtures/models/order.json")).read_text(encoding="utf-8")), limits).text
+    for value in ({"max_states": 2_147_483_648}, {"max_depth": 2_147_483_647}):
+        with pytest.raises(ValidationError):
+            CheckLimits(**value)

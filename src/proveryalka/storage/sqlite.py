@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
+from ..auth.access import principal
 from ..contracts import SessionCreate, TextSourceCreate
 from ..services import ServiceError, UnavailableBackend
 
@@ -46,9 +47,9 @@ class SQLiteStore(VersionStore, RunStore):
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("BEGIN IMMEDIATE")
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version > 4:
+            if version > 11:
                 raise RuntimeError("Database schema is newer than this application")
-            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql")]:
+            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql"), (5, "005_documents_explanations.sql"), (6, "006_codegen.sql"), (7, "007_images.sql"), (8, "008_repository_snapshots.sql"), (9, "009_auth.sql"), (10, "010_ownership.sql"), (11, "011_git_connections.sql")]:
                 if version >= target:
                     continue
                 migration = Path(__file__).with_name("migrations") / filename
@@ -83,7 +84,8 @@ class SQLiteStore(VersionStore, RunStore):
     @staticmethod
     def _session(connection, session_id):
         row = connection.execute("SELECT id,title,mode,created_at FROM sessions WHERE id=?", (session_id,)).fetchone()
-        if row is None:
+        user = principal.get()
+        if row is None or user is not None and connection.execute("SELECT owner_id FROM sessions WHERE id=?",(session_id,)).fetchone()[0] != user['id']:
             raise ServiceError(404, "NOT_FOUND", "Session not found")
         return dict(row)
 
@@ -105,21 +107,25 @@ class SQLiteStore(VersionStore, RunStore):
 
     def create_session(self, body, key):
         body = SessionCreate.model_validate(body).model_dump()
+        user = principal.get()
+        owner = user['id'] if user else None
         with self.transaction(write=True) as connection:
             def action():
                 result = {"id": identifier("s"), **body, "created_at": now()}
                 connection.execute(
-                    "INSERT INTO sessions(id,title,mode,created_at) VALUES (:id,:title,:mode,:created_at)", result,
+                    "INSERT INTO sessions(id,title,mode,created_at,owner_id) VALUES (:id,:title,:mode,:created_at,:owner)", {**result, "owner": owner},
                 )
                 return result
-            return self._idempotent(connection, "session:create", key, body, action)
+            return self._idempotent(connection, f"session:create:{owner}" if owner else "session:create", key, body, action)
 
     def list_sessions(self, limit=50, offset=0):
         if not 1 <= limit <= 200 or offset < 0:
             raise ServiceError(422, "INVALID_REQUEST", "Invalid pagination")
+        user = principal.get()
+        where, params = (" WHERE owner_id=?", (user['id'],limit,offset)) if user else ("",(limit,offset))
         with self.transaction() as connection:
             return [dict(row) for row in connection.execute(
-                "SELECT id,title,mode,created_at FROM sessions ORDER BY created_at,id LIMIT ? OFFSET ?", (limit, offset),
+                "SELECT id,title,mode,created_at FROM sessions" + where + " ORDER BY created_at,id LIMIT ? OFFSET ?", params,
             )]
 
     @staticmethod
@@ -143,6 +149,9 @@ class SQLiteStore(VersionStore, RunStore):
             )]
             session["requirements"] = [dict(row) for row in connection.execute(
                 "SELECT id,session_id,source_id,'R'||number AS code,text FROM requirements WHERE session_id=? ORDER BY number", (session_id,),
+            )]
+            session["documents"] = [dict(row) for row in connection.execute(
+                "SELECT source_id,filename,format,media_type,size_bytes,sha256,characters FROM source_documents WHERE session_id=? ORDER BY created_at,source_id", (session_id,),
             )]
             return session
 
@@ -170,6 +179,27 @@ class SQLiteStore(VersionStore, RunStore):
 
             return self._idempotent(connection, f"source:create:{session_id}", key, body, action)
 
+    def create_document(self, session_id, document, text, key):
+        """Источник из загруженного документа: текст в sources, происхождение в source_documents."""
+        with self.transaction(write=True) as connection:
+            self._session(connection, session_id)
+
+            def action():
+                result = {"id": identifier("src"), "session_id": session_id, "kind": "text", "text": text}
+                created = now()
+                connection.execute(
+                    "INSERT INTO sources(id,session_id,kind,text,created_at) VALUES (:id,:session_id,:kind,:text,:created_at)",
+                    {**result, "created_at": created},
+                )
+                info = {"source_id": result["id"], **document}
+                connection.execute(
+                    "INSERT INTO source_documents VALUES (:source_id,:session_id,:filename,:format,:media_type,:size_bytes,:sha256,:characters,:created_at)",
+                    {**info, "session_id": session_id, "created_at": created},
+                )
+                return {"source": result, "document": info}
+
+            return self._idempotent(connection, f"document:create:{session_id}", key, document, action)
+
     def get_source(self, session_id, source_id):
         with self.transaction() as connection:
             self._session(connection, session_id)
@@ -194,6 +224,12 @@ class SQLiteStore(VersionStore, RunStore):
                 ))
                 number += 1
             connection.execute("UPDATE sessions SET next_message=? WHERE id=?", (number, session_id))
+
+    def history_rows(self, session_id):
+        """Persisted identity/order for public history projections; no raw mutation."""
+        with self.transaction() as connection:
+            self._session(connection, session_id)
+            return self._messages(connection, session_id)
 
     def history(self, session_id, limit=None):
         with self.transaction() as connection:

@@ -41,6 +41,8 @@ class DialogueDraft(Contract):
     questions: list[QuestionDraft] = Field(max_length=3)
     resolutions: list[Resolution]
     corrections: list[Correction]
+    # Ответ пользователю на последнее сообщение; состояние разбора остаётся в полях выше.
+    reply: str | None = None
 
 
 class Answer(Contract):
@@ -63,6 +65,7 @@ class DialogueState(Contract):
     round: int
     max_rounds: int
     status: Literal["needs_clarification", "model_incomplete", "ready", "limit_reached"]
+    reply: str | None = None
 
     @property
     def pending_questions(self) -> list[Question]:
@@ -216,4 +219,5 @@ def build_state(
         round=round_number,
         max_rounds=max_rounds,
         status=status,
+        reply=draft.reply.strip() if draft.reply and draft.reply.strip() else None,
     )

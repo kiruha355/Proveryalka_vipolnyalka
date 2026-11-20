@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
 # Загружает закреплённую сборку tla2tools.jar и проверяет sha256.
 # Версию меняют только здесь: TLA_VERSION + TLA_SHA256 (digest ассета на странице релиза).
+# v1.8.0 asset обновлён upstream 15.11.2026 (GitHub asset 749260120).
+# SHA-256 сверен 18.11.2026 с digest официального GitHub Releases API.
+# Проверка остаётся fail-closed при очередной замене release asset.
 set -eu
 
 TLA_VERSION="v1.8.0"
-TLA_SHA256="fc6878c603f0fdc18b9fe3e5bf51860cb90ab5b1154e3c371660c036d6bdd63e"
+TLA_SHA256="7e53aa636dac8a3cb0533f343115c0548e03fc0ce5edc7739becf58d3d0fb84f"
 URL="https://github.com/tlaplus/tlaplus/releases/download/${TLA_VERSION}/tla2tools.jar"
 DEST="${1:-tools/tla2tools.jar}"
 

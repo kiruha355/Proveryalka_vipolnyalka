@@ -14,7 +14,7 @@ from ..verification import BehaviorChecker, CheckLimits, VerificationReport, Ver
 from ..verification.contracts import VerificationEvent
 from ..verification.checker import InvalidCheckResult, make_request, spec_hash, validate_report
 from .agent import create_agent
-from .dialogue import load_dialogue
+from .dialogue import load_dialogue, load_pending
 from .llm_config import create_client
 from .errors import AgentError, check_context, run_agent
 
@@ -138,6 +138,18 @@ async def explain_report(request: VerificationRequest, report: VerificationRepor
     return result.final_output
 
 
+async def explain_saved_report(request: VerificationRequest, report: VerificationReport, attempts: int = 2) -> VerificationNarrative:
+    """Объяснение уже сохранённого отчёта без повторной проверки; неверная структура исправляется один раз."""
+    report = validate_report(request, report)
+    problem = None
+    for _ in range(attempts):
+        try:
+            return await explain_report(request, report, problem)
+        except (ModelBehaviorError, ValidationError, ValueError) as error:
+            problem = str(error)
+    raise AgentError("INVALID_EXPLANATION", "Объяснение не соответствует сохранённому отчёту")
+
+
 async def verify_and_explain(
     model: BehavioralModel,
     checker: BehaviorChecker | None = None,
@@ -200,6 +212,9 @@ async def verify_and_explain(
 
 
 async def verify_dialogue(session: Session, checker: BehaviorChecker | None = None, property_ids=None, limits=None, *, version_id=None, on_event=None):
+    # Незавершённый ход может менять модель: проверять прежнюю готовую версию нельзя.
+    if await load_pending(session) is not None:
+        raise ValueError("Сначала завершите или отмените незавершённое сообщение")
     state = await load_dialogue(session)
     if state is None or state.status != "ready" or state.analysis.behavior is None:
         raise ValueError("Для проверки нужна готовая модель без открытых вопросов")
