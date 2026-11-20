@@ -50,6 +50,46 @@ class ImageStore:
                      "result": json.loads(row["response_json"]) if row["response_json"] else None}
                     for row in db.execute("SELECT * FROM image_analyses WHERE source_id=? ORDER BY created_at,id", (source_id,))]
 
+    def attach(self, session_id, image_id, analysis_id):
+        with self.store.transaction(write=True) as db:
+            row = db.execute("""
+                SELECT a.response_json,c.source_id FROM image_analyses a
+                JOIN image_sources i ON i.id=a.source_id
+                LEFT JOIN image_source_contexts c ON c.analysis_id=a.id
+                WHERE i.session_id=? AND a.source_id=? AND a.id=? AND a.state='completed'
+            """, (session_id, image_id, analysis_id)).fetchone()
+            if row is None:
+                raise ServiceError(404, "NOT_FOUND", "Готовый разбор изображения не найден")
+            if row["source_id"]:
+                return dict(db.execute("SELECT id,session_id,kind,text FROM sources WHERE id=?", (row["source_id"],)).fetchone())
+            material = json.loads(row["response_json"])
+            lines = ["Image observation. Visible evidence, proposals and uncertainties are labelled separately.",
+                     material["description"]]
+            lines.extend(f"[{item['origin']}] {item['text']}" for item in material["requirements"])
+            lines.extend(f"[uncertainty] {item}" for item in material["uncertainties"])
+            source = {"id": identifier("src"), "session_id": session_id, "kind": "text", "text": "\n".join(lines)}
+            db.execute("INSERT INTO sources VALUES (:id,:session_id,:kind,:text,:created_at)", {**source, "created_at": now()})
+            db.execute("INSERT INTO image_source_contexts VALUES (?,?,?)", (source["id"], analysis_id, session_id))
+            return source
+
+    def provenance(self, session_id, source_id):
+        with self.store.transaction() as db:
+            row = db.execute("""
+                SELECT a.response_json,i.metadata_json FROM image_source_contexts c
+                JOIN image_analyses a ON a.id=c.analysis_id
+                JOIN image_sources i ON i.id=a.source_id
+                WHERE c.source_id=? AND c.session_id=?
+            """, (source_id, session_id)).fetchone()
+        if row is None:
+            return None
+        analysis, image = json.loads(row["response_json"]), json.loads(row["metadata_json"])
+        return {
+            "kind": "image", "filename": image["filename"], "width": image["width"], "height": image["height"],
+            "analysis_id": analysis["id"], "region": analysis["source_refs"][0]["region"],
+            "image_source_id": image["id"], "sha256": image["sha256"], "canonical_sha256": image["canonical_sha256"],
+            "url": f"/api/sessions/{session_id}/images/{image['id']}/content",
+        }
+
     def reserve(self, source_id, body, key):
         if not isinstance(key, str) or not 1 <= len(key) <= 128:
             raise ServiceError(422, "INVALID_REQUEST", "Нужен Idempotency-Key длиной 1–128")
@@ -64,6 +104,8 @@ class ImageStore:
                 if row["state"] == "failed":
                     raise ServiceError(409, row["error_code"], "Предыдущий разбор не завершён. Для повтора нужен новый Idempotency-Key")
                 raise ServiceError(409, "IMAGE_ANALYSIS_RUNNING", "Разбор с этим ключом уже выполняется")
+            if db.execute("SELECT 1 FROM image_sources WHERE id=?", (source_id,)).fetchone() is None:
+                raise ServiceError(404, "NOT_FOUND", "Источник изображения не найден")
             aid = identifier("imganalysis")
             db.execute("INSERT INTO image_analyses VALUES (?,?,?,?,?,?,?,?)",
                        (aid, source_id, key, request, "running", None, None, now()))

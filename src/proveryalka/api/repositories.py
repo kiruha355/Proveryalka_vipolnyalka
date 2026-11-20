@@ -3,7 +3,7 @@ from fastapi import APIRouter, Header, Query
 
 from ..contracts import ErrorResponse, Run
 from ..sources.repositories.dto import (
-    RepositoryContext, RepositoryImport, RepositoryRefresh, RepositorySelection, RepositorySnapshot,
+    RepositoryContext, RepositoryImport, RepositoryPlan, RepositoryRefresh, RepositoryScope, RepositorySelection, RepositorySnapshot,
 )
 
 
@@ -23,6 +23,11 @@ def create_repository_router(service, backend):
     @router.get("/{snapshot_id}", response_model=RepositorySnapshot, responses=errors)
     def get_snapshot(session_id: str, snapshot_id: str):
         return service.repositories.get(session_id, snapshot_id)
+
+    @router.post("/{snapshot_id}/selection", response_model=RepositoryPlan, responses=errors)
+    def plan(session_id: str, snapshot_id: str, body: RepositoryScope):
+        state, _ = backend.dialogue_items(session_id) if body.extend else (None, None)
+        return service.plan(session_id, snapshot_id, body.query, [source.id for source in state.sources] if state else ())
 
     @router.post("/{snapshot_id}/refresh", response_model=RepositorySnapshot, status_code=201, responses=errors)
     def refresh(session_id: str, snapshot_id: str, body: RepositoryRefresh,

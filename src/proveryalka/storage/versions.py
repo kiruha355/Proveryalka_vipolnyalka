@@ -78,6 +78,16 @@ class VersionStore:
         with self.transaction() as connection:
             return self._version(connection, model_id, number)
 
+    def session_version(self, session_id, version_id):
+        with self.transaction() as connection:
+            row = connection.execute(
+                "SELECT v.model_id,v.number FROM model_versions v JOIN models m ON m.id=v.model_id "
+                "WHERE m.session_id=? AND v.id=?", (session_id, version_id),
+            ).fetchone()
+            if row is None:
+                raise ServiceError(404, "NOT_FOUND", "Version not found in session")
+            return self._version(connection, row["model_id"], row["number"])
+
     def list_versions(self, model_id):
         with self.transaction() as connection:
             self._model(connection, model_id)

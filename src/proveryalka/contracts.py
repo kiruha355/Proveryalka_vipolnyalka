@@ -74,6 +74,7 @@ class SessionDetail(Session):
     sources: list[Source] = Field(default_factory=list)
     requirements: list[Requirement] = Field(default_factory=list)
     documents: list[DocumentInfo] = Field(default_factory=list)
+    linked_source_ids: list[str] = Field(default_factory=list)
 
 
 class FileContext(Contract):
@@ -92,14 +93,18 @@ class MessageCreate(Contract):
     question_id: Optional[StrictStr] = Field(default=None, min_length=1, max_length=200)
     source_id: Optional[StrictStr] = Field(default=None, min_length=1, max_length=200)
     file_context: Optional[FileContext] = None
+    base_version_id: Optional[StrictStr] = Field(default=None, min_length=1, max_length=200)
 
     @model_validator(mode="after")
     def one_input(self):
-        if (self.text is None) == (self.source_id is None):
-            raise ValueError("Нужен ровно один вход: text или source_id")
+        if self.text is None and self.source_id is None:
+            raise ValueError("Нужен текст или сохранённый источник")
+        if self.text is not None and self.source_id is not None and self.base_version_id is None:
+            raise ValueError("Сообщение с источником требует базовую версию")
         if self.question_id is not None and self.text is None:
             raise ValueError("question_id допустим только с text")
-        if self.file_context is not None and (self.text is None or self.question_id is not None):
+        if self.file_context is not None and (self.text is None or self.question_id is not None
+                                              or self.source_id is not None or self.base_version_id is not None):
             raise ValueError("file_context requires text and cannot answer a business clarification")
         return self
 

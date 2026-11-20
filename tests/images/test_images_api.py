@@ -68,6 +68,16 @@ def test_selected_region_crops_actual_pixels_and_uses_canonical_coordinates(clie
     assert result["source_refs"][0]["region"] == region
     assert result["source_refs"][0]["scope"] == "selected_region"
     assert result["source_refs"][0]["coordinate_space"] == "canonical_pixels"
+    path = f"/api/sessions/{client.sid}/images/{source['id']}/analyses/{result['id']}/source"
+    attached = client.post(path)
+    assert attached.status_code == 201
+    evidence = attached.json()
+    assert client.post(path).json() == evidence
+    assert client.post(path.replace(client.sid, client.other)).status_code == 404
+    provenance = client.app.state.images.store.provenance(client.sid, evidence["id"])
+    assert provenance["region"] == region
+    assert provenance["analysis_id"] == result["id"]
+    assert client.get(provenance["url"]).status_code == 200
 
 
 @pytest.mark.parametrize("region", [

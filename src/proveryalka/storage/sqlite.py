@@ -11,6 +11,14 @@ from ..contracts import SessionCreate, TextSourceCreate
 from ..services import ServiceError, UnavailableBackend
 
 
+MIGRATIONS = (
+    "001_sessions.sql", "002_versions.sql", "003_runs.sql", "004_events.sql",
+    "005_documents_explanations.sql", "006_codegen.sql", "007_images.sql",
+    "008_repository_snapshots.sql", "009_auth.sql", "010_ownership.sql",
+    "011_git_connections.sql", "012_candidate_comparisons.sql", "013_analysis_context.sql",
+)
+
+
 def encode(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
@@ -47,9 +55,15 @@ class SQLiteStore(VersionStore, RunStore):
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute("BEGIN IMMEDIATE")
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version > 12:
+            if version > len(MIGRATIONS):
                 raise RuntimeError("Database schema is newer than this application")
-            for target, filename in [(1, "001_sessions.sql"), (2, "002_versions.sql"), (3, "003_runs.sql"), (4, "004_events.sql"), (5, "005_documents_explanations.sql"), (6, "006_codegen.sql"), (7, "007_images.sql"), (8, "008_repository_snapshots.sql"), (9, "009_auth.sql"), (10, "010_ownership.sql"), (11, "011_git_connections.sql"), (12, "012_candidate_comparisons.sql")]:
+            if version == 9 and connection.execute("""
+                SELECT COUNT(*) FROM sqlite_master WHERE type='table'
+                    AND name IN ('users', 'codegen_candidate_comparisons', 'version_reviews')
+                HAVING SUM(name='users')=0 AND COUNT(*)>0
+            """).fetchone() is not None:
+                version = 8
+            for target, filename in enumerate(MIGRATIONS, 1):
                 if version >= target:
                     continue
                 migration = Path(__file__).with_name("migrations") / filename
@@ -153,6 +167,10 @@ class SQLiteStore(VersionStore, RunStore):
             session["documents"] = [dict(row) for row in connection.execute(
                 "SELECT source_id,filename,format,media_type,size_bytes,sha256,characters FROM source_documents WHERE session_id=? ORDER BY created_at,source_id", (session_id,),
             )]
+            session["linked_source_ids"] = [row[0] for row in connection.execute("""
+                SELECT source_id FROM repository_source_contexts WHERE session_id=?
+                UNION SELECT source_id FROM image_source_contexts WHERE session_id=?
+            """, (session_id, session_id))]
             return session
 
     def create_source(self, session_id, body, key):

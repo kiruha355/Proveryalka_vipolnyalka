@@ -43,6 +43,7 @@ class ApplicationBackend(SQLiteBackend):
         self.artifacts = ArtifactAPI(store, settings.artifacts_path)
         self.loop = None
         self.tasks = {}
+        self.review_sessions = set()
         self.analyst = analyst or run_analyst
         self.explainer = explainer
         self.settings = settings
@@ -115,14 +116,16 @@ class ApplicationBackend(SQLiteBackend):
         else:
             await self.execute_check(run_id)
 
-    def save_version(self, session_id, behavior, run_id):
-        model = self.store.create_model(session_id, {"name": "Analyst model"}, "analyst-model")
+    def save_version(self, session_id, behavior, run_id, parent_id=None):
+        parent = self.store.session_version(session_id, parent_id) if parent_id else None
+        model_id = parent["model_id"] if parent else self.store.create_model(
+            session_id, {"name": "Analyst model"}, "analyst-model",
+        )["id"]
         spec = behavior.model_dump(mode="json")
-        latest = self.store.latest_version(model["id"])
-        # Ход без изменения модели не создаёт новую версию.
+        latest = parent or self.store.latest_version(model_id)
         if latest is not None and latest["spec_hash"] == spec_hash(behavior):
             return latest, False
-        return self.store.create_version(model["id"], {"spec": spec}, run_id), True
+        return self.store.create_version(model_id, {"spec": spec, "parent_id": parent_id}, run_id), True
 
     async def execute_agent(self, run_id):
         row = await asyncio.to_thread(self.store.claim_run, run_id)
@@ -165,7 +168,13 @@ class ApplicationBackend(SQLiteBackend):
         await asyncio.to_thread(self.store.save_dialogue_sources, row["session_id"], state.sources)
         version, changed = None, False
         if state.analysis.behavior is not None:
-            version, changed = await asyncio.to_thread(self.save_version, row["session_id"], state.analysis.behavior, run_id)
+            version, changed = await asyncio.to_thread(
+                self.save_version, row["session_id"], state.analysis.behavior, run_id, getattr(state, "base_version_id", None),
+            )
+            if hasattr(state, "base_version_id"):
+                await asyncio.to_thread(self.store.append_messages, row["session_id"], [
+                    {"role": "assistant", "content": json.dumps({"analyst_version": version["id"]})},
+                ])
         await asyncio.to_thread(self.store.event, run_id, "dialogue_updated", {
             "status": state.status, "round": getattr(state, "round", None),
             "open_question_ids": [question.id for question in state.pending_questions],
@@ -319,6 +328,14 @@ class ApplicationBackend(SQLiteBackend):
                 "entries": dialogue_entries(self.store.history_rows(session_id), render_turn)}
         if state is not None:
             behavior = state.analysis.behavior
+            model = None
+            if behavior is not None:
+                model = self.store.analyst_version(session_id, spec_hash(behavior))
+                if state.base_version_id:
+                    version = self.store.session_version(session_id, state.base_version_id)
+                    if version["spec_hash"] == spec_hash(behavior):
+                        model = {name: version[name] for name in ("model_id", "number", "spec_hash")}
+                        model["version_id"] = version["id"]
             view.update(
                 status=state.status, round=state.round, max_rounds=state.max_rounds, reply=state.reply,
                 requirements=[{"code": f"R{index}", **item.model_dump(mode="json")} for index, item in enumerate(state.analysis.requirements, 1)],
@@ -326,7 +343,7 @@ class ApplicationBackend(SQLiteBackend):
                 open_question_ids=[item.id for item in state.pending_questions],
                 corrections=[item.model_dump(mode="json") for item in state.corrections],
                 analysis=state.analysis.model_dump(mode="json"),
-                model=self.store.analyst_version(session_id, spec_hash(behavior)) if behavior is not None else None,
+                model=model,
             )
         if pending is None:
             # Explicit cancellation may already be durable before its history marker.
@@ -351,26 +368,34 @@ class ApplicationBackend(SQLiteBackend):
             if self.store.active_agent_run(session_id) is not None:
                 raise ServiceError(409, "SESSION_BUSY", "An agent run is already active in this session")
             state, pending = self.dialogue_items(session_id, repair=True)
+            base_version = None
+            if body.get("base_version_id"):
+                base_version = self.store.session_version(session_id, body["base_version_id"])
+            same_branch = (state is not None and (base_version is None or state.base_version_id == base_version["id"]
+                           or (state.analysis.behavior is not None and spec_hash(state.analysis.behavior) == base_version["spec_hash"])))
+            question_id = body.get("question_id")
+            if question_id and (not same_branch or all(question.id != question_id for question in state.pending_questions)):
+                raise ServiceError(422, "UNKNOWN_QUESTION", "question_id is not an open question of the selected version")
             from .file_dialogue import pending_file, resolve_file
             if pending_file(self.store, session_id):
                 raise ServiceError(409, "PENDING_MESSAGE", "Retry or discard the unfinished file discussion")
             if body.get("file_context"):
-                if pending is not None: raise ServiceError(409, "PENDING_MESSAGE", "Finish the pending business message first")
+                if pending is not None:
+                    raise ServiceError(409, "PENDING_MESSAGE", "Finish the pending business message first")
                 resolve_file(self.store, session_id, body["file_context"])
             elif pending is not None:
-                if body.get("source_id") is not None or pending.source.text != text or body.get("question_id") != pending.question_id:
+                if (body.get("source_id") is not None or pending.source.text != text
+                        or body.get("question_id") != pending.question_id or body.get("base_version_id") != pending.base_version_id):
                     raise ServiceError(409, "PENDING_MESSAGE", "Retry or discard the unfinished message before sending a new one")
+            elif same_branch and state.status == "limit_reached":
+                raise ServiceError(409, "CLARIFICATION_LIMIT", "The clarification round limit is reached; start a new session")
             elif body.get("source_id") is not None:
-                if state is not None:
-                    raise ServiceError(409, "DIALOGUE_STARTED", "A stored source can only start a new dialogue")
+                existing_sources = [source.id for source in state.sources] if same_branch else [
+                    source["id"] for source in (base_version["spec"]["sources"] if base_version else [])
+                ]
+                if body["source_id"] in existing_sources and text is None:
+                    raise ServiceError(409, "SOURCE_ALREADY_ANALYZED", "This source is already in the dialogue")
                 self.store.get_source(session_id, body["source_id"])
-            elif state is not None:
-                if state.status == "limit_reached":
-                    raise ServiceError(409, "CLARIFICATION_LIMIT", "The clarification round limit is reached; start a new session")
-                if body.get("question_id") is not None and body["question_id"] not in {q.id for q in state.pending_questions}:
-                    raise ServiceError(422, "UNKNOWN_QUESTION", "question_id is not an open question of this dialogue")
-            elif body.get("question_id") is not None:
-                raise ServiceError(422, "UNKNOWN_QUESTION", "The dialogue has no questions yet")
         run = self.store.create_agent_run(session_id, body, key)
         self.loop.call_soon_threadsafe(self.schedule, run["run_id"])
         return run
@@ -424,6 +449,6 @@ class ApplicationBackend(SQLiteBackend):
             run = getattr(self.store, operation)(**arguments)
             self.loop.call_soon_threadsafe(self.schedule, run["run_id"])
             return run
-        if operation in ("get_run", "get_check"):
+        if operation in ("get_run", "get_check", "version_checks"):
             return getattr(self.store, operation)(**arguments)
         return super().call(operation, **arguments)

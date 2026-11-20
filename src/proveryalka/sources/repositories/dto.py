@@ -1,4 +1,6 @@
-from pydantic import Field, StrictInt, StrictStr, model_validator
+from typing import Literal
+
+from pydantic import Field, StrictBool, StrictInt, StrictStr, model_validator
 
 from ...contracts import Contract, Source
 
@@ -51,6 +53,19 @@ class RepositoryRange(Contract):
 class RepositorySelection(Contract):
     manifest_sha256: StrictStr = Field(pattern=r"^[a-f0-9]{64}$")
     files: list[RepositoryRange] = Field(min_length=1, max_length=20)
+    query: StrictStr | None = Field(default=None, max_length=500)
+
+
+class RepositoryScope(Contract):
+    query: StrictStr = Field(default="", max_length=500)
+    extend: StrictBool = False
+
+
+class RepositoryPlan(Contract):
+    selection: RepositorySelection
+    indexed_file_count: int
+    selected_line_count: int
+    coverage: Literal["complete", "partial"]
 
 
 class RepositoryExcerpt(RepositoryRange):

@@ -75,8 +75,8 @@ def test_docx_text_extraction_ignores_deleted_text(client):
     ("latin.txt", "Заявка".encode("cp1251"), 422, "DOCUMENT_ENCODING"),
     ("nul.txt", b"a\x00b", 422, "DOCUMENT_ENCODING"),
     ("blank.md", b" \n\t", 422, "DOCUMENT_EMPTY"),
-    ("long.txt", b"x" * 5_001, 422, "INPUT_LIMIT"),
-    ("big.txt", b"x" * 200_001, 413, "DOCUMENT_TOO_LARGE"),
+    pytest.param("long.txt", b"x" * 5_001, 422, "INPUT_LIMIT", id="text-length-limit"),
+    pytest.param("big.txt", b"x" * 200_001, 413, "DOCUMENT_TOO_LARGE", id="document-size-limit"),
     ("broken.docx", b"PK\x03\x04 not a zip", 422, "DOCUMENT_INVALID"),
     ("empty.docx", docx("", xml=None).replace(b"word/document.xml", b"word/documenx.xml"), 422, "DOCUMENT_INVALID"),
 ])
@@ -123,7 +123,16 @@ def test_document_source_starts_the_dialogue(tmp_path, monkeypatch):
         assert script.payloads[0]["sources"] == [source]
         assert client.get(f"/api/sessions/{sid}/dialogue").json()["requirements"][0]["source_refs"][0]["source_id"] == source["id"]
         again = client.post(f"/api/sessions/{sid}/messages", json={"source_id": source["id"]}, headers={"Idempotency-Key": "m2"})
-        assert again.status_code == 409 and again.json()["error"]["code"] == "DIALOGUE_STARTED"
+        assert again.status_code == 409 and again.json()["error"]["code"] == "SOURCE_ALREADY_ANALYZED"
+        extra = client.post(f"/api/sessions/{sid}/documents", files={"file": ("followup.txt", b"More context", "text/plain")},
+                            headers={"Idempotency-Key": "next-document"}).json()["source"]
+        next_run = client.post(f"/api/sessions/{sid}/messages", json={"source_id": extra["id"]},
+                               headers={"Idempotency-Key": "next-turn"}).json()
+        assert wait_run(client, next_run["run_id"])["state"] == "completed"
+        assert script.payloads[-1]["sources"] == [source, extra]
+        assert script.payloads[-1]["turn_kind"] == "attachment"
+        history = client.get(f"/api/sessions/{sid}/dialogue").json()
+        assert [entry["source_id"] for entry in history["entries"] if entry["kind"] == "user"] == [source["id"], extra["id"]]
 
 
 @pytest.mark.parametrize("encoding", ["utf-8", "utf-16", "utf-16-le", "utf-16-be"])

@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from http import HTTPStatus
 from typing import Optional, Type
 
 from fastapi import FastAPI, Header, Query, Request
@@ -79,18 +80,18 @@ def create_app(
         from ..auth.tokens import create_token_router
         app.include_router(create_token_router(app.state.auth))
         from ..auth.connections import ConnectionService, create_connections_router
-        from ..sources.repositories.transport import UserRepositoryTransport
         app.state.connections = ConnectionService(store)
         app.include_router(create_connections_router(app.state.connections))
-        repositories.transport = UserRepositoryTransport(app.state.connections)
-        repositories.user_connections = True
+        repositories.credential_provider = app.state.connections
         app.add_middleware(OwnershipMiddleware, auth=app.state.auth)
     app.state.settings = settings
     app.state.backend = adapter
     app.state.repositories = repositories
     if repositories is not None:
         from .repositories import create_repository_router
+        from .reviews import create_reviews_router
         app.include_router(create_repository_router(repositories, adapter))
+        app.include_router(create_reviews_router(store, repositories, adapter))
     Spec = behavioral_model
     Result = verification_result
     VersionCreate = create_model("VersionCreate", __base__=Contract, spec=(Spec, ...), parent_id=(Optional[str], None))
@@ -169,6 +170,16 @@ def create_app(
     def create_source(session_id: str, body: TextSourceCreate,
                       idempotency_key: str = Header(min_length=1, max_length=128)):
         return adapter.call("create_source", session_id=session_id, body=body.model_dump(), key=idempotency_key)
+
+    if repositories is not None:
+        @app.get("/api/sessions/{session_id}/sources/{source_id}/provenance", responses=errors)
+        def source_provenance(session_id: str, source_id: str, start: int = Query(ge=0), end: int = Query(gt=0)):
+            source = store.get_source(session_id, source_id)
+            if not 0 <= start < end <= len(source["text"]):
+                raise ServiceError(422, "INVALID_REQUEST", "Границы цитаты недействительны")
+            if repositories.repositories.has_context(session_id, source_id):
+                return {"kind": "repository", **repositories.locate_reference(session_id, source_id, start, end)}
+            return app.state.images.store.provenance(session_id, source_id)
 
     document_body = {"requestBody": {"required": True, "content": {"multipart/form-data": {"schema": {
         "type": "object", "required": ["file"],
@@ -267,6 +278,10 @@ def create_app(
     def get_check(run_id: str):
         return adapter.call("get_check", run_id=run_id)
 
+    @app.get("/api/sessions/{session_id}/versions/{version_id}/checks", response_model=list[str], responses=errors)
+    def version_checks(session_id: str, version_id: str):
+        return adapter.call("version_checks", session_id=session_id, version_id=version_id)
+
     @app.post("/api/checks/{run_id}/explanation", response_model=Run, status_code=202, responses=errors)
     def create_explanation(run_id: str, idempotency_key: str = Header(min_length=1, max_length=128)):
         return adapter.call("create_explanation", check_run_id=run_id, key=idempotency_key)
@@ -283,6 +298,12 @@ def create_app(
 
     def openapi():
         schema = original_openapi()
+        for operations in schema["paths"].values():
+            for operation in operations.values():
+                for code, description in (("413", "Request Entity Too Large"), ("422", "Unprocessable Entity")):
+                    response = operation.get("responses", {}).get(code)
+                    if response and response.get("description") == HTTPStatus(int(code)).phrase:
+                        response["description"] = description
         schema["components"]["schemas"]["Event"] = Event.model_json_schema()
         schema["info"]["description"] = (
             "Analyst dialogue, versioned models, TLC checks and explanations of saved reports. "

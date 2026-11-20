@@ -25,7 +25,7 @@ def manifest_hash(remote_url, commit_sha, files, excluded):
                           "excluded": excluded, "policy_version": POLICY_VERSION}).encode())
 
 
-def index_archive(archive, remote_url, limits, deadline):
+def index_archive(archive, remote_url, limits, deadline, *, gitlab=False):
     if len(archive.data) > limits.download_bytes:
         raise ServiceError(413, "REPOSITORY_SIZE_LIMIT", "Repository download exceeds byte limit")
     try:
@@ -95,7 +95,7 @@ def index_archive(archive, remote_url, limits, deadline):
                     raise ServiceError(413, "REPOSITORY_SIZE_LIMIT", "Repository indexed text/file limit exceeded")
                 files.append({"path": path, "sha256": digest(raw), "size_bytes": len(raw),
                               "lines": len(file_lines(text)),
-                              "provenance_url": f"{remote_url}/{'-/blob' if remote_url.startswith('https://gitlab.com/') else 'blob'}/{archive.commit_sha}/{quote(path, safe='/')}"})
+                              "provenance_url": f"{remote_url}/{'-/blob' if gitlab else 'blob'}/{archive.commit_sha}/{quote(path, safe='/')}"})
                 contents[path] = text
         files.sort(key=lambda item: item["path"])
         deadline.remaining()

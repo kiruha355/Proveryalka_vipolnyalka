@@ -165,7 +165,7 @@ def test_parallel_pop_does_not_return_same_item_twice(store):
 
 def test_initialize_applies_codegen_and_source_migrations(store):
     with store.transaction() as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 12
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 13
         tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {"codegen_generations", "codegen_files", "codegen_test_runs", "codegen_candidate_comparisons"} <= tables
     assert {"image_sources", "image_analyses", "repository_snapshots", "repository_files", "repository_source_contexts"} <= tables
@@ -174,11 +174,34 @@ def test_initialize_applies_codegen_and_source_migrations(store):
 
 def test_migration_refuses_future_schema_without_modifying_it(store):
     with store.transaction(write=True) as connection:
-        connection.execute("PRAGMA user_version=13")
+        connection.execute("PRAGMA user_version=14")
     with pytest.raises(RuntimeError, match="newer"):
         store.initialize()
     with store.transaction() as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 13
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 14
+
+
+@pytest.mark.parametrize("legacy", ["012_candidate_comparisons.sql", "013_analysis_context.sql"])
+def test_split_migration_versions_upgrade_existing_databases(tmp_path, legacy):
+    from pathlib import Path
+    from proveryalka.storage import sqlite
+
+    path = tmp_path / "legacy.db"
+    migrations = Path(sqlite.__file__).with_name("migrations")
+    with sqlite3.connect(path) as db:
+        for filename in (*sqlite.MIGRATIONS[:8], legacy):
+            db.executescript((migrations / filename).read_text())
+        db.execute("INSERT INTO sessions(id,title,mode,created_at) VALUES ('legacy','Legacy','analyzer','2026-01-01')")
+        db.execute("PRAGMA user_version=9")
+    store = SQLiteStore(path)
+    store.initialize()
+    assert store.get_session("legacy")["id"] == "legacy"
+    with store.transaction() as db:
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 13
+        assert not db.execute("PRAGMA foreign_key_check").fetchall()
+        assert {"users", "version_reviews", "codegen_candidate_comparisons"} <= {
+            row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
 
 
 def test_unavailable_database_has_safe_service_error(tmp_path):

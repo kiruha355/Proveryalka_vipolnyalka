@@ -46,6 +46,7 @@ def test_two_users_all_resource_surfaces(users):
     test=c.post(f'/api/generations/{gid}/test-runs',json={'timeout_seconds':5},headers={'Idempotency-Key':'test'})
     assert test.status_code==202,test.text
     tid=test.json()['test_run_id']
+    version_id=version['id']
     assert c.get(f'/api/generations/{gid}/archive').status_code==200
     assert c.get('/api/sessions').json()[0]['id']==sid
     c.switch('bob')
@@ -55,7 +56,9 @@ def test_two_users_all_resource_surfaces(users):
            f'/api/models/{mid}/versions',f'/api/models/{mid}/versions/1',f'/api/runs/{rid}',f'/api/runs/{rid}/events',
            f'/api/checks/{rid}',f'/api/checks/{rid}/artifacts/spec.tla',f'/api/generations/{gid}',
            f'/api/generations/{gid}/files',f'/api/generations/{gid}/files/README.md',f'/api/generations/{gid}/archive',
-           f'/api/test-runs/{tid}',f'/api/test-runs/{tid}/log']
+           f'/api/test-runs/{tid}',f'/api/test-runs/{tid}/log',
+           f'/api/sessions/{sid}/versions/{version_id}/reviews',
+           f'/api/sessions/{sid}/versions/{version_id}/checks']
     for path in paths:
         result=c.get(path)
         assert result.status_code in (404,405),(path,result.text)

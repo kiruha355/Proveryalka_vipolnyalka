@@ -41,7 +41,6 @@ class DialogueDraft(Contract):
     questions: list[QuestionDraft] = Field(max_length=3)
     resolutions: list[Resolution]
     corrections: list[Correction]
-    # Ответ пользователю на последнее сообщение; состояние разбора остаётся в полях выше.
     reply: str | None = None
 
 
@@ -66,6 +65,7 @@ class DialogueState(Contract):
     max_rounds: int
     status: Literal["needs_clarification", "model_incomplete", "ready", "limit_reached"]
     reply: str | None = None
+    base_version_id: str | None = None
 
     @property
     def pending_questions(self) -> list[Question]:
@@ -157,6 +157,8 @@ def resolve_properties(draft, previous, questions, answer):
                 raise ValueError("Исходное свойство не должно содержать предположение")
             continue
         matching = [q for q in questions if q.kind == "assumption" and q.assumption == prop.assumption]
+        if not matching and prop.id in approvals:
+            continue
         if not prop.assumption or len(matching) != 1 or matching[0].status == "rejected":
             raise ValueError("Предложенное свойство требует отдельного согласования")
         question = matching[0]
@@ -208,6 +210,7 @@ def build_state(
         status = "limit_reached" if round_number >= max_rounds else "needs_clarification"
     return DialogueState(
         sources=sources,
+        base_version_id=previous.base_version_id if previous else None,
         analysis=analysis,
         questions=questions,
         answers=previous.answers + [Answer(source_id=answer.id, question_id=question_id)] if previous else [],

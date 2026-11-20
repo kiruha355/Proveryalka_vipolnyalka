@@ -83,6 +83,9 @@ def test_http_import_select_analyze_existing_pipeline(web):
     assert view["requirements"]
     for requirement in view["requirements"]:
         assert requirement["source_refs"]
+    extended = client.post(url + "/" + snapshot["id"] + "/selection", json={"query": "", "extend": True})
+    assert extended.status_code == 200, extended.text
+    assert [file["path"] for file in extended.json()["selection"]["files"]] == ["unselected.py"]
     # Same request reuses the same durable run/source, no repeated inference.
     assert post(client, url + "/" + snapshot["id"] + "/analysis", body, "analysis").json()["run_id"] == run["run_id"]
     assert len(captured) == 1
@@ -117,8 +120,8 @@ def test_http_openapi_and_credential_status(web):
     assert "RepositorySelection" in schema["components"]["schemas"]
     selection_schema = schema["components"]["schemas"]["RepositorySelection"]
     assert selection_schema["additionalProperties"] is False
-    from proveryalka.sources.repositories.transport import GitHubArchiveTransport
-    service.transport = GitHubArchiveTransport()
+    from proveryalka.sources.repositories.transport import ArchiveTransport
+    service.transport = ArchiveTransport()
     response = post(client, f"/api/sessions/{session}/repositories",
                     {"remote_url": REMOTE, "credential_ref": "configured-reference-missing"}, "private")
     assert response.status_code == 403

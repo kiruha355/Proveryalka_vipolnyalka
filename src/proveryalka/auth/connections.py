@@ -9,22 +9,14 @@ from pydantic import Field, SecretStr
 from ..contracts import Contract
 from ..services import ServiceError
 from .access import principal
-from ..sources.repositories.policy import RepositoryHost, remote_parts
-from ..sources.repositories.transport import GitHubArchiveTransport, Deadline
+from ..sources.repositories.policy import hosting_policy, remote_parts
+from ..sources.repositories.transport import ArchiveTransport, Deadline
 
 class ConnectionCreate(Contract):
     remote_url: str = Field(min_length=1,max_length=500)
     token: SecretStr = Field(min_length=10,max_length=4096)
     expires_at: float = Field(gt=0,allow_inf_nan=False)
 
-
-def hosting(remote):
-    # Only built-in public hosts; no user-controlled API URL or custom port.
-    from urllib.parse import urlsplit
-    host=urlsplit(remote).hostname
-    if host=='github.com':return RepositoryHost()
-    if host=='gitlab.com':return RepositoryHost(remote_host='gitlab.com',api_host='gitlab.com',archive_hosts=(),provider='gitlab')
-    raise ServiceError(422,'REPOSITORY_URL_DENIED','Supported hosts: github.com, gitlab.com')
 
 class ConnectionService:
     def __init__(self,store,key=None,clock=time.time):
@@ -49,7 +41,7 @@ class ConnectionService:
 
     def create(self,body):
         if self.cipher is None:raise ServiceError(503,'CONNECTION_KEY_REQUIRED','Repository credential encryption is not configured')
-        policy=hosting(body.remote_url)
+        policy=hosting_policy(body.remote_url)
         canonical,_,_=remote_parts(body.remote_url,policy)
         token=body.token.get_secret_value()
         if any(ord(ch)<33 or ord(ch)>126 for ch in token):
@@ -76,7 +68,7 @@ class ConnectionService:
         row=self.get(reference)
         if row['revoked'] or row['expires_at']<=self.clock():
             raise ServiceError(403,'CREDENTIAL_INACTIVE','Repository connection is revoked or expired')
-        canonical,_,_=remote_parts(remote_url,hosting(remote_url))
+        canonical,_,_=remote_parts(remote_url,hosting_policy(remote_url))
         if row['remote_url']!=canonical:
             raise ServiceError(403,'CREDENTIAL_SCOPE_DENIED','Connection does not permit this repository')
         if self.cipher is None:raise ServiceError(503,'CONNECTION_KEY_REQUIRED','Repository credential encryption is not configured')
@@ -89,7 +81,7 @@ class ConnectionService:
 
     def check(self,reference):
         row=self.get(reference)
-        transport=GitHubArchiveTransport(hosting(row['remote_url']),self)
+        transport=ArchiveTransport(hosting_policy(row['remote_url']),self)
         code=None
         try:
             transport.resolve_commit(row['remote_url'],'HEAD',reference,Deadline(15))

@@ -160,7 +160,7 @@ class SafeHTTPS:
                 connection.close()
 
 
-class GitHubArchiveTransport:
+class ArchiveTransport:
     def __init__(self, host_policy=RepositoryHost(), credential_provider: CredentialProvider | None = None):
         self.host_policy = host_policy
         self.credential_provider = credential_provider
@@ -187,8 +187,18 @@ class GitHubArchiveTransport:
 
     def resolve_commit(self, remote_url, ref, credential_ref, deadline):
         canonical, api = self.api(remote_url)
-        authorization = self.authorization(credential_ref,canonical)
-        metadata = self.http.get(f"{api}/commits/{quote(ref, safe='')}", deadline, 256 * 1024, authorization)
+        authorization = self.authorization(credential_ref, canonical)
+        revision = ref
+        if self.host_policy.provider == "gitlab" and ref == "HEAD":
+            data = self.http.get(api.removesuffix("/repository"), deadline, 256 * 1024, authorization)
+            try:
+                revision = json.loads(data)["default_branch"]
+            except (ValueError, KeyError, TypeError):
+                revision = None
+            if not isinstance(revision, str) or not revision:
+                raise ServiceError(422, "REPOSITORY_EMPTY", "The project has no default branch")
+            authorization = self.authorization(credential_ref, canonical)
+        metadata = self.http.get(f"{api}/commits/{quote(revision, safe='')}", deadline, 256 * 1024, authorization)
         try:
             commit = json.loads(metadata)['id' if self.host_policy.provider == 'gitlab' else 'sha']
             if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
@@ -207,12 +217,3 @@ class GitHubArchiveTransport:
         url = f"{api}/archive.tar.gz?sha={commit}" if self.host_policy.provider == 'gitlab' else f"{api}/tarball/{commit}"
         data = self.http.get(url, deadline, limits.download_bytes, authorization)
         return RepositoryArchive(commit, data)
-
-
-class UserRepositoryTransport:
-    def __init__(self, provider):
-        self.provider=provider
-
-    def fetch(self, remote_url, ref, credential_ref, limits, deadline):
-        from ...auth.connections import hosting
-        return GitHubArchiveTransport(hosting(remote_url),self.provider).fetch(remote_url,ref,credential_ref,limits,deadline)

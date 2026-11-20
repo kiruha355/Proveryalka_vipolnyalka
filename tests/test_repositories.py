@@ -15,7 +15,7 @@ from proveryalka.sources.repositories import RepositoryHost, RepositoryLimits, R
 from proveryalka.sources.repositories.index import digest
 from proveryalka.sources.repositories.policy import public_address, remote_parts
 from proveryalka.sources.repositories.transport import (
-    Deadline, GitHubArchiveTransport, RepositoryArchive, SafeHTTPS, resolve_public,
+    ArchiveTransport, Deadline, RepositoryArchive, SafeHTTPS, resolve_public,
 )
 from proveryalka.storage.sqlite import SQLiteStore
 
@@ -331,7 +331,7 @@ def test_stored_content_and_source_tamper_rejected(service):
 
 
 def test_credentials_not_configured_or_unknown_are_honest_errors():
-    transport = GitHubArchiveTransport()
+    transport = ArchiveTransport()
     assert_error("REPOSITORY_CREDENTIAL_UNAVAILABLE", transport.fetch, REMOTE, "HEAD", "private-reference", RepositoryLimits(), Deadline(1))
 
     class Provider:
@@ -339,12 +339,12 @@ def test_credentials_not_configured_or_unknown_are_honest_errors():
             assert reference == "unknown"
             return None
 
-    transport = GitHubArchiveTransport(credential_provider=Provider())
+    transport = ArchiveTransport(credential_provider=Provider())
     assert_error("REPOSITORY_CREDENTIAL_UNAVAILABLE", transport.fetch, REMOTE, "HEAD", "unknown", RepositoryLimits(), Deadline(1))
 
 
 def test_github_transport_pins_archive_to_resolved_commit(monkeypatch):
-    transport = GitHubArchiveTransport()
+    transport = ArchiveTransport()
     calls = []
 
     def get(url, deadline, max_bytes, authorization=None):

@@ -21,6 +21,8 @@ def private(users,monkeypatch):
         calls.append((url,authorization))
         assert authorization=='Bearer '+SECRET
         if '/commits/' in url:return json.dumps({'sha':SHA,'id':SHA}).encode()
+        if '/api/v4/projects/' in url and '/repository/' not in url:
+            return json.dumps({'default_branch':'main'}).encode()
         return archive([('root/README.md',b'private project',tarfile.REGTYPE)]).data
     monkeypatch.setattr(SafeHTTPS,'get',get)
     return c,calls

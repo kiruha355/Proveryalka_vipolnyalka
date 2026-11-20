@@ -152,7 +152,14 @@ type VerificationNarrative = {summary: string; question: string|null;
 
 ## Ошибки отправки сообщения
 
-`409 SESSION_BUSY` — в сессии уже идёт ход; `409 PENDING_MESSAGE`; `409 DIALOGUE_STARTED` — `source_id` допустим только для начала разбора; `409 CLARIFICATION_LIMIT` — исчерпан лимит раундов; `409 DIALOGUE_FORMAT` — сессия в старом формате; `422 UNKNOWN_QUESTION` — `question_id` не среди открытых; `422 INVALID_REQUEST` — нужен ровно один из `text`/`source_id`, `question_id` только с `text`; `422 INPUT_LIMIT`; `404 NOT_FOUND`/`SOURCE_NOT_FOUND`.
+`source_id` прикрепляет сохранённый источник к новому или начатому диалогу.
+`base_version_id` задаёт неизменяемую базу анализа в рамках текущей сессии.
+Для запроса с `text` и `source_id` одновременно базовая версия обязательна.
+`question_id` допустим с текстом и относится к открытому вопросу этой версии.
+
+`409 SESSION_BUSY` означает активный ход, `409 PENDING_MESSAGE` требует завершить
+или отменить прежний ход, `409 SOURCE_ALREADY_ANALYZED` означает повторное добавление материала.
+`409 CLARIFICATION_LIMIT` означает исчерпание раундов в текущей ветви диалога.
 
 Коды неудачного agent run: `PROVIDER_AUTH`, `PROVIDER_RATE_LIMIT`, `PROVIDER_UNAVAILABLE`, `PROVIDER_NOT_FOUND`, `PROVIDER_ERROR`, `PROVIDER_TIMEOUT`, `PROVIDER_TOOL_USE`, `PROVIDER_ISOLATION`, `CONTEXT_LIMIT`, `TURN_LIMIT`, `RUN_TIMEOUT`, `MODEL_OUTPUT_INVALID`, `PENDING_MESSAGE`, `NO_PENDING`, `AGENT_FAILED`, `CANCELLED`, `SERVER_SHUTDOWN`, `SERVER_RESTARTED`. Текст ответа провайдера в ошибки не попадает.
 

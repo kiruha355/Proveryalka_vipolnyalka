@@ -87,3 +87,16 @@ class RepositoryStore:
             if row is None:
                 raise ServiceError(404, "NOT_FOUND", "Repository source context not found")
             return dict(row)
+
+    def has_context(self, session_id, source_id):
+        with self.store.transaction() as connection:
+            return connection.execute("SELECT 1 FROM repository_source_contexts WHERE source_id=? AND session_id=?",
+                                      (source_id, session_id)).fetchone() is not None
+
+    def selected_paths(self, session_id, snapshot_id, source_ids):
+        with self.store.transaction() as db:
+            return {item[0] for item in db.execute("""
+                SELECT json_extract(file.value, '$.path') FROM repository_source_contexts c,
+                    json_each(c.selection_json, '$.files') file
+                WHERE c.session_id=? AND c.snapshot_id=? AND c.source_id IN (SELECT value FROM json_each(?))
+            """, (session_id, snapshot_id, encode(source_ids)))}

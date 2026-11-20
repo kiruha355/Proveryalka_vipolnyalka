@@ -6,7 +6,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException
 
-from ..contracts import ErrorResponse
+from ..contracts import ErrorResponse, Source
 from ..services import ServiceError
 from .dto import ImageAnalysis, ImageAnalysisCreate, ImageAnalysisRecord, ImageSource
 from .service import ImageService
@@ -87,5 +87,9 @@ def create_images_router(store, limits=None, provider=None):
     async def analyze(session_id: str, source_id: str, body: ImageAnalysisCreate,
                       idempotency_key: str = Header(min_length=1, max_length=128)):
         return await service.analyze(session_id, source_id, body, idempotency_key)
+
+    @router.post("/{source_id}/analyses/{analysis_id}/source", response_model=Source, status_code=201, responses=errors)
+    def attach(session_id: str, source_id: str, analysis_id: str):
+        return service.store.attach(session_id, source_id, analysis_id)
 
     return router

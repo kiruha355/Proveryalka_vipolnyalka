@@ -64,9 +64,14 @@ Hash файла считается от исходных UTF-8 bytes; CRLF со�
 повторно сверяет его с серверным snapshot и вызывает существующий
 `backend.call("send_message", session_id=..., body={"source_id":...}, key=...)`.
 Это настоящий путь в `ApplicationBackend -> run_analyst -> start_dialogue`.
-Его ограничения сохраняются: stored Source начинает новый диалог;
-активный/незавершённый/начатый диалог даёт существующий `409`, без повторной LLM-инференции.
-Для snapshot analysis требуется новая сессия, если диалог уже начат.
+Снимок можно добавить в начатый диалог. Аналитик сохраняет согласованные правила
+и просит пользователя разрешить расхождения. При незавершённом ходе сначала нужно
+дождаться результата, повторить ход или отменить его.
+
+`POST /{snapshot_id}/selection` принимает описание процесса в `query`. Сервер
+ранжирует файлы по именам и совпадениям с запросом, учитывает Python-импорты
+и возвращает диапазоны строк и покрытие чтения. Результат подходит для `/context`
+или `/analysis`. В интерфейсе диапазоны видны перед отправкой аналитику.
 
 Можно отдельно сохранить `/context`, затем вызвать существующий
 `POST /api/sessions/{id}/messages` с `source_id`. Для проверок перед таким вызовом
@@ -90,6 +95,7 @@ Hash файла считается от исходных UTF-8 bytes; CRLF со�
 | POST | пустой suffix | `201 RepositorySnapshot` |
 | GET | пустой suffix, `limit/offset` | список snapshot |
 | GET | `/{snapshot_id}` | индекс snapshot |
+| POST | `/{snapshot_id}/selection` | диапазоны автоматически подобранных файлов |
 | POST | `/{snapshot_id}/refresh` | новый snapshot |
 | POST | `/{snapshot_id}/context` | `201 RepositoryContext` |
 | POST | `/{snapshot_id}/analysis` | `202 Run` существующего аналитика |
@@ -101,9 +107,12 @@ POST требует `Idempotency-Key` 1–128 символов. MCP #47 може
 
 ## Ограничения транспорта и доступа
 
-Первый поддерживаемый backend — GitHub archive API. `RepositoryHost` позволяет оператору
+Поддерживаются GitHub и GitLab. `RepositoryHost` позволяет оператору
 задать точные remote/API/archive hosts для GitHub-compatible публичного HTTPS сервиса.
-GitLab/general Git/SCP/SSH/file transport не реализованы; настройки не принимаются от HTTP-клиента.
+По умолчанию GitLab использует `gitlab.com`. Для отдельной установки оператор задаёт
+`PROVERYALKA_GITLAB_HOST`. Для GitLab путь включает вложенные группы, ветка
+разрешается в SHA через API, архив загружается по SHA, ссылки используют `/-/blob/`.
+Настройки хостов и учётные данные задаются на сервере.
 URL с credentials, query, fragment, портом, encoded traversal и чужим host отклоняются.
 Каждый HTTP-hop проверяет allowlist и все DNS-ответы, запрещает private/link-local/loopback/
 multicast/reserved и IPv6 transition addresses. Соединение идёт к уже проверенному

@@ -1,4 +1,6 @@
 import hmac
+from anyio import CancelScope
+from starlette.datastructures import MutableHeaders
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from ..services import ServiceError
@@ -41,17 +43,23 @@ class OwnershipMiddleware:
                 principal.reset(context)
             return await JSONResponse({'error':{'code':error.code,'message':error.message,'details':[]}}, status_code=error.status)(scope,receive,send)
         try:
-            # Auth is checked on every SSE chunk, including after logout/expiry.
-            started = False
-            async def guarded_send(message):
-                nonlocal started
-                if message['type'] == 'http.response.start':
-                    started = True
-                    message['headers'] = [*message.get('headers',[]),(b'cache-control',b'no-store')]
-                if message['type'] == 'http.response.body' and started:
-                    self.auth.authenticate(token)
-                await send(message)
-            await self.app(scope,receive,guarded_send)
+            streaming = False
+            with CancelScope() as connection:
+                async def guarded_send(message):
+                    nonlocal streaming
+                    if message['type'] == 'http.response.start':
+                        headers = MutableHeaders(scope=message)
+                        headers['Cache-Control'] = 'no-store'
+                        streaming = headers.get('content-type', '').startswith('text/event-stream')
+                    if message['type'] == 'http.response.body' and streaming and message.get('body'):
+                        try:
+                            self.auth.authenticate(token)
+                        except ServiceError:
+                            await send({'type': 'http.response.body', 'body': b'', 'more_body': False})
+                            connection.cancel()
+                            return
+                    await send(message)
+                await self.app(scope,receive,guarded_send)
         finally:
             principal.reset(context)
 

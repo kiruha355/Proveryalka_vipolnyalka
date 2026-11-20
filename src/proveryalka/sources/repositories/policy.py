@@ -1,5 +1,6 @@
 """Ограничения задаёт сервер, а не импортируемый репозиторий или HTTP-клиент."""
 import ipaddress
+import os
 import re
 from dataclasses import dataclass
 from urllib.parse import urlsplit
@@ -40,6 +41,19 @@ class RepositoryHost:
         return frozenset((self.remote_host, self.api_host, *self.archive_hosts))
 
 
+def hosting_policy(remote, github=RepositoryHost()):
+    try:
+        host = urlsplit(remote).hostname
+    except ValueError:
+        host = None
+    if host == github.remote_host:
+        return github
+    configured = os.getenv("PROVERYALKA_GITLAB_HOST", "").strip().lower()
+    if host and host in ("gitlab.com", configured):
+        return RepositoryHost(remote_host=host, api_host=host, archive_hosts=(), provider="gitlab")
+    raise ServiceError(422, "REPOSITORY_URL_DENIED", "Only a configured public HTTPS repository URL is allowed")
+
+
 def public_address(value):
     address = ipaddress.ip_address(value)
     if getattr(address, "ipv4_mapped", None):
@@ -62,7 +76,7 @@ def remote_parts(url, host):
         raise ServiceError(422, "REPOSITORY_URL_DENIED", "Only a configured public HTTPS repository URL is allowed")
     pattern = r"/([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*)/([A-Za-z0-9_.-]+?)(?:\.git)?/?" if host.provider == 'gitlab' else r"/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?"
     match = re.fullmatch(pattern, parsed.path)
-    if not match or any(part in (".", "..") for group in match.groups() for part in group.split("/")):
+    if not match or any(part in (".", "..", "-") for group in match.groups() for part in group.split("/")):
         raise ServiceError(422, "REPOSITORY_URL_DENIED", "Expected an owner/repository URL without credentials")
     owner, name = match.groups()
     return f"https://{host.remote_host}/{owner}/{name}", owner, name
