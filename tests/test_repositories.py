@@ -190,8 +190,12 @@ def test_filters_do_not_execute_hooks_filters_symlinks_or_submodules(service, re
     repository.write("binary.py", b"\x00binary\xff")
     repository.write("image.png", b"\x89PNG\x00")
     repository.write("lfs.txt", "version https://git-lfs.github.com/spec/v1\noid sha256:abcdef\nsize 5\n")
-    (repository.path / "link.txt").symlink_to("/private/secret")
+    # Build a real git symlink entry without requiring Windows symlink privileges.
+    repository.write("link.txt", "/private/secret")
     repository.commit()
+    blob = repository.git("hash-object", "-w", "link.txt").decode().strip()
+    repository.git("update-index", "--add", "--cacheinfo", f"120000,{blob},link.txt")
+    repository.git("commit", "-qm", "git symlink fixture")
     snapshot = imported(service)
     names = {item["path"] for item in snapshot["files"]}
     assert {"README.md", "script.py", "src/app.py"} <= names

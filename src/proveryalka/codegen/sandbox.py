@@ -11,13 +11,13 @@ import json
 import os
 import re
 import shutil
-import signal
 import stat
 import tempfile
 import time
 from pathlib import Path
 from uuid import uuid4
 
+from ..processes import process_options, terminate
 from .paths import safe_path
 from .settings import IMAGE_DIR, CodegenSettings
 
@@ -39,25 +39,17 @@ async def run_tool(command, timeout=30.0, limit=1 << 20):
     try:
         process = await asyncio.create_subprocess_exec(
             *command, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE, start_new_session=True,
+            stderr=asyncio.subprocess.PIPE, **process_options(),
         )
     except OSError as error:
         raise SandboxUnavailable(f"Docker CLI unavailable: {error.strerror or error}") from error
     try:
         out, err = await asyncio.wait_for(process.communicate(), timeout)
     except (asyncio.TimeoutError, asyncio.CancelledError):
-        kill_group(process)
+        await terminate(process)
         await process.wait()
         raise
     return process.returncode, out[:limit].decode("utf-8", "replace"), err[:limit].decode("utf-8", "replace")
-
-
-def kill_group(process):
-    if process.returncode is None:
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
 
 
 async def read_capped(stream, limit):
@@ -279,7 +271,7 @@ class DockerSandbox:
             try:
                 process = await asyncio.create_subprocess_exec(
                     *self.command(name, job, run_id), stdin=asyncio.subprocess.DEVNULL,
-                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, start_new_session=True,
+                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, **process_options(),
                 )
             except OSError as error:
                 return self.result("engine_unavailable", "ENGINE_UNAVAILABLE", f"Docker CLI unavailable: {error}", None, None, sandbox, started, None), None
@@ -298,12 +290,12 @@ class DockerSandbox:
                     try:
                         await asyncio.wait_for(asyncio.shield(waiter), 20)
                     except asyncio.TimeoutError:
-                        kill_group(process)
+                        await terminate(process)
                         await waiter
                 (stdout, _), (stderr, truncated) = await asyncio.gather(output, errors)
             except asyncio.CancelledError:
                 await self.stop_container(name)
-                kill_group(process)
+                await terminate(process)
                 raise
             container = await self.inspect(name)
         finally:

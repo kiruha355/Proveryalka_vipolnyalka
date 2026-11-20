@@ -1,0 +1,38 @@
+name: Windows runtime checks
+on:
+  pull_request:
+    paths:
+      - 'src/proveryalka/**'
+      - 'scripts/start-local.ps1'
+      - 'tests/**'
+      - '.github/workflows/windows-runtime.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked Python dependencies
+        run: |
+          python -m pip install -r requirements-runtime.lock
+          python -m pip install --no-deps -e .
+      - name: Parse PowerShell launcher
+        shell: pwsh
+        run: |
+          $ParseTokens = $null
+          $ParseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'scripts/start-local.ps1'), [ref]$ParseTokens, [ref]$ParseErrors) | Out-Null
+          if ($ParseErrors.Count -gt 0) { $ParseErrors | Format-List; exit 1 }
+      - name: Processes and source policy on Windows
+        run: python -m pytest -q -rs tests/test_processes.py tests/test_repositories.py tests/images/test_images_api.py --junitxml=windows-runtime.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-runtime-tests
+          path: windows-runtime.xml

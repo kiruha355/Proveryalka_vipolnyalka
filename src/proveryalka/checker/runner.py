@@ -3,10 +3,10 @@ import hashlib
 import os
 import re
 import shutil
-import signal
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from ..processes import process_options, terminate
 
 
 MIN_JAVA = 11
@@ -66,7 +66,7 @@ async def run_process(command, cwd, deadline=None, stop=None):
         process = await asyncio.create_subprocess_exec(
             *command, cwd=cwd, stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-            start_new_session=True,
+            **process_options(),
         )
     except OSError as error:
         raise EngineUnavailable(f"Не удалось запустить {command[0]}: {error}") from error
@@ -97,25 +97,13 @@ async def run_process(command, cwd, deadline=None, stop=None):
     )
 
 
-async def terminate(process, grace=2.0):
-    """Сначала SIGTERM всей группе (JVM и её потомки), затем SIGKILL, если процесс не вышел."""
-    if process.returncode is not None:
-        return
-    for sig in (signal.SIGTERM, signal.SIGKILL):
-        try:
-            os.killpg(process.pid, sig)
-        except ProcessLookupError:
-            return
-        try:
-            await asyncio.wait_for(process.wait(), timeout=grace)
-            return
-        except asyncio.TimeoutError:
-            continue
-
-
 async def detect_engine(java=None, jar=None):
     """Проверяет совместимую Java и tla2tools.jar, фиксирует версию TLC."""
-    java_path = shutil.which(java or "java")
+    # Explicit executable wins; otherwise respect JAVA_HOME before PATH's Java 8.
+    configured = java if java and java != "java" else os.getenv("PROVERYALKA_JAVA")
+    if not configured and os.getenv("JAVA_HOME"):
+        configured = str(Path(os.environ["JAVA_HOME"]) / "bin" / ("java.exe" if os.name == "nt" else "java"))
+    java_path = shutil.which(configured or java or "java")
     if java_path is None:
         raise EngineUnavailable("Java не найдена: установите JDK 11+ или задайте PROVERYALKA_JAVA")
     if jar is None or not Path(jar).is_file():
@@ -127,7 +115,7 @@ async def detect_engine(java=None, jar=None):
         raise EngineUnavailable(f"Не удалось определить версию Java: {probe.stderr.strip()[:200]}")
     major = int(match.group(2)) if match.group(1) == "1" else int(match.group(1))
     if major < MIN_JAVA:
-        raise EngineUnavailable(f"Нужна Java {MIN_JAVA}+, найдена {major}")
+        raise EngineUnavailable(f"Нужна Java {MIN_JAVA}+, найдена {major}; задайте PROVERYALKA_JAVA полным путём к Java 11+ или исправьте JAVA_HOME")
     # У TLC нет отдельного флага версии: заголовок печатается до разбора аргументов.
     probe = await run_process(
         [java_path, *JVM_OPTIONS, "-cp", str(jar), "tlc2.TLC", "-version"],
