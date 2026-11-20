@@ -14,7 +14,7 @@ from .render import (
     render_transition_tests, to_json,
 )
 from .scope import (
-    DEPENDENCIES, GENERATOR_NAME, GENERATOR_VERSION, TARGET, TECHNICAL_CONDITIONS, check_supported,
+    DEPENDENCIES, GENERATOR_NAME, GENERATOR_VERSION, TARGET, check_supported, technical_conditions,
 )
 
 
@@ -102,11 +102,15 @@ def replay(model, trace):
     return True
 
 
-def generate_project(model, provenance, target=TARGET):
+def generate_project(model, provenance, target=TARGET, *, conditions=None, application_files=()):
     """Детерминированно: одинаковые модель, происхождение и версия генератора дают одинаковые байты."""
     if not isinstance(model, BehavioralModel):
         model = BehavioralModel.model_validate(model)
     check_supported(model, target)
+    technical = technical_conditions(conditions)
+    api_prefix = technical.get("api_prefix", "")
+    storage = technical.get("storage", "memory")
+    application_mode = "agent" if application_files else "template"
     if provenance.spec_hash != compute_spec_hash(model):
         raise ValueError("spec_hash не соответствует модели")
     verification = provenance.verification
@@ -141,6 +145,11 @@ def generate_project(model, provenance, target=TARGET):
                       transition_reqs, rules.elements),
         GeneratedFile("app/engine.py", templates.ENGINE.encode(), "source",
                       "Применение события: проверка состояния, условие, одновременное присваивание, проверка областей."),
+        GeneratedFile("app/config.py", (f"API_PREFIX = {api_prefix!r}\nSTORAGE = {storage!r}\n"
+                                        f"APPLICATION_MODE = {application_mode!r}\n").encode(), "config",
+                      "Согласованные префикс API и способ хранения состояния."),
+        GeneratedFile("app/state_store.py", templates.STATE_STORE.encode(), "source",
+                      "Чтение и атомарное обновление состояния процесса."),
         GeneratedFile("app/api.py", templates.API.encode(), "source",
                       "FastAPI: GET /model, GET /state, POST /events, POST /evaluate, POST /reset."),
         GeneratedFile("tests/data/conformance.json", to_json(conformance_data(model, provenance, exploration, traces)).encode(), "test_data",
@@ -154,6 +163,10 @@ def generate_project(model, provenance, target=TARGET):
         GeneratedFile("tests/test_provenance.py", templates.PROVENANCE_TESTS.encode(), "test",
                       "Связь кода с моделью: spec_hash, состав переходов и переменных, ссылки на требования."),
     ]
+    if storage == "sqlite":
+        files.append(GeneratedFile("tests/test_persistence.py", templates.PERSISTENCE_TESTS.encode(), "test",
+                                   "Восстановление экземпляров после перезапуска и конкурентные обновления SQLite."))
+    files.extend(application_files)
     if traces:
         files.append(GeneratedFile("tests/test_traces.py", templates.TRACE_TESTS.encode(), "test",
                                    "Повтор трасс TLC этой версии через сгенерированный код; статус свойства определяет TLC.", trace_reqs))
@@ -167,14 +180,16 @@ def generate_project(model, provenance, target=TARGET):
     readme = render_readme(model, provenance, summary, coverage, rules.elements,
                            [{"path": "README.md", "explanation": "Описание, запуск, связь переходов с требованиями, результаты TLC."},
                             {"path": MANIFEST, "explanation": "Происхождение: генератор, version_id, spec_hash, проверка TLC, SHA-256 файлов."}]
-                           + [{"path": f.path, "explanation": f.explanation} for f in files])
+                           + [{"path": f.path, "explanation": f.explanation} for f in files],
+                           api_prefix, storage, application_mode)
     files.insert(0, GeneratedFile("README.md", readme.encode(), "doc",
                                   "Описание проекта: версия модели, запуск, API, связь переходов с требованиями, результаты TLC, границы тестов.",
                                   every_requirement))
     manifest = {
         "schema_version": "1.0",
         "generator": {"name": GENERATOR_NAME, "version": GENERATOR_VERSION},
-        "target": target, "technical_conditions": TECHNICAL_CONDITIONS,
+        "target": target, "technical_conditions": technical,
+        "application_mode": application_mode,
         "model": {"name": model.name, "schema_version": model.schema_version,
                   "version_id": provenance.version_id, "spec_hash": provenance.spec_hash},
         "verification": summary, "coverage": coverage,

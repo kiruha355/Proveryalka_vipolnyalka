@@ -1,7 +1,7 @@
 """HTTP DTO генерации кода и запусков тестов. Неизвестные значения — null, а не ноль."""
 from typing import Literal, Optional
 
-from pydantic import Field, StrictBool, StrictFloat, StrictInt
+from pydantic import Field, StrictBool, StrictFloat, StrictInt, StrictStr
 
 from ..contracts import Contract
 
@@ -10,16 +10,62 @@ VerificationState = Literal["holds", "violated", "inconclusive", "not_checked"]
 TestRunStatus = Literal["queued", "running", "passed", "failed", "timeout", "engine_unavailable", "cancelled", "error"]
 
 
+class TechnicalConditionsInput(Contract):
+    language: StrictStr | None = Field(None, max_length=64)
+    platform: StrictStr | None = Field(None, max_length=64)
+    api_prefix: StrictStr | None = Field(None, max_length=64)
+    storage: StrictStr | None = Field(None, max_length=64)
+    integrations: list[StrictStr] | None = Field(None, max_length=16)
+
+
 class GenerationCreate(Contract):
     target: Literal["python-fastapi"] = "python-fastapi"
     # Нужен, если TLC не подтвердил все свойства версии: violated, inconclusive или not_checked.
     allow_unverified: StrictBool = False
+    technical_conditions: TechnicalConditionsInput | None = None
+    application_mode: Literal["template", "agent"] = "template"
 
 
 class TestRunCreate(Contract):
     __test__ = False  # не тестовый класс для pytest
 
     timeout_seconds: Optional[StrictFloat | StrictInt] = Field(default=None, gt=0, le=1800)
+
+
+class CandidateAdapter(Contract):
+    kind: Literal["fastapi-evaluate-v1"]
+    module: StrictStr = Field(max_length=128, pattern=r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$")
+    api_prefix: StrictStr = Field(max_length=64, pattern=r"^(?:/[A-Za-z0-9_-]+)*$")
+
+
+class SnapshotCandidate(Contract):
+    snapshot_id: StrictStr = Field(min_length=1, max_length=128)
+    manifest_sha256: StrictStr = Field(pattern=r"^[a-f0-9]{64}$")
+    adapter: CandidateAdapter
+
+
+class ComparisonCreate(SnapshotCandidate):
+    timeout_seconds: Optional[StrictFloat | StrictInt] = Field(default=None, gt=0, le=1800)
+    reference_code_hash: StrictStr = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class ComparisonDifference(Contract):
+    scenario_id: str
+    transition_id: str | None
+    requirement_ids: list[str]
+    message: str | None
+
+
+class CandidateComparison(Contract):
+    status: Literal["pending", "matches", "mismatch", "incompatible_adapter", "execution_error"]
+    snapshot_id: str
+    commit_sha: str
+    manifest_sha256: str
+    reference_code_hash: str
+    code_hash: str
+    tests_hash: str
+    adapter: CandidateAdapter
+    differences: list[ComparisonDifference]
 
 
 class FileElement(Contract):
@@ -79,7 +125,8 @@ class Generation(Contract):
     status: Literal["completed"]
     target: str
     generator: GeneratorInfo
-    technical_conditions: dict[str, str]
+    technical_conditions: dict[str, str | list[str]]
+    application_mode: Literal["template", "agent"] = "template"
     project_name: str
     verification: Verification
     coverage: Coverage
@@ -153,12 +200,14 @@ class TestRun(Contract):
     sandbox: Optional[SandboxInfo]
     log_available: bool
     log_truncated: Optional[bool]
+    comparison: CandidateComparison | None = None
 
 
 class CodegenStatus(Contract):
     target: str
     generator: GeneratorInfo
     technical_conditions: dict[str, str]
+    supported_conditions: dict[str, list[str]]
     limits: dict[str, StrictInt]
     sandbox_status: Literal["ready", "engine_unavailable"]
     sandbox_reason: Optional[str]

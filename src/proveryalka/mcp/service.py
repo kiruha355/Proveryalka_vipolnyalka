@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 TERMINAL_CHECK = {"completed", "failed", "cancelled"}
 TERMINAL_TEST = {"passed", "failed", "error", "timeout", "cancelled", "engine_unavailable"}
 COMPARISON_LIMITS = [
-    "Only the immutable stored generation identified by generation_id and code_hash is supported.",
+    "The reference is the immutable stored generation identified by generation_id and code_hash.",
     "Tests cover the generated finite model, transition/API cases and saved traces; they are not a proof for arbitrary code.",
     "A passed test run is not a TLC result or a proof of production behavior.",
 ]
@@ -108,9 +108,9 @@ class MCPService:
     async def generation(self, name, request, ref):
         if self.codegen is None:
             raise ServiceError(503, "COMPONENT_UNAVAILABLE", "CodegenService is not connected")
-        if name == "compare_with_code" and request.mode != "stored_generation":
+        if name == "compare_with_code" and request.mode not in {"stored_generation", "repository_snapshot"}:
             return self.result(ref, "unsupported", data={"limitations": COMPARISON_LIMITS},
-                               error={"code": "UNSUPPORTED_CODE", "message": "Arbitrary files, paths, URLs and modified code are unsupported"})
+                               error={"code": "UNSUPPORTED_CODE", "message": "Choose stored_generation or repository_snapshot"})
         record = await asyncio.to_thread(self.codegen.get_generation, request.generation_id)
         if (record["model_id"], record["version_id"], record["spec_hash"], record["code_hash"]) != (
                 ref.model_id, ref.version_id, ref.spec_hash, request.code_hash):
@@ -125,12 +125,40 @@ class MCPService:
                                          "limitations": COMPARISON_LIMITS})
         run_id, terminal = None, False
         try:
-            run = self.codegen.create_test_run(request.generation_id, {"timeout_seconds": request.timeout_seconds}, "mcp-" + uuid4().hex)
+            run_body = {"timeout_seconds": request.timeout_seconds}
+            key = "mcp-" + uuid4().hex
+            if request.mode == "repository_snapshot":
+                if request.candidate is None:
+                    raise ServiceError(422, "CANDIDATE_REQUIRED", "Provide a pinned repository snapshot and its adapter")
+                run_body.update(request.candidate.model_dump(), reference_code_hash=request.code_hash)
+                # Snapshot validation is bounded, and enqueue stays synchronous so cancellation has the run ID.
+                run = self.codegen.create_comparison(request.generation_id, run_body, key)
+            else:
+                if request.candidate is not None:
+                    raise ServiceError(422, "INVALID_REQUEST", "Select repository_snapshot mode for a candidate")
+                run = self.codegen.create_test_run(request.generation_id, run_body, key)
             run_id = run["test_run_id"]
             while True:
                 run = await asyncio.to_thread(self.codegen.get_test_run, run_id)
                 if run["status"] in TERMINAL_TEST:
                     terminal = True
+                    candidate = run.get("comparison")
+                    if candidate is not None:
+                        status = candidate["status"]
+                        verdict = {"matches": "completed", "mismatch": "completed",
+                                   "incompatible_adapter": "unsupported", "execution_error": "error"}[status]
+                        error = None
+                        if verdict == "unsupported":
+                            error = {"code": "INCOMPATIBLE_ADAPTER", "message": "Candidate does not implement the selected adapter"}
+                        elif verdict == "error":
+                            error = {"code": run["error_code"] or "SANDBOX_ERROR", "message": "Comparison execution failed"}
+                        data = {**run, "cases": [], "comparison": {**candidate, "differences": [
+                            {**difference, "message": (difference["message"] or "")[:300]}
+                            for difference in candidate["differences"][:10]
+                        ]}}
+                        return self.result(ref, verdict, data={"test_run": data, "run_path": f"/api/test-runs/{run_id}",
+                                                               "coverage": record["coverage"], "limitations": COMPARISON_LIMITS},
+                                           error=error)
                     # Failed assertions are a completed comparison, technical failures are tool errors.
                     technical = run["status"] != "passed" and (run["status"] != "failed" or run["error_code"] != "TESTS_FAILED")
                     return self.result(ref, "error" if technical else "completed", data={

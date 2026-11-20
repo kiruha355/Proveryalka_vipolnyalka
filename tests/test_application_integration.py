@@ -93,7 +93,7 @@ def test_upgrade_existing_codegen_database_mounts_sources_and_preserves_versions
         assert client.get(f"/api/sessions/{sid}/repositories").json()[0] == snapshot
         assert client.get(f"/api/models/{model['id']}/versions/1").json() == original
     with sqlite3.connect(path) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 11
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 12
 
 
 def _rpc(response):

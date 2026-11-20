@@ -3283,6 +3283,16 @@
             },
             "description": "Too Many Requests"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3376,6 +3386,16 @@
             },
             "description": "Too Many Requests"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3462,6 +3482,16 @@
             },
             "description": "Too Many Requests"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3543,6 +3573,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
           },
           "503": {
             "content": {
@@ -3630,6 +3670,16 @@
             },
             "description": "Too Many Requests"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3714,6 +3764,16 @@
             },
             "description": "Too Many Requests"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3788,6 +3848,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
           },
           "503": {
             "content": {
@@ -3899,6 +3969,16 @@
             },
             "description": "Too Many Requests"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3983,6 +4063,223 @@
             },
             "description": "Too Many Requests"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/generations/{generation_id}/comparisons": {
+      "post": {
+        "tags": [
+          "codegen"
+        ],
+        "summary": "Create Comparison",
+        "operationId": "create_comparison_api_generations__generation_id__comparisons_post",
+        "parameters": [
+          {
+            "name": "generation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Generation Id"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComparisonCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestRun"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "codegen"
+        ],
+        "summary": "List Comparisons",
+        "operationId": "list_comparisons_api_generations__generation_id__comparisons_get",
+        "parameters": [
+          {
+            "name": "generation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Generation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestRun"
+                  },
+                  "title": "Response List Comparisons Api Generations  Generation Id  Comparisons Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -4064,6 +4361,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
           },
           "503": {
             "content": {
@@ -4147,6 +4454,16 @@
             },
             "description": "Too Many Requests"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -4221,6 +4538,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
           },
           "503": {
             "content": {
@@ -5464,6 +5791,98 @@
         ],
         "title": "BooleanDomain"
       },
+      "CandidateAdapter": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "fastapi-evaluate-v1",
+            "title": "Kind"
+          },
+          "module": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$",
+            "title": "Module"
+          },
+          "api_prefix": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^(?:/[A-Za-z0-9_-]+)*$",
+            "title": "Api Prefix"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "module",
+          "api_prefix"
+        ],
+        "title": "CandidateAdapter"
+      },
+      "CandidateComparison": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "matches",
+              "mismatch",
+              "incompatible_adapter",
+              "execution_error"
+            ],
+            "title": "Status"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "title": "Snapshot Id"
+          },
+          "commit_sha": {
+            "type": "string",
+            "title": "Commit Sha"
+          },
+          "manifest_sha256": {
+            "type": "string",
+            "title": "Manifest Sha256"
+          },
+          "reference_code_hash": {
+            "type": "string",
+            "title": "Reference Code Hash"
+          },
+          "code_hash": {
+            "type": "string",
+            "title": "Code Hash"
+          },
+          "tests_hash": {
+            "type": "string",
+            "title": "Tests Hash"
+          },
+          "adapter": {
+            "$ref": "#/components/schemas/CandidateAdapter"
+          },
+          "differences": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonDifference"
+            },
+            "type": "array",
+            "title": "Differences"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "snapshot_id",
+          "commit_sha",
+          "manifest_sha256",
+          "reference_code_hash",
+          "code_hash",
+          "tests_hash",
+          "adapter",
+          "differences"
+        ],
+        "title": "CandidateComparison"
+      },
       "CheckLimits": {
         "properties": {
           "timeout_seconds": {
@@ -5624,6 +6043,16 @@
             "type": "object",
             "title": "Technical Conditions"
           },
+          "supported_conditions": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Supported Conditions"
+          },
           "limits": {
             "additionalProperties": {
               "type": "integer"
@@ -5668,6 +6097,7 @@
           "target",
           "generator",
           "technical_conditions",
+          "supported_conditions",
           "limits",
           "sandbox_status",
           "sandbox_reason",
@@ -5676,6 +6106,104 @@
           "max_timeout_seconds"
         ],
         "title": "CodegenStatus"
+      },
+      "ComparisonCreate": {
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Snapshot Id"
+          },
+          "manifest_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Manifest Sha256"
+          },
+          "adapter": {
+            "$ref": "#/components/schemas/CandidateAdapter"
+          },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "gt": 0,
+                "le": 1800
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout Seconds"
+          },
+          "reference_code_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Reference Code Hash"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "snapshot_id",
+          "manifest_sha256",
+          "adapter",
+          "reference_code_hash"
+        ],
+        "title": "ComparisonCreate"
+      },
+      "ComparisonDifference": {
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "title": "Scenario Id"
+          },
+          "transition_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transition Id"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requirement Ids"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "scenario_id",
+          "transition_id",
+          "requirement_ids",
+          "message"
+        ],
+        "title": "ComparisonDifference"
       },
       "Coverage": {
         "properties": {
@@ -6437,10 +6965,29 @@
           },
           "technical_conditions": {
             "additionalProperties": {
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
             },
             "type": "object",
             "title": "Technical Conditions"
+          },
+          "application_mode": {
+            "type": "string",
+            "enum": [
+              "template",
+              "agent"
+            ],
+            "title": "Application Mode",
+            "default": "template"
           },
           "project_name": {
             "type": "string",
@@ -6508,6 +7055,25 @@
             "type": "boolean",
             "title": "Allow Unverified",
             "default": false
+          },
+          "technical_conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalConditionsInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "application_mode": {
+            "type": "string",
+            "enum": [
+              "template",
+              "agent"
+            ],
+            "title": "Application Mode",
+            "default": "template"
           }
         },
         "additionalProperties": false,
@@ -8154,6 +8720,76 @@
         ],
         "title": "SourceRef"
       },
+      "TechnicalConditionsInput": {
+        "properties": {
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platform"
+          },
+          "api_prefix": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Prefix"
+          },
+          "storage": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage"
+          },
+          "integrations": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Integrations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TechnicalConditionsInput"
+      },
       "TestCase": {
         "properties": {
           "name": {
@@ -8429,6 +9065,16 @@
               }
             ],
             "title": "Log Truncated"
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CandidateComparison"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,

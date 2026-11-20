@@ -14,6 +14,9 @@ from fastapi.testclient import TestClient
 
 from proveryalka.codegen.sandbox import DockerSandbox, SandboxUnavailable
 from proveryalka.codegen.settings import CodegenSettings
+from proveryalka.codegen.application import render_application
+from proveryalka.codegen.project import Provenance, generate_project
+from proveryalka.verification import spec_hash
 from test_codegen import generate, load
 from test_codegen_api import HOLDS, add_version, build, complete_check
 
@@ -60,6 +63,24 @@ def test_generated_project_passes_in_sandbox(name):
     assert result["python"].startswith("3.11.")
     assert result["sandbox"]["network"] == "none" and result["sandbox"]["image_id"].startswith("sha256:")
     assert no_container(f"trun_ok{name.replace('_', '')}")
+
+
+@pytest.mark.parametrize("name", ["order_fixed", "tickets"])
+def test_named_actions_and_sqlite_projects_run_in_sandbox(name):
+    model = load(name)
+    plans = {"actions": [{"name": f"action_{index}", "transition_id": item.id}
+                         for index, item in enumerate(model.transitions)]}
+    project = generate_project(
+        model, Provenance("v_test", spec_hash(model)),
+        conditions={"language": "python", "platform": "fastapi", "api_prefix": "/api/v1",
+                    "storage": "sqlite", "integrations": []},
+        application_files=render_application(plans, model),
+    )
+    result, log = run([(item.path, item.content) for item in project.files], f"trun_sqlite{name}")
+    assert result["status"] == "passed", log
+    passed = {case["name"] for case in result["cases"] if case["outcome"] == "passed"}
+    assert {"test_named_actions_use_event_api", "test_instances_survive_reopening_database",
+            "test_concurrent_writes_serialize_across_app_instances"} <= passed
 
 
 def test_wrong_implementation_fails():

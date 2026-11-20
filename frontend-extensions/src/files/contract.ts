@@ -59,7 +59,8 @@ export type Generation = {
   status: "completed";
   target: string;
   generator: { name: string; version: string };
-  technical_conditions: Record<string, string>;
+  technical_conditions: Record<string, string | string[]>;
+  application_mode?: "template" | "agent";
   /** ASCII-slug, корневая папка в ZIP. */
   project_name: string;
   verification: {
@@ -155,6 +156,7 @@ export type CodegenStatus = {
   target: string;
   generator: { name: string; version: string };
   technical_conditions: Record<string, string>;
+  supported_conditions?: Record<string, string[]>;
   limits: Record<string, number>;
   sandbox_status: "ready" | "engine_unavailable";
   sandbox_reason: string | null;

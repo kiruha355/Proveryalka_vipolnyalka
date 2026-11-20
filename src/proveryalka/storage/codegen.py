@@ -169,13 +169,17 @@ class CodegenStore:
 
     def _test_run(self, connection, test_run_id):
         row = connection.execute(
-            "SELECT t.*,g.version_id,g.spec_hash,g.code_hash FROM codegen_test_runs t JOIN codegen_generations g ON g.generation_id=t.generation_id WHERE t.test_run_id=?",
+            """SELECT t.*,g.version_id,g.spec_hash,g.code_hash,c.comparison_json
+               FROM codegen_test_runs t
+               JOIN codegen_generations g ON g.generation_id=t.generation_id
+               LEFT JOIN codegen_candidate_comparisons c ON c.test_run_id=t.test_run_id
+               WHERE t.test_run_id=?""",
             (test_run_id,),
         ).fetchone()
         if row is None:
             raise ServiceError(404, "NOT_FOUND", "Test run not found")
         result = json.loads(row["result_json"]) if row["result_json"] else {}
-        return {
+        run = {
             "test_run_id": row["test_run_id"], "generation_id": row["generation_id"], "session_id": row["session_id"],
             "version_id": row["version_id"], "spec_hash": row["spec_hash"], "code_hash": row["code_hash"],
             "status": row["status"], "error_code": row["error_code"], "message": result.get("message"),
@@ -186,19 +190,29 @@ class CodegenStore:
             "sandbox": result.get("sandbox"), "log_available": row["log"] is not None,
             "log_truncated": result.get("log_truncated"),
         }
+        if row["comparison_json"] is not None:
+            comparison = json.loads(row["comparison_json"])
+            comparison.update(result.get("comparison") or {
+                "status": "execution_error" if row["status"] in TERMINAL else "pending", "differences": [],
+            })
+            run.update(code_hash=comparison["code_hash"], comparison=comparison)
+        return run
 
     def get_test_run(self, test_run_id):
         with self.transaction() as connection:
             return self._test_run(connection, test_run_id)
 
-    def list_test_runs(self, generation_id):
+    def list_test_runs(self, generation_id, comparisons=False):
         with self.transaction() as connection:
             self._generation(connection, generation_id)
             ids = [row[0] for row in connection.execute(
-                "SELECT test_run_id FROM codegen_test_runs WHERE generation_id=? ORDER BY created_at,rowid", (generation_id,))]
+                """SELECT t.test_run_id FROM codegen_test_runs t
+                   LEFT JOIN codegen_candidate_comparisons c ON c.test_run_id=t.test_run_id
+                   WHERE t.generation_id=? AND (c.test_run_id IS NOT NULL)=?
+                   ORDER BY t.created_at,t.rowid""", (generation_id, comparisons))]
             return [self._test_run(connection, test_run_id) for test_run_id in ids]
 
-    def create_test_run(self, generation_id, body, key, timeout_seconds, max_pending):
+    def create_test_run(self, generation_id, body, key, timeout_seconds, max_pending, comparison=None):
         with self.transaction(write=True) as connection:
             record = self._generation(connection, generation_id)
 
@@ -211,8 +225,12 @@ class CodegenStore:
                     "INSERT INTO codegen_test_runs(test_run_id,generation_id,session_id,status,timeout_seconds,created_at) VALUES (?,?,?,'queued',?,?)",
                     (test_run_id, generation_id, record["session_id"], timeout_seconds, now()),
                 )
+                if comparison is not None:
+                    connection.execute("INSERT INTO codegen_candidate_comparisons VALUES (?,?,?)",
+                                       (test_run_id, comparison["snapshot_id"], encode(comparison)))
                 return self._test_run(connection, test_run_id)
-            return self.store._idempotent(connection, f"codegen:test:{generation_id}", key, body, action)
+            operation = "compare" if comparison is not None else "test"
+            return self.store._idempotent(connection, f"codegen:{operation}:{generation_id}", key, body, action)
 
     def claim_test_run(self, test_run_id):
         with self.transaction(write=True) as connection:

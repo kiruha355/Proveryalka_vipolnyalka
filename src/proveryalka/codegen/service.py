@@ -16,11 +16,15 @@ from ..services import ServiceError
 from ..storage.codegen import CodegenStore, ensure_schema
 from ..storage.sqlite import now
 from ..verification import spec_hash
-from .dto import GenerationCreate, TestRunCreate
+from . import comparison
+from .dto import ComparisonCreate, GenerationCreate, TestRunCreate
 from .paths import UnsafePath, build_archive, safe_path
 from .project import Provenance, generate_project
 from .sandbox import DockerSandbox, SandboxUnavailable
-from .scope import GENERATOR_NAME, GENERATOR_VERSION, LIMITS, TARGET, TECHNICAL_CONDITIONS, UnsupportedModel, check_supported
+from .scope import (
+    GENERATOR_NAME, GENERATOR_VERSION, LIMITS, SUPPORTED_CONDITIONS, TARGET, TECHNICAL_CONDITIONS,
+    UnsupportedModel, check_supported, condition_issues, technical_conditions,
+)
 from .settings import CodegenSettings
 
 
@@ -34,10 +38,11 @@ class CodegenError(ServiceError):
 
 
 class CodegenService:
-    def __init__(self, store, settings=None, sandbox=None):
+    def __init__(self, store, settings=None, sandbox=None, planner=None):
         self.settings = settings or CodegenSettings.from_env()
         self.repo = CodegenStore(store)
         self.sandbox = sandbox or DockerSandbox(self.settings)
+        self.planner = planner
         self.loop = None
         self.semaphore = None
         self.tasks = {}
@@ -81,10 +86,52 @@ class CodegenService:
     # Генерация
 
     def generate(self, model_id, number, body, key):
+        prepared = self.prepare_generation(model_id, number, body, key)
+        if isinstance(prepared, dict):
+            return prepared
+        if prepared[1].get("application_mode") == "agent":
+            raise CodegenError(422, "INVALID_REQUEST", "Use the asynchronous generation endpoint for agent mode")
+        return self.save_generation(prepared, key)
+
+    async def generate_request(self, model_id, number, body, key):
+        prepared = await asyncio.to_thread(self.prepare_generation, model_id, number, body, key)
+        if isinstance(prepared, dict):
+            return prepared
+        _, request, _, _, model = prepared
+        application_files = ()
+        if request.get("application_mode") == "agent":
+            from .application import plan_application, render_application
+
+            transitions = [{"id": item.id, "name": item.name, "requirement_ids": item.requirement_ids}
+                           for item in model.transitions]
+            try:
+                plan = await asyncio.wait_for(
+                    (self.planner or plan_application)(request["technical_conditions"], transitions), timeout=120,
+                )
+                application_files = render_application(plan, model)
+            except ValueError as error:
+                raise CodegenError(502, "INVALID_APPLICATION_PLAN", "Agent plan does not match the approved model") from error
+            except Exception as error:
+                logger.warning("codegen_application_planner_failed type=%s", type(error).__name__)
+                raise CodegenError(503, "APPLICATION_PLANNER_FAILED", "Application agent did not produce a plan") from error
+        return await asyncio.to_thread(self.save_generation, prepared, key, application_files)
+
+    def prepare_generation(self, model_id, number, body, key):
         try:
-            body = GenerationCreate.model_validate(body).model_dump()
+            request = GenerationCreate.model_validate(body)
         except ValidationError as error:
             raise CodegenError(422, "INVALID_REQUEST", "Invalid generation request") from error
+        body = request.model_dump()
+        conditions = body.pop("technical_conditions")
+        if body["application_mode"] == "template":
+            body.pop("application_mode")
+        if conditions is not None or request.application_mode == "agent":
+            missing, unsupported = condition_issues(conditions or {})
+            if unsupported:
+                raise CodegenError(422, "UNSUPPORTED_TECHNICAL_CONDITIONS", "Unsupported technical conditions", unsupported)
+            if missing:
+                raise CodegenError(422, "CONDITIONS_INCOMPLETE", "Confirm all required technical conditions", missing)
+            body["technical_conditions"] = conditions
         scope = f"codegen:generate:{model_id}:{number}"
         previous = self.repo.replay(scope, key, body)
         if previous is not None:
@@ -108,13 +155,20 @@ class CodegenService:
             raise CodegenError(409, "VERIFICATION_REQUIRED",
                                f"TLC verification state is {snapshot['state']}; confirm generation with allow_unverified=true", details)
         snapshot["acknowledged"] = snapshot["state"] != "holds"
-        project = generate_project(model, Provenance(version["id"], version["spec_hash"], snapshot), body["target"])
+        return scope, body, version, snapshot, model
+
+    def save_generation(self, prepared, key, application_files=()):
+        scope, body, version, snapshot, model = prepared
+        conditions = body.get("technical_conditions")
+        project = generate_project(model, Provenance(version["id"], version["spec_hash"], snapshot), body["target"],
+                                   conditions=conditions, application_files=application_files)
         record = {
             "generation_id": "gen_" + uuid4().hex, "session_id": version["session_id"], "model_id": version["model_id"],
             "version_id": version["id"], "version_number": version["number"], "spec_hash": version["spec_hash"],
             "code_hash": project.code_hash, "status": "completed", "target": body["target"],
             "generator": {"name": GENERATOR_NAME, "version": GENERATOR_VERSION},
-            "technical_conditions": TECHNICAL_CONDITIONS, "project_name": project.name,
+            "technical_conditions": technical_conditions(conditions), "project_name": project.name,
+            "application_mode": body.get("application_mode", "template"),
             "verification": project.verification, "coverage": project.coverage,
             "file_count": len(project.files), "total_bytes": sum(len(item.content) for item in project.files),
             "created_at": now(),
@@ -147,18 +201,30 @@ class CodegenService:
     # Запуски тестов
 
     def create_test_run(self, generation_id, body, key):
-        if self.closing:
-            raise CodegenError(503, "SHUTTING_DOWN", "Server is shutting down")
-        if self.loop is None:
-            raise CodegenError(503, "COMPONENT_UNAVAILABLE", "Code generation executor is not started")
         try:
             body = TestRunCreate.model_validate(body).model_dump()
         except ValidationError as error:
             raise CodegenError(422, "INVALID_REQUEST", "Invalid test run request") from error
+        return self.enqueue_test_run(generation_id, body, key)
+
+    def create_comparison(self, generation_id, body, key):
+        try:
+            body = ComparisonCreate.model_validate(body).model_dump()
+        except ValidationError as error:
+            raise CodegenError(422, "INVALID_REQUEST", "Invalid comparison request") from error
+        record, files = self.repo.project(generation_id)
+        info, _, _ = comparison.prepare(self.repo.store, record, files, body)
+        return self.enqueue_test_run(generation_id, body, key, info)
+
+    def enqueue_test_run(self, generation_id, body, key, info=None):
+        if self.closing:
+            raise CodegenError(503, "SHUTTING_DOWN", "Server is shutting down")
+        if self.loop is None:
+            raise CodegenError(503, "COMPONENT_UNAVAILABLE", "Code generation executor is not started")
         timeout = float(body["timeout_seconds"] or self.settings.test_timeout_seconds)
         if timeout > self.settings.max_test_timeout_seconds:
             raise CodegenError(422, "INVALID_TIMEOUT", f"timeout_seconds must not exceed {self.settings.max_test_timeout_seconds:g}")
-        run = self.repo.create_test_run(generation_id, body, key, timeout, self.settings.max_pending)
+        run = self.repo.create_test_run(generation_id, body, key, timeout, self.settings.max_pending, info)
         if run["status"] == "queued":
             self.loop.call_soon_threadsafe(self.schedule, run["test_run_id"])
         return run
@@ -168,6 +234,9 @@ class CodegenService:
 
     def list_test_runs(self, generation_id):
         return self.repo.list_test_runs(generation_id)
+
+    def list_comparisons(self, generation_id):
+        return self.repo.list_test_runs(generation_id, comparisons=True)
 
     def test_run_log(self, test_run_id):
         return self.repo.log(test_run_id)
@@ -206,12 +275,28 @@ class CodegenService:
                 if row is None:
                     return
                 try:
-                    _, files = await asyncio.to_thread(self.repo.project, row["generation_id"])
+                    record, files = await asyncio.to_thread(self.repo.project, row["generation_id"])
+                    run = await asyncio.to_thread(self.repo.get_test_run, test_run_id)
+                    saved = run.get("comparison")
+                    cases = None
+                    if saved is None:
+                        job = [(item.path, item.content) for item in files]
+                    else:
+                        info, job, cases = await asyncio.to_thread(comparison.prepare, self.repo.store, record, files, saved)
+                        if any(saved[key] != value for key, value in info.items()):
+                            raise CodegenError(409, "COMPARISON_HASH_MISMATCH", "Pinned comparison inputs changed")
                 except ServiceError as error:
                     await asyncio.to_thread(finish, test_run_id, "error", error.code, {"message": error.message})
                     return
-                result, log = await self.sandbox.run([(item.path, item.content) for item in files], run_id=test_run_id,
+                result, log = await self.sandbox.run(job, run_id=test_run_id,
                                                      timeout_seconds=row["timeout_seconds"], stop=self.stops.get(test_run_id))
+                if cases is not None:
+                    result["comparison"] = comparison.comparison_result(result, cases)
+                    verdict = result["comparison"]["status"]
+                    if verdict == "incompatible_adapter":
+                        result.update(error_code="INCOMPATIBLE_ADAPTER")
+                    elif verdict == "execution_error" and result["error_code"] in {None, "TESTS_FAILED"}:
+                        result.update(status="error", error_code="COMPARISON_EXECUTION_ERROR")
                 if result["status"] == "cancelled" and self.closing:
                     current = await asyncio.to_thread(self.repo.get_test_run, test_run_id)
                     if not current["cancel_requested"]:
@@ -232,7 +317,7 @@ class CodegenService:
         except (SandboxUnavailable, asyncio.TimeoutError) as error:
             state, reason = "engine_unavailable", str(error) or "Docker did not answer"
         return {"target": TARGET, "generator": {"name": GENERATOR_NAME, "version": GENERATOR_VERSION},
-                "technical_conditions": TECHNICAL_CONDITIONS, "limits": LIMITS,
+                "technical_conditions": TECHNICAL_CONDITIONS, "supported_conditions": SUPPORTED_CONDITIONS, "limits": LIMITS,
                 "sandbox_status": state, "sandbox_reason": reason, "sandbox": policy,
                 "default_timeout_seconds": self.settings.test_timeout_seconds,
                 "max_timeout_seconds": self.settings.max_test_timeout_seconds}

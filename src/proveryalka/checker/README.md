@@ -65,7 +65,10 @@ python -m proveryalka.checker < request.json > report.json
 
 Последняя форма — протокол `CommandChecker`: `VerificationRequest` в stdin, `VerificationReport` в stdout,
 код 0 при любом статусе проверки. Некорректный вход даёт код 2 и список проблем с путями к полям в stderr.
-`schema model|request|report` печатает JSON Schema контрактов.
+`schema model|request|result|report` печатает JSON Schema контрактов. Канонические примеры
+BehavioralModel с нарушением и исправлением доступны в
+[`order_bug.json`](../../../tests/fixtures/models/order_bug.json) и
+[`order_fixed.json`](../../../tests/fixtures/models/order_fixed.json).
 
 ## Поддерживаемый DSL
 
