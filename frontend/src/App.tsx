@@ -60,7 +60,16 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   const [connectionOpen, setConnectionOpen] = useState(false);
   const [capabilities, retryCapabilities] = useLoad<ApiCapabilities>((signal) => api.capabilities(signal), [api]);
   const [sessions, reloadSessions] = useLoad<Session[]>((signal) => api.listSessions(signal), [api]);
-  const [ready, recheckReady] = useLoad<ReadyInfo>((signal) => api.ready(signal), [api]);
+  const [ready] = useLoad<ReadyInfo>((signal) => api.ready(signal), [api]);
+
+  const checkReady = useCallback((targetUrl: string, signal: AbortSignal): Promise<ReadyInfo> => {
+    const normalized = targetUrl.trim().replace(/\/+$/, "");
+    const currentNormalized = prefs.baseUrl.trim().replace(/\/+$/, "");
+    if (initialApi && prefs.adapter === "http" && normalized === currentNormalized) {
+      return initialApi.ready(signal);
+    }
+    return new HttpApi(normalized).ready(signal);
+  }, [initialApi, prefs.adapter, prefs.baseUrl]);
 
   const update = (patch: Partial<Prefs>) => setPrefs((p) => {
     const next = { ...p, ...patch };
@@ -86,7 +95,7 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   const tone = prefs.adapter === "demo" ? "demo" : capabilities.error !== null ? "error" : caps ? "ok" : "pending";
   const connectionLabel = prefs.adapter === "demo" ? "Демо: записанные данные"
     : capabilities.error !== null ? "Сервер недоступен"
-      : caps ? `Сервер ${prefs.baseUrl || "через proxy"}` : "Подключение…";
+      : caps ? (prefs.baseUrl ? `Сервер ${prefs.baseUrl}` : "Сервер подключён") : "Подключение…";
 
   let main;
   if (!caps) {
@@ -125,7 +134,7 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
       {sidebarOpen && <PaneSeparator pane={sidebarPane} label="Ширина списка сессий"/>}
       <main className="main">{main}</main>
       {connectionOpen && (
-        <ConnectionDialog adapter={prefs.adapter} baseUrl={prefs.baseUrl} ready={ready} onCheckReady={recheckReady}
+        <ConnectionDialog adapter={prefs.adapter} baseUrl={prefs.baseUrl} ready={ready} onCheckReady={checkReady}
           onClose={() => setConnectionOpen(false)}
           onApply={(adapter, baseUrl) => {
             setConnectionOpen(false);

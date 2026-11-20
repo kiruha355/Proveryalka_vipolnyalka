@@ -1,0 +1,223 @@
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { App } from "../App";
+import { ApiError } from "../api/errors";
+import type { ReadyInfo } from "../api/types";
+import { savePrefs } from "../state/persist";
+import { ConnectionDialog } from "./ConnectionDialog";
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+describe("ConnectionDialog", () => {
+  it("hides technical proxy/GPT/ready details from primary text and puts diagnostics in <details>", async () => {
+    const user = userEvent.setup();
+    render(
+      <ConnectionDialog
+        adapter="http"
+        baseUrl=""
+        ready={{ data: { status: "ready", checker: "tlc 2.19", agent_configured: true }, error: null, loading: false }}
+        onApply={vi.fn()}
+        onCheckReady={vi.fn(async () => ({ status: "ready" }))}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Подключение" });
+    const details = dialog.querySelector("details")!;
+    expect(details).toBeTruthy();
+    expect(details).not.toHaveAttribute("open");
+
+    // Primary text outside <details> must not leak proxy, GPT, /ready or raw checker string.
+    const clone = dialog.cloneNode(true) as HTMLElement;
+    clone.querySelector("details")?.remove();
+    const primaryText = clone.textContent ?? "";
+    expect(primaryText).not.toMatch(/\bproxy\b/i);
+    expect(primaryText).not.toMatch(/\bGPT\b/i);
+    expect(primaryText).not.toContain("/ready");
+    expect(primaryText).not.toContain("tlc 2.19");
+    expect(screen.getByPlaceholderText("Оставьте пустым для текущего адреса")).toBeInTheDocument();
+    expect(screen.getByText("Сервер доступен")).toBeInTheDocument();
+
+    // Technical diagnostics live inside expandable <details>.
+    await user.click(screen.getByText("Технические сведения"));
+    expect(details).toHaveAttribute("open");
+    expect(within(details).getByText("/ready")).toBeInTheDocument();
+    expect(within(details).getByText("tlc 2.19")).toBeInTheDocument();
+  });
+
+  it("checks the newly entered URL B while saved URL A stays unapplied, and resets stale status on edit", async () => {
+    const user = userEvent.setup();
+    const onApply = vi.fn();
+    const onCheckReady = vi.fn<(url: string, signal: AbortSignal) => Promise<ReadyInfo>>(
+      async () => ({ status: "ready", checker: "tlc-b", agent_configured: true }),
+    );
+
+    render(
+      <ConnectionDialog
+        adapter="http"
+        baseUrl="http://server-a.local:8000"
+        ready={{ data: { status: "ready", checker: "tlc-a" }, error: null, loading: false }}
+        onApply={onApply}
+        onCheckReady={onCheckReady}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Сервер доступен: http://server-a.local:8000")).toBeInTheDocument();
+
+    const input = screen.getByLabelText("Адрес API");
+    await user.clear(input);
+    await user.type(input, "http://server-b.local:9000/");
+
+    // Editing resets previous result immediately.
+    expect(screen.queryByText(/Сервер доступен/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Адрес изменён/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Проверить" }));
+    expect(onCheckReady).toHaveBeenCalledTimes(1);
+    expect(onCheckReady.mock.calls[0]![0]).toBe("http://server-b.local:9000");
+    expect(onCheckReady.mock.calls[0]![1]).toBeInstanceOf(AbortSignal);
+    expect(onApply).not.toHaveBeenCalled();
+
+    expect(await screen.findByText("Сервер доступен: http://server-b.local:9000")).toBeInTheDocument();
+
+    await user.click(screen.getByText("Технические сведения"));
+    expect(screen.getByText("http://server-b.local:9000/ready")).toBeInTheDocument();
+    expect(screen.getByText("tlc-b")).toBeInTheDocument();
+  });
+
+  it("aborts an in-flight probe when the URL changes and ignores late responses", async () => {
+    const user = userEvent.setup();
+    const first = deferred<ReadyInfo>();
+    const signals: AbortSignal[] = [];
+    const onCheckReady = vi.fn<(url: string, signal: AbortSignal) => Promise<ReadyInfo>>(
+      (_url, signal) => {
+        signals.push(signal);
+        return first.promise;
+      },
+    );
+
+    render(
+      <ConnectionDialog
+        adapter="http"
+        baseUrl="http://server-a.local:8000"
+        ready={{ data: null, error: null, loading: false }}
+        onApply={vi.fn()}
+        onCheckReady={onCheckReady}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByLabelText("Адрес API");
+    await user.clear(input);
+    await user.type(input, "http://slow-b.local:9000");
+    await user.click(screen.getByRole("button", { name: "Проверить" }));
+    expect(screen.getByText("Проверка подключения…")).toBeInTheDocument();
+    expect(signals[0]?.aborted).toBe(false);
+
+    // Edit URL while check for slow-b is still in flight.
+    await user.type(input, "/v2");
+    expect(signals[0]?.aborted).toBe(true);
+    expect(screen.queryByText("Проверка подключения…")).not.toBeInTheDocument();
+
+    // Late resolution from aborted request must not populate UI.
+    first.resolve({ status: "ready", checker: "stale-tlc" });
+    await Promise.resolve();
+    expect(screen.queryByText(/Сервер доступен/)).not.toBeInTheDocument();
+  });
+
+  it("shows check error for the checked URL and clears it when editing", async () => {
+    const user = userEvent.setup();
+    const onCheckReady = vi.fn<(url: string, signal: AbortSignal) => Promise<ReadyInfo>>(
+      async () => {
+        throw new ApiError("network", "Failed to fetch");
+      },
+    );
+
+    render(
+      <ConnectionDialog
+        adapter="http"
+        baseUrl="http://server-a.local:8000"
+        ready={{ data: { status: "ready" }, error: null, loading: false }}
+        onApply={vi.fn()}
+        onCheckReady={onCheckReady}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByLabelText("Адрес API");
+    await user.clear(input);
+    await user.type(input, "http://offline-b.local:9999");
+    await user.click(screen.getByRole("button", { name: "Проверить" }));
+
+    expect(await screen.findByText(/Ошибка для http:\/\/offline-b\.local:9999/)).toBeInTheDocument();
+
+    await user.type(input, "1");
+    expect(screen.queryByText(/Ошибка для/)).not.toBeInTheDocument();
+  });
+
+  it("App checks entered URL B against B/ready without applying it and hides proxy from sidebar label", async () => {
+    savePrefs({ adapter: "http", baseUrl: "", lastSession: {}, sidebarOpen: true });
+    const requests: string[] = [];
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      requests.push(url);
+      if (url === "/openapi.json") {
+        return new Response(JSON.stringify({ paths: { "/api/sessions": {} }, components: { schemas: {} } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url === "/api/sessions?limit=200") {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url === "/ready") {
+        return new Response(JSON.stringify({ status: "ready", checker: "tlc-saved" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url === "http://server-b.example:8080/ready") {
+        return new Response(JSON.stringify({ status: "ready", checker: "tlc-new-b" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: { code: "NOT_FOUND", message: "Not found" } }), { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      const user = userEvent.setup();
+      render(<App />);
+
+      const connectionBtn = await screen.findByRole("button", { name: /Подключение: Сервер подключён/ });
+      expect(connectionBtn.textContent).not.toMatch(/proxy/i);
+
+      await user.click(connectionBtn);
+      const input = screen.getByLabelText("Адрес API");
+      await user.type(input, "http://server-b.example:8080");
+      await user.click(screen.getByRole("button", { name: "Проверить" }));
+
+      await waitFor(() => expect(requests).toContain("http://server-b.example:8080/ready"));
+      expect(await screen.findByText("Сервер доступен: http://server-b.example:8080")).toBeInTheDocument();
+
+      // Connection has NOT been applied yet: no openapi/sessions calls to server-b.
+      expect(requests.some((u) => u.startsWith("http://server-b.example:8080/openapi.json"))).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

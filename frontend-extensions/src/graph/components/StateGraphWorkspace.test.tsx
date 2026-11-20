@@ -11,6 +11,14 @@ import {
   ORDER_VERSIONS,
   TLC_ORDER_BUG_RESULT,
 } from "../../fixtures/order-versions";
+import {
+  computeGraphBounds,
+  computeReadableViewport,
+  READABLE_DESKTOP_MIN_ZOOM,
+  READABLE_MOBILE_MIN_ZOOM,
+} from "./StateGraphCanvas";
+import { layoutProjection } from "../layout";
+import { projectModel } from "../projection";
 import { StateGraphWorkspace } from "./StateGraphWorkspace";
 
 function Harness({
@@ -358,5 +366,116 @@ describe("controls and expanded diagram", () => {
     await user.click(await screen.findByRole("button",{name:"Развернуть диаграмму"}));
     expect(outside).toHaveAttribute("inert");unmount();expect(outside).not.toHaveAttribute("inert");
     expect(document.body.style.overflow).not.toBe("hidden");outside.remove();
+  });
+
+  it("keeps readable starting zoom (>= 85%) and left-aligned panning on narrow mobile screens (374x833)", async () => {
+    const projected = projectModel(ORDER_VERSIONS[0]!.spec, ["status"]);
+    expect(projected.ok).toBe(true);
+    if (!projected.ok) return;
+    const layout = layoutProjection(projected.projection);
+    const bounds = computeGraphBounds(layout);
+
+    // Narrow mobile canvas inside 374x833 viewport (~346x460).
+    const mobile = computeReadableViewport(346, 460, bounds);
+    expect(mobile.zoom).toBeGreaterThanOrEqual(READABLE_MOBILE_MIN_ZOOM);
+    expect(mobile.zoom).toBeLessThanOrEqual(1.1);
+    expect(mobile.clippedX).toBe(true);
+    // Leftmost initial node stays visible inside left padding rather than cut off.
+    expect(mobile.x + bounds.x * mobile.zoom).toBeGreaterThanOrEqual(12);
+    expect(mobile.y + bounds.y * mobile.zoom).toBeGreaterThanOrEqual(48);
+
+    // Desktop canvas inside 1440x900 viewport (~920x620) fits cleanly centered.
+    const desktop = computeReadableViewport(920, 620, bounds);
+    expect(desktop.zoom).toBeGreaterThanOrEqual(READABLE_DESKTOP_MIN_ZOOM);
+    expect(desktop.zoom).toBeLessThanOrEqual(1.1);
+    expect(desktop.clippedX).toBe(false);
+
+    // Long stage names still stay readable on both mobile and desktop.
+    const longBounds = { x: 0, y: 0, width: 1680, height: 220 };
+    const longMobile = computeReadableViewport(346, 460, longBounds);
+    const longDesktop = computeReadableViewport(920, 620, longBounds);
+    expect(longMobile.zoom).toBeGreaterThanOrEqual(READABLE_MOBILE_MIN_ZOOM);
+    expect(longDesktop.zoom).toBeGreaterThanOrEqual(READABLE_DESKTOP_MIN_ZOOM);
+  });
+
+  it("applies readable zoom readout and keeps controls operable for long-name graph at 374px width", async () => {
+    const origGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+    const rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains("react-flow")) {
+        return {
+          x: 0, y: 0, left: 0, top: 0, right: 346, bottom: 440,
+          width: 346, height: 440, toJSON: () => ({}),
+        } as DOMRect;
+      }
+      return origGetBoundingClientRect.call(this);
+    });
+
+    try {
+      const longSpec = structuredClone(ORDER_VERSIONS[0]!.spec);
+      longSpec.variables = longSpec.variables.map((v) =>
+        v.id === "status"
+          ? {
+              ...v,
+              domain: {
+                kind: "enum",
+                values: [
+                  "Черновик заявки на согласование",
+                  "Ожидает подтверждения финансового контролёра",
+                  "Отменена инициатором до исполнения",
+                  "Исполнена и закрыта в реестре",
+                ],
+              },
+              initial_value: "Черновик заявки на согласование",
+            }
+          : v,
+      );
+      longSpec.transitions = [
+        {
+          ...longSpec.transitions[0]!,
+          name: "Отправить на согласование контролёру",
+          guard: { kind: "binary", op: "eq", left: { kind: "variable", name: "status" }, right: { kind: "literal", value: "Черновик заявки на согласование" } },
+          effects: [{ variable: "status", value: { kind: "literal", value: "Ожидает подтверждения финансового контролёра" } }],
+        },
+        {
+          ...longSpec.transitions[1]!,
+          name: "Подтвердить и передать в исполнение",
+          guard: { kind: "binary", op: "eq", left: { kind: "variable", name: "status" }, right: { kind: "literal", value: "Ожидает подтверждения финансового контролёра" } },
+          effects: [{ variable: "status", value: { kind: "literal", value: "Исполнена и закрыта в реестре" } }],
+        },
+        {
+          ...longSpec.transitions[2]!,
+          name: "Отменить заявку на любом этапе проверки",
+          guard: { kind: "binary", op: "ne", left: { kind: "variable", name: "status" }, right: { kind: "literal", value: "Исполнена и закрыта в реестре" } },
+          effects: [{ variable: "status", value: { kind: "literal", value: "Отменена инициатором до исполнения" } }],
+        },
+      ];
+      const longVersion: ModelVersion = {
+        ...ORDER_VERSIONS[0]!,
+        id: "v_long_names",
+        spec: longSpec,
+        spec_hash: computeSpecHash(longSpec),
+      };
+
+      render(
+        <div style={{ width: 374, height: 833 }}>
+          <StateGraphWorkspace
+            versions={[longVersion]}
+            selectedVersionId={longVersion.id}
+            onSelectVersion={() => {}}
+          />
+        </div>,
+      );
+
+      const toolbar = await screen.findByRole("toolbar", { name: "Управление диаграммой" });
+      const zoomButton = within(toolbar).getByRole("button", { name: /сбросить до 100%/ });
+      await waitFor(() => {
+        const pct = Number.parseInt(zoomButton.textContent ?? "0", 10);
+        expect(pct).toBeGreaterThanOrEqual(85);
+      });
+      expect(within(toolbar).getByRole("button", { name: "Развернуть диаграмму" })).toBeInTheDocument();
+      expect(screen.getByText("Черновик заявки на согласование")).toBeInTheDocument();
+    } finally {
+      rectSpy.mockRestore();
+    }
   });
 });
