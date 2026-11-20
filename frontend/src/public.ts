@@ -8,7 +8,7 @@ export { ApiError, describeError, describeCode } from "./api/errors";
 export type {
   ExtensionModule, InspectorSectionDefinition, WorkspaceViewDefinition, WorkspaceViewProps,
 } from "./app/extensions";
-export type { ElementRef, TraceFocus, TraceTarget, WorkspaceContextValue, WorkspaceSelection } from "./app/workspace";
+export type { ElementRef, TraceFocus, TraceTarget, WorkspaceContextValue, WorkspaceLocation, WorkspaceSelection } from "./app/workspace";
 export { useWorkspace } from "./app/workspace";
 export type { AgentRunView, CheckRunView, Loadable } from "./state/types";
 

@@ -77,10 +77,16 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   }, [api.id]);
 
   useEffect(() => {
-    if (route.sessionId && prefs.lastSession[api.id] !== route.sessionId) {
+    if (!route.error && route.sessionId && prefs.lastSession[api.id] !== route.sessionId) {
       update({ lastSession: { ...prefs.lastSession, [api.id]: route.sessionId } });
     }
-  }, [route.sessionId, api.id]);
+  }, [route.error, route.sessionId, api.id]);
+
+  const returnToChats = () => {
+    if (narrow) setOverlayOpen(true);
+    else if (!prefs.sidebarOpen) update({ sidebarOpen: true });
+    navigate({ sessionId: null });
+  };
 
   const caps = capabilities.data;
   const tone = prefs.adapter === "demo" ? "demo" : capabilities.error !== null ? "error" : caps ? "ok" : "pending";
@@ -89,7 +95,28 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
       : caps ? `Сервер ${prefs.baseUrl || "через proxy"}` : "Подключение…";
 
   let main;
-  if (!caps) {
+  if (route.error) {
+    main = (
+      <div className="session session--loading">
+        <ErrorNotice
+          title="Некорректная ссылка"
+          detail={route.error.message}
+          action={
+            <>
+              <button type="button" className="button button--small" onClick={returnToChats}>
+                Вернуться в список чатов
+              </button>
+              {route.sessionId && (
+                <button type="button" className="button button--small button--ghost" onClick={() => navigate({ sessionId: route.sessionId })}>
+                  Открыть чат
+                </button>
+              )}
+            </>
+          }
+        />
+      </div>
+    );
+  } else if (!caps) {
     main = (
       <div className="session session--loading">
         {capabilities.error !== null ? (
@@ -106,7 +133,7 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   } else if (route.sessionId) {
     main = (
       <SessionView key={`${api.id}:${route.sessionId}`} api={api} capabilities={{...caps, agent: caps.agent && ready.data?.agent_configured !== false}} sessionId={route.sessionId}
-        listed={sessions.data?.find((s) => s.id === route.sessionId)} route={route} navigate={navigate} />
+        listed={sessions.data?.find((s) => s.id === route.sessionId)} route={route} navigate={navigate} onReturnToChats={returnToChats} />
     );
   } else {
     main = (
@@ -118,7 +145,7 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   return (
     <div ref={sidebarPane.container} style={sidebarPane.style} className={`app${sidebarOpen ? " app--sidebar" : ""}${prefs.adapter === "demo" ? " app--demo" : ""}`}>
       <Sidebar open={sidebarOpen} onToggle={() => (narrow ? setOverlayOpen((v) => !v) : update({ sidebarOpen: !prefs.sidebarOpen }))}
-        sessions={sessions} currentId={route.sessionId} onRetry={reloadSessions}
+        sessions={sessions} currentId={route.error ? null : route.sessionId} onRetry={reloadSessions}
         onSelect={(id) => { setOverlayOpen(false); navigate({ sessionId: id }); }}
         onNew={() => { setOverlayOpen(false); navigate({ sessionId: null }); }}
         connectionLabel={connectionLabel} connectionTone={tone} onConnection={() => setConnectionOpen(true)} />
