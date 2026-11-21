@@ -16,6 +16,7 @@ import {
   RECORDED_TEST_RUN as run,
 } from "../../fixtures/codegen";
 import { ProjectFilesView, type ProjectFilesViewProps } from "./ProjectFilesView";
+import { setProjectFocus, useProjectFilesState } from "../../host/project-files";
 import type { CandidateComparison, TestRun } from "../contract";
 import { SplitPane } from "../../ui/SplitPane";
 
@@ -409,12 +410,39 @@ it("открывает файл из дерева после несовпаде�
   expect(screen.queryByRole("alert")).toBeNull();
   const manualFocus = onFocusChange.mock.lastCall?.[0];
   expect(manualFocus).toEqual({ generationId: g.generation_id, versionId: version.id, path: focus.path });
+  expect(onFocusChange.mock.lastCall?.[1]).toBe(focus);
 
   first.unmount();
   const next = render(<ProjectFilesView provider={provider} currentVersion={version} focus={manualFocus} />);
   expect(await screen.findByLabelText("Содержимое app/rules.py")).toBeVisible();
   next.rerender(<ProjectFilesView provider={provider} currentVersion={version} focus={{ ...focus }} />);
   expect(await screen.findByRole("alert")).toHaveTextContent(/хешем в ссылке из чата/);
+});
+
+it("ответ генерации сохраняет более новую ссылку из чата", async () => {
+  const provider = await currentProvider();
+  let complete!: (generation: typeof g) => void;
+  provider.createGeneration = vi.fn(() => new Promise(resolve => { complete = resolve; }));
+  const manual = { generationId: g.generation_id, path: "app/rules.py" };
+  const chatLink = { ...manual, sha256: "0".repeat(64) };
+  setProjectFocus(manual);
+  function ConnectedFiles() {
+    const { focus } = useProjectFilesState();
+    return <ProjectFilesView provider={provider} currentVersion={version} focus={focus} onFocusChange={setProjectFocus} />;
+  }
+  const view = render(<ConnectedFiles />);
+  try {
+    await userEvent.click(await screen.findByRole("button", { name: "Новая генерация…" }));
+    await userEvent.click(screen.getByRole("button", { name: "Создать проект" }));
+    expect(provider.createGeneration).toHaveBeenCalledTimes(1);
+    act(() => setProjectFocus(chatLink));
+    expect(await screen.findByText(/хешем в ссылке из чата/)).toBeVisible();
+    await act(async () => complete({ ...g, generation_id: "gen_created_later" }));
+    expect(screen.getByText(/хешем в ссылке из чата/)).toBeVisible();
+  } finally {
+    view.unmount();
+    setProjectFocus(null);
+  }
 });
 
 it("на 640px открывает код с клавиатуры и позволяет вернуться к дереву", async () => {

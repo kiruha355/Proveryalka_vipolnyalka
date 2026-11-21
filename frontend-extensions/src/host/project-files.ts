@@ -60,7 +60,8 @@ export function manifestForVersion(
   return manifest?.spec_hash === hash ? manifest : null;
 }
 
-export function setProjectFocus(next: ProjectFocus | null): void {
+export function setProjectFocus(next: ProjectFocus | null, expected?: ProjectFocus | null): void {
+  if (expected !== undefined && focus !== expected) return;
   focus = next;
   notify();
 }

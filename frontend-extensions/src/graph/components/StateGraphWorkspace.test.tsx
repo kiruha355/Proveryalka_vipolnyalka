@@ -62,7 +62,7 @@ describe("StateGraphWorkspace", () => {
       inspector: "edit-only" as const,
     };
     const first = render(<StateGraphWorkspace {...props} />);
-    await user.click(screen.getByRole("button", { name: "Изменить", exact: true }));
+    await user.click(screen.getByRole("button", { name: /^Изменить$/ }));
     await user.click(screen.getByRole("button", { name: "Изменить guard и effects" }));
     const guard = screen.getByRole("textbox", { name: /Условие \(guard\)/ });
     await user.clear(guard);

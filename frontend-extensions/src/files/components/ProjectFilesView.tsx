@@ -44,7 +44,7 @@ export type ProjectFilesViewProps = {
   provider: CodegenProvider;
   currentVersion: VersionRef | null;
   focus?: ProjectFocus | null;
-  onFocusChange?: (focus: ProjectFocus | null) => void;
+  onFocusChange?: (focus: ProjectFocus | null, expected: ProjectFocus) => void;
   onRuleSelect?: (ref: ModelElementRef) => void;
   onManifestLoaded?: (generation: Generation) => void;
   className?: string;
@@ -138,7 +138,7 @@ function VersionProjects({
               title={generation ? generationLabel(generation) : undefined}
               onChange={(event) => {
                 setDismissedFocus(focus ?? null);
-                if (activeFocus) onFocusChange?.(null);
+                if (activeFocus) onFocusChange?.(null, activeFocus);
                 setSelected(event.target.value);
               }}
             >
@@ -177,7 +177,7 @@ function VersionProjects({
           {projects.length === 0 && (
             <> <button type="button" className="pv-button" onClick={() => {
               setDismissedFocus(focus ?? null);
-              onFocusChange?.(null);
+              if (activeFocus) onFocusChange?.(null, activeFocus);
             }}>Закрыть ссылку</button></>
           )}
         </p>
@@ -199,7 +199,7 @@ function VersionProjects({
         onCreated={(created) => {
           setProjects((old) => [...old.filter((project) => project.generation_id !== created.generation_id), created]);
           setDismissedFocus(focus ?? null);
-          if (activeFocus) onFocusChange?.(null);
+          if (activeFocus) onFocusChange?.(null, activeFocus);
           setSelected(created.generation_id);
           setShowForm(false);
         }}
@@ -475,7 +475,7 @@ function GenerationFiles({
                   onOpen={(p) => {
                     setDismissedFocus(activeFocus ?? null);
                     if (activeFocus) {
-                      onFocusChange?.({ path: p, generationId: generation.generation_id, versionId: currentVersion.id });
+                      onFocusChange?.({ path: p, generationId: generation.generation_id, versionId: currentVersion.id }, activeFocus);
                     }
                     setPath(p);
                     setHighlight(null);
