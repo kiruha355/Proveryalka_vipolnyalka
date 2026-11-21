@@ -43,11 +43,12 @@ function useLoad<T>(load: (signal: AbortSignal) => Promise<T>, deps: unknown[]):
 export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   const sidebarPane = usePaneWidth("proveryalka:sidebar-width", .18, 170, 660, .32);
   const [prefs, setPrefs] = useState<Prefs>(() => loadPrefs(DEFAULT_PREFS));
+  const activeBaseUrl = prefs.baseUrl.trim().replace(/\/+$/, "");
   const api = useMemo<ProveryalkaApi>(
-    () => initialApi ?? (prefs.adapter === "demo" ? new DemoApi() : new HttpApi(prefs.baseUrl)),
-    [initialApi, prefs.adapter, prefs.baseUrl],
+    () => initialApi ?? (prefs.adapter === "demo" ? new DemoApi() : new HttpApi(activeBaseUrl)),
+    [initialApi, prefs.adapter, activeBaseUrl],
   );
-  useEffect(() => { configureFilesForAdapter(api.id === "demo" ? "demo" : "http", prefs.baseUrl); }, [api, prefs.baseUrl]);
+  useEffect(() => { configureFilesForAdapter(api.id === "demo" ? "demo" : "http", activeBaseUrl); }, [api, activeBaseUrl]);
   const [route, navigate] = useRoute();
   // On narrow screens the session list is an overlay: closed by default, closed after a choice.
   const [narrow, setNarrow] = useState(() => window.matchMedia?.("(max-width: 900px)").matches ?? false);
@@ -85,8 +86,7 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
 
   const checkReady = useCallback((targetUrl: string, signal: AbortSignal): Promise<ReadyInfo> => {
     const normalized = targetUrl.trim().replace(/\/+$/, "");
-    const currentNormalized = prefs.baseUrl.trim().replace(/\/+$/, "");
-    const isActiveHttp = prefs.adapter === "http" && normalized === currentNormalized;
+    const isActiveHttp = prefs.adapter === "http" && normalized === activeBaseUrl;
     const probeApi = isActiveHttp ? api : new HttpApi(normalized);
     return probeApi.ready(signal).then(
       (info) => {
@@ -103,7 +103,7 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
         throw error;
       },
     );
-  }, [api, prefs.adapter, prefs.baseUrl]);
+  }, [api, prefs.adapter, activeBaseUrl]);
 
   const update = (patch: Partial<Prefs>) => setPrefs((p) => {
     const next = { ...p, ...patch };
