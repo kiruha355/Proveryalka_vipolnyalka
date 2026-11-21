@@ -348,4 +348,32 @@ describe("ConnectionDialog", () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it("retains readiness when connecting again to an equivalent API URL", async () => {
+    const base = "http://server-a.local:8000";
+    savePrefs({ adapter: "http", baseUrl: base, lastSession: {}, sidebarOpen: true });
+    let readyRequests = 0;
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>(async (input) => {
+      const path = String(input).slice(base.length);
+      if (path === "/openapi.json") {
+        return Response.json({ paths: { "/api/sessions": {}, "/api/sessions/{session_id}/messages": {} } });
+      }
+      if (path === "/api/sessions?limit=200") return Response.json([]);
+      if (path === "/ready" && readyRequests++ === 0) return Response.json({ status: "ready", agent_configured: false });
+      return Response.json({}, { status: 503 });
+    }));
+
+    try {
+      const user = userEvent.setup();
+      render(<App />);
+      await screen.findByText(/Агент не настроен/);
+      await user.click(screen.getByRole("button", { name: /^Подключение/ }));
+      await user.type(screen.getByLabelText("Адрес API"), "/");
+      await user.click(screen.getByRole("button", { name: /^Подключить$/ }));
+      expect(screen.getByText(/Агент не настроен/)).toBeInTheDocument();
+      expect(readyRequests).toBe(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
