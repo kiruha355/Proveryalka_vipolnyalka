@@ -1,19 +1,36 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { ApiError, isAbort } from "../api/errors";
+import { ApiError, isAbort, requiresSignIn } from "../api/errors";
 import { HttpApi, type AuthSession, type AuthUser } from "../api/http";
 import { ErrorNotice, QuietStatus } from "../components/Notice";
 import { AccountDialog } from "../components/auth/AccountDialog";
 import { AccountForm, type AccountFormMode, type AccountValues } from "../components/auth/AccountForm";
 import type { AccountAction } from "../components/auth/AccountMenu";
 import { loadLastSession } from "../state/persist";
-import { formatRoute } from "./route";
+import { formatRoute, parseRoute } from "./route";
 
 type SignedIn = { kind: "signedIn"; user: AuthUser; api: HttpApi; locked: boolean; resume: number };
+
+type BookmarkAccess = { kind: "bookmark"; account: SignedIn; hash: string; sessionId: string; error?: unknown };
 
 type Access =
   | { kind: "checking" | "local" | "signedOut" }
   | { kind: "failed"; error: unknown }
+  | BookmarkAccess
   | SignedIn;
+
+function bookmarkedSession(hash: string): string | null {
+  try {
+    return parseRoute(hash).sessionId;
+  } catch (error) {
+    if (error instanceof URIError) return null;
+    throw error;
+  }
+}
+
+function workspaceHash(api: HttpApi, rejectedSession?: string) {
+  const last = loadLastSession(api);
+  return formatRoute({ sessionId: last === rejectedSession ? null : last });
+}
 
 export interface WorkspaceAccount {
   user: AuthUser;
@@ -68,6 +85,27 @@ export function AuthGate({ transport, baseUrl, recovery, onDemo, onConnection, c
     return () => controller.abort();
   }, [transport, checking]);
 
+  const openingBookmark = access.kind === "bookmark" && access.error === undefined ? access : null;
+  useEffect(() => {
+    if (!openingBookmark) return;
+    const { account, sessionId, hash } = openingBookmark;
+    const controller = new AbortController();
+    const open = (target: string) => {
+      window.history.replaceState(null, "", target);
+      setAccess(account);
+    };
+    account.api.getSession(sessionId, controller.signal).then(
+      () => { if (!controller.signal.aborted) open(hash); },
+      (error: unknown) => {
+        if (controller.signal.aborted || isAbort(error)) return;
+        if (error instanceof ApiError && error.status === 404) open(workspaceHash(account.api, sessionId));
+        else if (requiresSignIn(error)) setAccess({ kind: "signedOut" });
+        else setAccess({ ...openingBookmark, error });
+      },
+    );
+    return () => controller.abort();
+  }, [openingBookmark]);
+
   const present = (mode: AccountFormMode, message = "") => {
     setScreen(mode);
     setNotice(message);
@@ -82,8 +120,14 @@ export function AuthGate({ transport, baseUrl, recovery, onDemo, onConnection, c
       setAccess({ ...access, user: session.user, locked: false, resume: access.resume + 1 });
     } else {
       const next = accountAccess(session);
-      window.history.replaceState(null, "", formatRoute({ sessionId: loadLastSession(next.api) }));
-      setAccess(next);
+      const hash = window.location.hash;
+      const sessionId = access.kind === "signedOut" ? bookmarkedSession(hash) : null;
+      if (sessionId) {
+        setAccess({ kind: "bookmark", account: next, hash, sessionId });
+      } else {
+        window.history.replaceState(null, "", workspaceHash(next.api));
+        setAccess(next);
+      }
     }
   };
 
@@ -110,6 +154,16 @@ export function AuthGate({ transport, baseUrl, recovery, onDemo, onConnection, c
 
   if (access.kind === "local") return children(transport);
   if (access.kind === "checking") return <main className="auth-screen"><QuietStatus busy>Подключение к серверу</QuietStatus></main>;
+  if (access.kind === "bookmark") return (
+    <main className="auth-screen">
+      {access.error === undefined ? <QuietStatus busy>Открываем чат</QuietStatus> : (
+        <section className="auth-card">
+          <ErrorNotice title="Не удалось открыть чат" error={access.error}
+            action={<button type="button" className="button button--small" onClick={() => setAccess({ ...access, error: undefined })}>Повторить</button>} />
+        </section>
+      )}
+    </main>
+  );
   if (access.kind === "failed") return (
     <main className="auth-screen"><section className="auth-card">
       <ErrorNotice title="Не удалось подключиться к Проверялке" error={access.error} />
