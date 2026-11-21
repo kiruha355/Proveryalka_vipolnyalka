@@ -117,9 +117,9 @@ export function AnalysisEntry({ state, isLatest, time, versions, context, replyQ
               modelId: version.model_id,
               version: version.number,
               view: "model",
-              check: undefined,
-              property: undefined,
-              step: undefined,
+              ...(version.id !== context.version?.id
+                ? { check: undefined, property: undefined, step: undefined }
+                : {}),
             })}
           >
             Открыть модель · версия {version.number}

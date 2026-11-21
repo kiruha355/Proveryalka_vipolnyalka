@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { DemoApi } from "../api/demo";
 import type { DialogueState, Model, ModelVersion } from "../api/types";
+import { useCore } from "../app/core";
 import { registerCoreViews } from "../app/coreViews";
 import { registerWorkspaceView, resetExtensions } from "../app/extensions";
 import { parseRoute } from "../app/route";
@@ -185,20 +186,21 @@ describe("issue #72 navigation fixes", () => {
       },
     };
 
-    render(
+    const analysisEntry = (current: WorkspaceContextValue) => (
       <ul>
         <AnalysisEntry
           state={state}
           isLatest={false}
           time={null}
           versions={versions}
-          context={context}
+          context={current}
           replyQuestionId={null}
           canAnswer={false}
           onAnswer={() => {}}
         />
-      </ul>,
+      </ul>
     );
+    const { rerender } = render(analysisEntry(context));
 
     fireEvent.click(screen.getByRole("button", { name: "Открыть модель · версия 1" }));
     expect(openLocation).toHaveBeenCalledTimes(1);
@@ -216,6 +218,14 @@ describe("issue #72 navigation fixes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Требования и цитаты" }));
     expect(openLocation).toHaveBeenCalledTimes(1);
     expect(openView).toHaveBeenCalledWith("requirements");
+
+    rerender(analysisEntry({ ...context, version: v1 }));
+    fireEvent.click(screen.getByRole("button", { name: "Открыть модель · версия 1" }));
+    expect(openLocation.mock.calls.at(-1)).toStrictEqual([{
+      modelId: v1.model_id,
+      version: v1.number,
+      view: "model",
+    }]);
   });
 
   it("preserves explicit check ID in URL while another run loads first (S1)", async () => {
@@ -261,6 +271,34 @@ describe("issue #72 navigation fixes", () => {
 
     const workspaceToggle = await screen.findByRole("button", { name: "Модель и проверка" });
     expect(workspaceToggle).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("offers a retry when the requested version is absent from a stale model list", async () => {
+    registerWorkspaceView({
+      id: "model-refresh",
+      label: "Model refresh",
+      component: ({ context }) => {
+        const { workspace } = useCore();
+        return <button onClick={async () => {
+          await workspace.reloadModels();
+          context.openLocation({ modelId: "demo_m_order", version: 3 });
+        }}>Refresh and open v3</button>;
+      },
+    });
+    const api = new DemoApi();
+    const versions = await api.listVersions("demo_m_order");
+    const loadVersions = vi.spyOn(api, "listVersions")
+      .mockResolvedValueOnce(versions)
+      .mockRejectedValueOnce(new Error("Network unavailable"))
+      .mockResolvedValue(versions);
+    window.location.hash = "#/s/demo_s_order?m=demo_m_order&v=2&view=model-refresh";
+    render(<App initialApi={api} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Refresh and open v3" }));
+    expect(await screen.findByText("Модели не загружены")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^Повторить$/ }));
+    expect(await screen.findByText("Запрошенная версия модели не найдена")).toBeInTheDocument();
+    expect(loadVersions).toHaveBeenCalledTimes(3);
   });
 
   it("shows a recoverable route error for #/s/% and invalid numeric params instead of throwing URIError", async () => {
