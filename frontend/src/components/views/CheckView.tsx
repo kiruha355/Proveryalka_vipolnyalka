@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCore } from "../../app/core";
 import type { WorkspaceViewProps } from "../../app/extensions";
-import { describeCode, describeError } from "../../api/errors";
+import type { ProveryalkaApi } from "../../api/api";
+import { describeCode, describeError, isAbort } from "../../api/errors";
 import { isTerminal, type VerificationResult } from "../../api/types";
 import { discussionPrompt } from "../../domain/discussion";
 import { RUN_STATE, statusInfo, summarizeResults } from "../../domain/status";
@@ -10,6 +11,48 @@ import { findNarrative, ResultDetail } from "../check/ResultDetail";
 import { ErrorNotice, QuietStatus } from "../Notice";
 import { StatusBadge } from "../StatusBadge";
 import { Download, Play, Stop } from "../icons";
+
+function ArtifactDownload({ api, runId, name }: { api: ProveryalkaApi; runId: string; name: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const request = useRef<AbortController | null>(null);
+  useEffect(() => () => request.current?.abort(), []);
+  const fileName = name.split("/").pop();
+
+  if (!api.downloadArtifact) return <a href={api.artifactUrl(runId, name)} download={fileName}><Download size={14} /> {name}</a>;
+
+  const download = async () => {
+    if (request.current) return;
+    const controller = new AbortController();
+    request.current = controller;
+    setBusy(true);
+    setError(null);
+    try {
+      const blob = await api.downloadArtifact!(runId, name, controller.signal);
+      if (controller.signal.aborted) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName ?? name;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch (failure) {
+      if (!controller.signal.aborted && !isAbort(failure)) setError(failure);
+    } finally {
+      request.current = null;
+      if (!controller.signal.aborted) setBusy(false);
+    }
+  };
+
+  return <div className="artifact-download">
+    <button type="button" className="text-link" onClick={() => void download()} disabled={busy}>
+      {busy ? <span className="spinner" aria-hidden="true" /> : <Download size={14} />} {name}
+    </button>
+    {error !== null && <p className="warn-text small" role="alert">{describeError(error)}</p>}
+  </div>;
+}
 
 function when(check: CheckRunView, demo: boolean): string {
   const limits = check.results?.[0]?.limits;
@@ -176,10 +219,8 @@ export function CheckView({ context }: WorkspaceViewProps) {
               {selected.artifacts.data && (
                 <ul className="artifacts__list">
                   {selected.artifacts.data.map((file) => (
-                    <li key={file.name}>
-                      <a href={context.api.artifactUrl(selected.runId, file.name)} download={file.name.split("/").pop()}>
-                        <Download size={14} /> {file.name}
-                      </a>
+                    <li key={`${selected.runId}:${file.name}`}>
+                      <ArtifactDownload api={context.api} runId={selected.runId} name={file.name} />
                       <span className="muted small">{file.size.toLocaleString("ru-RU")} Б</span>
                     </li>
                   ))}

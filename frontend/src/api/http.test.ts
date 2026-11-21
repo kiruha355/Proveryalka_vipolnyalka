@@ -78,3 +78,56 @@ it("shared OpenAPI discovery survives the first StrictMode consumer abort",async
  expect((await two).agent).toBe(true);expect(await one).toEqual(await two);
  expect(fetcher.mock.calls[0]![1]?.signal).toBeUndefined();
 });
+
+it.each([
+  ["REST", 401, "AUTH_REQUIRED"],
+  ["SSE", 401, "AUTH_REQUIRED"],
+  ["download", 403, "CSRF_INVALID"],
+] as const)("reports %s authentication failures through the same transport", async (route, status, code) => {
+  const missing = vi.fn();
+  const fetcher = vi.fn<typeof fetch>(async () => json({ error: { code, message: code } }, status));
+  const api = new HttpApi("", fetcher, { ownerId: "u", csrfToken: "secret", onAuthError: missing });
+  const signal = new AbortController().signal;
+  const operation = route === "REST" ? api.cancelRun("r") : route === "SSE" ? api.streamEvents("r", 1, signal)[Symbol.asyncIterator]().next()
+    : api.downloadArtifact("r", "folder/file.log");
+  await expect(operation).rejects.toMatchObject({ status, code });
+  expect(missing).toHaveBeenCalledOnce();
+  const init = fetcher.mock.calls[0]![1]!;
+  expect(init.credentials).toBe("include");
+  expect(new Headers(init.headers).get("X-CSRF-Token")).toBe("secret");
+  await expect(api.listSessions()).rejects.toMatchObject({ code: "AUTH_REQUIRED" });
+  expect(fetcher).toHaveBeenCalledOnce();
+});
+
+it("keeps a resource-level 403 distinct from an invalid CSRF token", async () => {
+  const missing = vi.fn();
+  const fetcher = vi.fn<typeof fetch>(async () => json({ error: { code: "FORBIDDEN", message: "Forbidden" } }, 403));
+  const api = new HttpApi("", fetcher, { ownerId: "u", csrfToken: "secret", onAuthError: missing });
+  await expect(api.listSessions()).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
+  expect(missing).not.toHaveBeenCalled();
+});
+
+it.each(["sessions", "SSE"] as const)("uses the tab's token for %s after another tab changes the browser cookie", async (route) => {
+  const bobSession = { id: "bob-session", title: "Bob", mode: "analyzer", created_at: "2026-11-21" };
+  const bobEvent = {
+    event_id: 2, run_id: "bob-run", session_id: bobSession.id, type: "message_delta", data: { text: "Bob" },
+  };
+  const fetcher = vi.fn<typeof fetch>(async (_input, init) => {
+    // The cookie now belongs to Bob. Headerless reads would be authorized as Bob.
+    const csrf = new Headers(init?.headers).get("X-CSRF-Token");
+    if (csrf !== null && csrf !== "bob-token") return json({ error: { code: "AUTH_REQUIRED", message: "Browser session changed" } }, 401);
+    return route === "sessions"
+      ? json([bobSession])
+      : new Response(`data: ${JSON.stringify(bobEvent)}\n\n`, { headers: { "Content-Type": "text/event-stream" } });
+  });
+  const reauthenticate = vi.fn();
+  const read = (api: HttpApi) => route === "sessions" ? api.listSessions()
+    : api.streamEvents("bob-run", 1, new AbortController().signal)[Symbol.asyncIterator]().next();
+  const aliceApi = new HttpApi("", fetcher, { ownerId: "alice", csrfToken: "alice-token", onAuthError: reauthenticate });
+  const bobApi = new HttpApi("", fetcher, { ownerId: "bob", csrfToken: "bob-token", onAuthError: vi.fn() });
+  await expect(read(aliceApi)).rejects.toMatchObject({ status: 401, code: "AUTH_REQUIRED" });
+  await expect(read(bobApi)).resolves.toEqual(route === "sessions" ? [bobSession] : { value: bobEvent, done: false });
+  expect(reauthenticate).toHaveBeenCalledOnce();
+  expect(fetcher.mock.calls.map(([, init]) => init?.method)).toEqual(["GET", "GET"]);
+  if (route === "SSE") expect(new Headers(fetcher.mock.calls[0]?.[1]?.headers).get("Last-Event-ID")).toBe("1");
+});

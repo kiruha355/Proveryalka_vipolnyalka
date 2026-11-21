@@ -124,3 +124,44 @@ def test_user_mcp_project_grants_and_revocation(users):
     assert c.delete('/api/auth/mcp-tokens/'+credential['token_id']).status_code==204
     c.headers.pop('Origin',None)
     assert c.post('/mcp',json={},headers=headers).status_code==401
+
+
+def test_read_token_binds_session_list_and_sse_to_the_tab(users):
+    client = users
+    alice = client.switch('alice')
+    bob = client.switch('bob')
+    store = client.app.state.auth.store
+    context = principal.set(bob)
+    try:
+        session, model, _ = add_version(store)
+        run_id = store.create_check(model['id'], 1, {}, 'read-session')['run_id']
+        store.fail_run(run_id, 'CANCELLED')
+        store.event(run_id, 'run_finished', {'state': 'failed'})
+    finally:
+        principal.reset(context)
+
+    # The other tab changed the shared cookie. This tab still has Alice's token.
+    client.switch('alice')
+    client.cookies.set('pv_session', bob['cookie'])
+    assert client.headers['X-CSRF-Token'] == alice['csrf']
+    events_url = f'/api/runs/{run_id}/events'
+    for path in ('/api/sessions', events_url, '/api/auth/me'):
+        response = client.get(path)
+        assert response.status_code == 401
+        assert response.headers['content-type'].startswith('application/json')
+        assert response.json()['error']['code'] == 'AUTH_REQUIRED'
+        assert session['id'] not in response.text
+        assert run_id not in response.text
+
+    # The current tab and headerless clients can still read Bob's authorized data.
+    for csrf in (bob['csrf'], None):
+        if csrf is None:
+            client.headers.pop('X-CSRF-Token')
+        else:
+            client.headers['X-CSRF-Token'] = csrf
+        assert [item['id'] for item in client.get('/api/sessions').json()] == [session['id']]
+        stream = client.get(events_url)
+        assert stream.headers['content-type'].startswith('text/event-stream')
+        assert 'event: run_finished' in stream.text
+        assert run_id in stream.text
+        assert client.get('/api/auth/me').json()['user']['id'] == bob['id']

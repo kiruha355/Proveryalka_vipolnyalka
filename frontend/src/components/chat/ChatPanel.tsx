@@ -27,7 +27,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   const core = useCore();
   const { workspace, history } = core;
   const { api, capabilities, session } = context;
-  const [draft, setDraft] = useState(() => loadLocal(api.id, session.id).draft);
+  const [draft, setDraft] = useState(() => loadLocal(api, session.id).draft);
   const list = useRef<HTMLOListElement>(null);
   const active = workspace.activeAgentRun;
   const pending = history?.pending ?? null;
@@ -35,7 +35,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
 
   const setDraftPersist = (value: string) => {
     setDraft(value);
-    updateLocal(api.id, session.id, (local) => ({ ...local, draft: value }));
+    updateLocal(api, session.id, (local) => ({ ...local, draft: value }));
   };
 
   // Keep the newest entry in view while the reader is at the bottom.

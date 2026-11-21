@@ -5,7 +5,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from ..services import ServiceError
 from .access import principal, require_owner, RESOURCES
-from .router import COOKIE
+from .router import COOKIE, require_read_session
 from .service import csrf_token, digest
 
 class OwnershipMiddleware:
@@ -31,8 +31,10 @@ class OwnershipMiddleware:
             user = self.auth.authenticate(token)
             if user['kind'] != ('mcp' if is_mcp else 'cookie'):
                 raise ServiceError(401,'AUTH_REQUIRED','Wrong credential type')
-            if not is_mcp and scope['method'] not in ('GET','HEAD','OPTIONS'):
-                if request.headers.get('origin') != self.auth.settings.origin or not hmac.compare_digest(request.headers.get('x-csrf-token',''),csrf_token(token)):
+            if not is_mcp:
+                if scope['method'] in ('GET','HEAD','OPTIONS'):
+                    require_read_session(request, token)
+                elif request.headers.get('origin') != self.auth.settings.origin or not hmac.compare_digest(request.headers.get('x-csrf-token',''),csrf_token(token)):
                     raise ServiceError(403,'CSRF_INVALID','Invalid Origin or CSRF token')
             if is_mcp and request.headers.get('origin') not in (None,self.auth.settings.origin):
                 raise ServiceError(403,'CSRF_INVALID','Invalid Origin')

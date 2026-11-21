@@ -1,7 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
 import { newKey } from "../api/api";
-import { ApiError } from "../api/errors";
+import { ApiError, isAbort, requiresSignIn } from "../api/errors";
 import type { Session } from "../api/types";
 import { loadLocal, updateLocal } from "../state/persist";
 import { Composer, type ComposerHandle } from "./chat/Composer";
@@ -30,9 +30,15 @@ interface Props {
 export function NewChat({ api, capabilities, onCreated }: Props) {
   const split = usePaneWidth("proveryalka:chat-width", .36, 250, 390, .65);
   const inFlight = useRef(false);
+  const lifetime = useRef(new AbortController());
+  useEffect(() => {
+    const controller = new AbortController();
+    lifetime.current = controller;
+    return () => controller.abort();
+  }, []);
   const documentSession = useRef<{session: Session | null; sessionKey: string; uploadKey: string; file: File} | null>(null);
   const [documentError, setDocumentError] = useState(false);
-  const [draft, setDraft] = useState(() => loadLocal(api.id, NEW).outbox?.text ?? loadLocal(api.id, NEW).draft);
+  const [draft, setDraft] = useState(() => loadLocal(api, NEW).outbox?.text ?? loadLocal(api, NEW).draft);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const composer = useRef<ComposerHandle>(null);
@@ -48,21 +54,26 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     if (!text || inFlight.current) return;
     inFlight.current = true;
     setDocumentError(false);
-    const saved = loadLocal(api.id, NEW).outbox;
+    const saved = loadLocal(api, NEW).outbox;
     const outbox = saved && saved.text === text && saved.sessionKey
       ? saved
       : { text, questionId: null, key: newKey(), sessionKey: newKey(), sessionTitle: titleFrom(text) };
-    updateLocal(api.id, NEW, (local) => ({ ...local, outbox }));
+    updateLocal(api, NEW, (local) => ({ ...local, outbox }));
     setBusy(true);
     setError(null);
+    const signal = lifetime.current.signal;
     try {
-      const session = await api.createSession({ title: outbox.sessionTitle ?? titleFrom(text) }, outbox.sessionKey!);
+      const session = await api.createSession({ title: outbox.sessionTitle ?? titleFrom(text) }, outbox.sessionKey!, signal);
+      if (signal.aborted) return;
       // The session view sends the message with the key reserved here.
-      updateLocal(api.id, session.id, (local) => ({ ...local, outbox: { text, questionId: null, key: outbox.key, autoSend: true } }));
-      updateLocal(api.id, NEW, () => ({ agentRuns: [], checkRuns: [], draft: "", outbox: null }));
+      updateLocal(api, session.id, (local) => ({ ...local, outbox: { text, questionId: null, key: outbox.key, autoSend: true } }));
+      updateLocal(api, NEW, () => ({ agentRuns: [], checkRuns: [], draft: "", outbox: null }));
       onCreated(session);
     } catch (failure) {
-      if (!(failure instanceof ApiError && failure.retryable)) updateLocal(api.id, NEW, (local) => ({ ...local, outbox: null, draft: text }));
+      if (signal.aborted || isAbort(failure)) return;
+      if (!(failure instanceof ApiError && (failure.retryable || requiresSignIn(failure)))) {
+        updateLocal(api, NEW, (local) => ({ ...local, outbox: null, draft: text }));
+      }
       setError(failure);
     } finally {
       inFlight.current = false;
@@ -76,13 +87,16 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     const saved = documentSession.current;
     const attempt = saved && saved.file === file ? saved : {session: saved?.session ?? null, sessionKey: newKey(), uploadKey: newKey(), file};
     documentSession.current = attempt;
+    const signal = lifetime.current.signal;
     try {
-      if (!attempt.session) attempt.session = await api.createSession({title: titleFrom(file.name)}, attempt.sessionKey);
-      await api.uploadDocument(attempt.session.id, file, attempt.uploadKey);
-      updateLocal(api.id, attempt.session.id, local => ({...local, draft}));
-      updateLocal(api.id, NEW, local => ({...local, draft: "", outbox: null}));
+      if (!attempt.session) attempt.session = await api.createSession({title: titleFrom(file.name)}, attempt.sessionKey, signal);
+      if (signal.aborted) return;
+      await api.uploadDocument(attempt.session.id, file, attempt.uploadKey, signal);
+      if (signal.aborted) return;
+      updateLocal(api, attempt.session.id, local => ({...local, draft}));
+      updateLocal(api, NEW, local => ({...local, draft: "", outbox: null}));
       onCreated(attempt.session);
-    } catch (failure) { setError(failure); }
+    } catch (failure) { if (!signal.aborted && !isAbort(failure)) setError(failure); }
     finally {inFlight.current = false; setBusy(false);}
   };
 
@@ -98,7 +112,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
           <p className="empty__text">Опишите поведение процесса: состояния, действия и что запрещено.</p>
           <button type="button" className="button button--ghost" onClick={() => {
             setDraft(EXAMPLE);
-            updateLocal(api.id, NEW, (local) => ({ ...local, draft: EXAMPLE }));
+            updateLocal(api, NEW, (local) => ({ ...local, draft: EXAMPLE }));
             composer.current?.focus();
           }}>
             Вставить пример из ТЗ
@@ -111,7 +125,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
             action={documentError ? undefined : <button type="button" className="button button--small" onClick={() => void start()}>Повторить</button>} />
         )}
         <Composer ref={composer} value={draft} label="Описание поведения"
-          onChange={(value) => { setDraft(value); updateLocal(api.id, NEW, (local) => ({ ...local, draft: value })); }}
+          onChange={(value) => { setDraft(value); updateLocal(api, NEW, (local) => ({ ...local, draft: value })); }}
           onSubmit={() => void start()} busy={busy} blockedReason={blocked}
           attach={capabilities?.documents ? {busy, onFile: file => void attach(file)} : null}
           placeholder="Например: заявку можно согласовать, отменить или исполнить…" />

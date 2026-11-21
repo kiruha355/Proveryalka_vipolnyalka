@@ -46,6 +46,10 @@ export type HttpOptions = {
   /** Префикс адреса сервера; пусто — тот же origin (через proxy dev-server). */
   baseUrl?: string;
   fetch?: typeof fetch;
+  /** Возвращает актуальный CSRF-токен из памяти для изменяющих запросов. */
+  getCsrfToken?: () => string | null;
+  /** Единый обработчик 401/403 (истечение сессии или недействительный CSRF). */
+  onAuthError?: (error: ApiError) => void;
 };
 
 function isErrorBody(value: unknown): value is ApiErrorBody {
@@ -57,7 +61,10 @@ function isErrorBody(value: unknown): value is ApiErrorBody {
   );
 }
 
-export async function readJson<T>(response: Response): Promise<T> {
+export async function readJson<T>(
+  response: Response,
+  onAuthError?: (error: ApiError) => void,
+): Promise<T> {
   const text = await response.text();
   let body: unknown = undefined;
   if (text) {
@@ -68,19 +75,24 @@ export async function readJson<T>(response: Response): Promise<T> {
     }
   }
   if (!response.ok) {
-    if (isErrorBody(body)) {
-      throw new ApiError(
-        response.status,
-        body.error.code,
-        body.error.message,
-        body.error.details ?? [],
-      );
+    const error = isErrorBody(body)
+      ? new ApiError(
+          response.status,
+          body.error.code,
+          body.error.message,
+          body.error.details ?? [],
+        )
+      : new ApiError(
+          response.status,
+          response.status === 401
+            ? "AUTH_REQUIRED"
+            : "HTTP_ERROR",
+          `Сервер ответил ${response.status}`,
+        );
+    if (error.status === 401 || error.status === 403) {
+      onAuthError?.(error);
     }
-    throw new ApiError(
-      response.status,
-      "HTTP_ERROR",
-      `Сервер ответил ${response.status}`,
-    );
+    throw error;
   }
   if (body === undefined)
     throw new ApiError(
@@ -103,10 +115,11 @@ export function createHttpModelVersionsPort(
   return {
     async listVersions(modelId, signal) {
       const response = await doFetch(url(modelId), {
+        credentials: "include",
         headers: { Accept: "application/json" },
         signal: signal ?? null,
       });
-      return readJson<ModelVersion[]>(response);
+      return readJson<ModelVersion[]>(response, options.onAuthError);
     },
     async createVersion(modelId, body, idempotencyKey, signal) {
       if (idempotencyKey.length < 1 || idempotencyKey.length > 128) {
@@ -116,17 +129,20 @@ export function createHttpModelVersionsPort(
           "Ключ идемпотентности должен быть длиной 1–128",
         );
       }
+      const csrf = options.getCsrfToken?.();
       const response = await doFetch(url(modelId), {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
           "Idempotency-Key": idempotencyKey,
+          ...(csrf ? { "X-CSRF-Token": csrf } : {}),
         },
         body: JSON.stringify(body),
         signal: signal ?? null,
       });
-      return readJson<ModelVersion>(response);
+      return readJson<ModelVersion>(response, options.onAuthError);
     },
   };
 }
@@ -141,6 +157,19 @@ export function describeApiError(error: unknown): {
       const path = Array.isArray(detail.path) ? detail.path.join(".") : "";
       return [path, detail.message].filter(Boolean).join(": ");
     });
+    if (error.status === 401 || error.code === "AUTH_REQUIRED") {
+      return {
+        title: "Сессия истекла. Повторите действие после входа.",
+        details,
+      };
+    }
+    if (error.code === "CSRF_INVALID") {
+      return {
+        title: "Не удалось подтвердить запрос. Повторите действие после входа.",
+        details,
+      };
+    }
+    if (error.status === 403) return { title: "Доступ отклонён сервером.", details };
     if (error.code === "INVALID_REQUEST")
       return { title: "Сервер отклонил модель", details };
     if (error.code === "IDEMPOTENCY_CONFLICT") {

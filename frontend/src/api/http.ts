@@ -1,5 +1,5 @@
 import type { ApiCapabilities, MessageBody, ProveryalkaApi } from "./api";
-import { ApiError } from "./errors";
+import { ApiError, requiresSignIn } from "./errors";
 import {
   expect, expectList, isAgentRunTracePage, isDialogueView, isDocumentUpload, isArtifactEntry, isCheckRun, isModel, isModelVersion, isRun, isRunEvent, isSession, isSessionDetail,
 } from "./guards";
@@ -17,16 +17,116 @@ interface RequestOptions {
 
 const segment = encodeURIComponent;
 
+export interface AuthUser {
+  id: string;
+  email: string;
+}
+
+export interface AuthSession {
+  user: AuthUser;
+  csrf_token: string;
+}
+
+function authSession(value: unknown): AuthSession {
+  const result = value as Partial<AuthSession> | null;
+  if (!result?.user || typeof result.user.id !== "string" || !result.user.id
+    || typeof result.user.email !== "string" || typeof result.csrf_token !== "string" || !result.csrf_token) {
+    throw new ApiError("malformed", "Сервер вернул неполные данные о входе");
+  }
+  return { user: result.user, csrf_token: result.csrf_token };
+}
+
+interface AccountTransport {
+  ownerId: string;
+  csrfToken: string;
+  onAuthError(error: ApiError): void;
+}
+
 export class HttpApi implements ProveryalkaApi {
   readonly id: string;
+  readonly ownerId?: string;
   private readonly base: string;
   private readonly fetcher: FetchLike;
+  private readonly onAuthError?: AccountTransport["onAuthError"];
+  private csrfToken: string | null;
+  private authEpoch = 0;
   private capabilitiesPromise: Promise<ApiCapabilities> | null = null;
 
-  constructor(baseUrl = "", fetcher?: FetchLike) {
+  constructor(baseUrl = "", fetcher?: FetchLike, account?: AccountTransport) {
     this.base = baseUrl.replace(/\/+$/, "");
     this.fetcher = fetcher ?? ((input, init) => fetch(input, init));
     this.id = `http:${this.base || "same-origin"}`;
+    this.ownerId = account?.ownerId;
+    this.csrfToken = account?.csrfToken ?? null;
+    this.onAuthError = account?.onAuthError;
+  }
+
+  suspendAccount() {
+    this.csrfToken = null;
+    this.authEpoch++;
+  }
+
+  resumeAccount(session: AuthSession) {
+    if (this.ownerId !== session.user.id) throw new Error("Workspace account mismatch");
+    this.csrfToken = session.csrf_token;
+  }
+
+  /** Also used by optional file extensions, so downloads share account state. */
+  readonly fetchWithSession: FetchLike = async (input, init) => {
+    const epoch = this.authEpoch;
+    const signal = init?.signal;
+    const signedOut = () => new ApiError("http", "Требуется вход", { status: 401, code: "AUTH_REQUIRED" });
+    if (this.ownerId && !this.csrfToken) {
+      throw signedOut();
+    }
+    let headers = init?.headers;
+    if (this.csrfToken) {
+      headers = new Headers(headers);
+      headers.set("X-CSRF-Token", this.csrfToken);
+    }
+    const response = await this.fetcher(input, { ...init, headers, credentials: "include" });
+    const checkLifetime = () => {
+      if (signal?.aborted) throw new ApiError("aborted", "Запрос отменён");
+      if (epoch !== this.authEpoch) throw signedOut();
+    };
+    checkLifetime();
+    if (this.onAuthError && (response.status === 401 || response.status === 403)) {
+      const error = await errorFrom(response.clone());
+      checkLifetime();
+      if (requiresSignIn(error)) {
+        this.suspendAccount();
+        this.onAuthError(error);
+      }
+    }
+    return response;
+  };
+
+  async me(signal?: AbortSignal): Promise<AuthSession> {
+    return authSession(await this.request("GET", "/api/auth/me", { signal }));
+  }
+
+  async login(email: string, password: string) {
+    return authSession(await this.request("POST", "/api/auth/login", { body: { email, password } }));
+  }
+
+  async register(email: string, password: string) {
+    await this.request("POST", "/api/auth/register", { body: { email, password } });
+  }
+
+  async requestPasswordReset(email: string) {
+    await this.request("POST", "/api/auth/password/reset-request", { body: { email } });
+  }
+
+  async resetPassword(token: string, password: string) {
+    await this.request("POST", "/api/auth/password/reset", { body: { token, password } });
+  }
+
+  async changePassword(current: string, next: string) {
+    await this.request("POST", "/api/auth/password", { body: { current_password: current, new_password: next } });
+  }
+
+  async logout(all: boolean) {
+    await this.request(all ? "DELETE" : "POST", all ? "/api/auth/sessions" : "/api/auth/logout");
   }
 
   // Read-only capability discovery is shared across consumers. Do not bind its
@@ -159,19 +259,28 @@ export class HttpApi implements ProveryalkaApi {
     return `${this.base}/api/checks/${segment(runId)}/artifacts/${path}`;
   }
 
+  async downloadArtifact(runId: string, name: string, signal?: AbortSignal) {
+    const response = await this.send("GET", this.artifactUrl(runId, name).slice(this.base.length), { signal });
+    if (!response.ok) throw await errorFrom(response);
+    return response.blob();
+  }
+
   private async send(method: string, path: string, options: RequestOptions): Promise<Response> {
     const headers: Record<string, string> = { ...(options.headers ?? {}) };
     if (options.body !== undefined && !(options.body instanceof FormData)) headers["Content-Type"] = "application/json";
     if (options.key) headers["Idempotency-Key"] = options.key;
     try {
-      return await this.fetcher(`${this.base}${path}`, {
+      const send = path.startsWith("/api/") ? this.fetchWithSession : this.fetcher;
+      return await send(`${this.base}${path}`, {
         method,
         headers,
+        credentials: "include",
         body: options.body === undefined ? undefined : options.body instanceof FormData ? options.body : JSON.stringify(options.body),
         signal: options.signal,
       });
     } catch (error) {
       if (options.signal?.aborted) throw new ApiError("aborted", "Запрос отменён");
+      if (error instanceof ApiError) throw error;
       throw new ApiError("network", error instanceof Error ? error.message : "Сетевая ошибка");
     }
   }
@@ -179,6 +288,7 @@ export class HttpApi implements ProveryalkaApi {
   private async request(method: string, path: string, options: RequestOptions = {}): Promise<unknown> {
     const response = await this.send(method, path, options);
     if (!response.ok) throw await errorFrom(response);
+    if (response.status === 204) return;
     try {
       return await response.json();
     } catch {
