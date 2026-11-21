@@ -79,11 +79,11 @@ def test_ambiguous_image_cannot_create_model_without_clarification():
     source = Source(id="src_image", session_id="session", text="\n".join(visible))
     observations = {source.id: {"visible": visible, "proposals": [], "uncertainties": [UNCERTAINTY]}}
     with pytest.raises(ValueError, match="уточняющий вопрос"):
-        validate_observations(model_draft(source.id), [source], observations)
+        validate_observations(model_draft(source.id), [source], observations, source.id)
     with pytest.raises(ValueError, match="Факт или элемент"):
         invalid = model_draft(source.id, questions=[question("Куда ведёт стрелка?")])
         invalid.analysis.events[0].quote = UNCERTAINTY
-        validate_observations(invalid, [source], observations)
+        validate_observations(invalid, [source], observations, source.id)
 
 
 def test_existing_question_does_not_resolve_new_image_ambiguity():
@@ -95,15 +95,16 @@ def test_existing_question_does_not_resolve_new_image_ambiguity():
         "uncertainties": [UNCERTAINTY],
     })
     image = Source(id="image", session_id="session", text=text)
-    sources = [plain, image]
+    text_turn = Source(id="text-with-image", session_id="session", text="Прилагаю схему.")
+    sources = [plain, image, text_turn]
     observations = {image.id: {"visible": visible, "proposals": [], "uncertainties": [UNCERTAINTY]}}
     unrelated = model_draft(image.id, previous.model_dump(), questions=[question("Какая дата?")])
     with pytest.raises(ValueError, match="новый уточняющий вопрос"):
-        validate_observations(unrelated, sources, observations)
+        validate_observations(unrelated, sources, observations, image.id)
 
     attached = model_draft(image.id, previous.model_dump(),
                            questions=[{**question("Куда ведёт стрелка?"), "reason": UNCERTAINTY}])
-    scoped = validate_observations(attached, sources, observations)
+    scoped = validate_observations(attached, sources, observations, image.id)
     assert scoped == image.id
     state = build_state(sources, attached, previous, None, 5, {image.id: ranges}, scoped)
     old, new = state.pending_questions
@@ -114,6 +115,25 @@ def test_existing_question_does_not_resolve_new_image_ambiguity():
     updated = build_state([*sources, answer], turn, state, old.id, 5, {image.id: ranges})
     assert updated.status == "needs_clarification"
     assert [question.id for question in updated.pending_questions] == [new.id]
+
+
+def test_retained_requirement_moves_inherited_image_citation_to_visible_evidence():
+    visible = [item["quote"] for item in CASE["draft"]["requirements"]]
+    text, ranges = image_projection({
+        "description": visible[0], "requirements": [{"origin": "visible", "text": item} for item in visible],
+        "uncertainties": [],
+    })
+    image = Source(id="image", session_id="session", text=text)
+    previous = build_state([image], model_draft(image.id), None, None, 5)
+    old_ref = previous.analysis.requirements[0].source_refs[0]
+    assert old_ref.start < ranges[0][0]
+    answer = Source(id="text", session_id="session", text=TEXT)
+    turn = model_draft(answer.id, previous.model_dump())
+    updated = build_state([image, answer], turn, previous, None, 5, {image.id: ranges})
+    refs = updated.analysis.requirements[0].source_refs
+    assert [item.start for item in refs if item.source_id == image.id] == [ranges[0][0]]
+    assert any(item.source_id == answer.id for item in refs)
+    assert previous.analysis.requirements[0].source_refs[0] == old_ref
 
 
 @pytest.mark.skipif(not hasattr(ImageStore, "attach"), reason="Source attachment and provenance require develop f78ffa5")

@@ -129,9 +129,14 @@ def build_requirements(facts, previous, sources, corrections, image_ranges):
         if identifier in previous and fact.previous_id is None:
             raise ValueError("Для прежнего требования нужно указать previous_id")
         ranges = image_ranges.get(fact.source_id)
-        refs = list(old.source_refs) if old else []
-        if ranges is not None:
-            refs = [ref for ref in refs if (ref.source_id, ref.quote) != (fact.source_id, fact.quote)]
+        refs = []
+        for ref in old.source_refs if old else []:
+            if ref.source_id in image_ranges:
+                try:
+                    ref = reference(sources_by_id[ref.source_id], ref.quote, image_ranges[ref.source_id])
+                except ValueError:
+                    continue
+            refs.append(ref)
         refs.append(reference(sources_by_id[fact.source_id], fact.quote, ranges))
         if correction:
             refs.append(reference(answer, correction.quote))

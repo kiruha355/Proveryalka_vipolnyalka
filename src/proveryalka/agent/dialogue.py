@@ -108,7 +108,8 @@ async def generate_state(payload, sources, previous, question_id, max_rounds, ma
                     image_question_source = None
                     if observations:
                         from ..images.evidence import validate_observations
-                        image_question_source = validate_observations(candidate, sources, observations)
+                        introduced_source_id = payload.get("attached_source_id") or sources[-1].id
+                        image_question_source = validate_observations(candidate, sources, observations, introduced_source_id)
                     image_ranges = {key: observation["visible_ranges"] for key, observation in observations.items()}
                     state = build_state(sources, candidate, previous, question_id, max_rounds, image_ranges, image_question_source)
                     await activity("validation", attempt=attempt, outcome="passed")

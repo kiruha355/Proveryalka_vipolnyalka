@@ -31,7 +31,7 @@ def dialogue_observations(store, session_id, sources):
     return observations
 
 
-def validate_observations(draft, sources, observations):
+def validate_observations(draft, sources, observations, introduced_source_id):
     if not observations:
         return
     evidence = {
@@ -51,9 +51,9 @@ def validate_observations(draft, sources, observations):
         if not any(supported(source_id, fact.quote) for source_id in evidence):
             raise ValueError("Факт или элемент модели требует видимого наблюдения или текстового источника")
 
-    current = observations.get(sources[-1].id)
+    current = observations.get(introduced_source_id)
     ambiguities = [text for text in (*current["uncertainties"], *current["proposals"]) if text.strip()] if current else []
     if ambiguities:
         if not any(fragment in question.reason for fragment in ambiguities for question in draft.questions):
             raise ValueError("По неоднозначному изображению нужен новый уточняющий вопрос с цитатой из uncertainties или proposals в reason")
-        return sources[-1].id
+        return introduced_source_id

@@ -87,7 +87,7 @@ function ImageAnalyses({ api, sessionId, image, blocked, analysisKeys, onUse }: 
   const [records, setRecords] = useState<ImageAnalysisRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [readError, setReadError] = useState<unknown>(null);
-  const [analysisError, setAnalysisError] = useState<{ error: unknown; region: ImageRegion | null } | null>(null);
+  const [analysisError, setAnalysisError] = useState<{ error: unknown; region: ImageRegion | null; retryKey?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [reload, setReload] = useState(0);
 
@@ -111,10 +111,10 @@ function ImageAnalyses({ api, sessionId, image, blocked, analysisKeys, onUse }: 
     return () => controller.abort();
   }, [api, image.id, reload, sessionId]);
 
-  const analyze = async (area: ImageRegion | null) => {
+  const analyze = async (area: ImageRegion | null, retryKey?: string) => {
     if (!api.analyzeImage || busy) return;
     const scope = JSON.stringify([image.id, area && [area.x, area.y, area.width, area.height]]);
-    const key = analysisKeys.get(scope) ?? newKey();
+    const key = retryKey ?? analysisKeys.get(scope) ?? newKey();
     analysisKeys.set(scope, key);
     setBusy(true);
     setAnalysisError(null);
@@ -126,11 +126,10 @@ function ImageAnalyses({ api, sessionId, image, blocked, analysisKeys, onUse }: 
       }]);
       if (analysisKeys.get(scope) === key) analysisKeys.delete(scope);
     } catch (error) {
-      setAnalysisError({ error, region: area });
-      if (!(error instanceof ApiError && (requiresSignIn(error) || error.kind === "network" || error.kind === "malformed"
-        || error.code === "IMAGE_ANALYSIS_RUNNING" || error.code === "IMAGE_ANALYSIS_BUSY"))) {
-        if (analysisKeys.get(scope) === key) analysisKeys.delete(scope);
-      }
+      const unresolved = error instanceof ApiError && (requiresSignIn(error) || error.kind === "network" || error.kind === "malformed"
+        || error.code === "IMAGE_ANALYSIS_RUNNING" || error.code === "IMAGE_ANALYSIS_BUSY");
+      setAnalysisError({ error, region: area, retryKey: unresolved ? key : undefined });
+      if (!unresolved && analysisKeys.get(scope) === key) analysisKeys.delete(scope);
     } finally {
       setBusy(false);
       setReload(current => current + 1);
@@ -154,7 +153,7 @@ function ImageAnalyses({ api, sessionId, image, blocked, analysisKeys, onUse }: 
       {analysisError !== null && <ErrorNotice error={analysisError.error} title="Не удалось разобрать изображение"
         action={<button type="button" className="button button--small" disabled={busy} onClick={() => {
           setDrawing(false);
-          void analyze(analysisError.region);
+          void analyze(analysisError.region, analysisError.retryKey);
         }}>Повторить разбор</button>} />}
       {readError !== null && <ErrorNotice error={readError} title="Разборы не загружены"
         action={<button type="button" className="button button--small" onClick={() => setReload(value => value + 1)}>Повторить</button>} />}

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "../../App";
 import type { ApiCapabilities, ProveryalkaApi } from "../../api/api";
@@ -196,6 +196,35 @@ it.each([
   await dialog().findByText("Разобрана область");
   expect(analyzeImage).toHaveBeenNthCalledWith(1, image.session_id, image.id, crop, expect.any(String));
   expect(analyzeImage.mock.lastCall).toEqual(analyzeImage.mock.calls[0]);
+});
+
+it("retries a running analysis with its original key after the earlier request completes", async () => {
+  const result: ImageAnalysis = { id: "saved", source_id: image.id, description: "Сохранённый разбор",
+    requirements: [], uncertainties: [], source_refs: [{ region: null }] };
+  let complete!: (value: ImageAnalysis) => void;
+  const analyzeImage = vi.fn<NonNullable<ProveryalkaApi["analyzeImage"]>>()
+    .mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }))
+    .mockRejectedValueOnce(new ApiError("http", "running", { status: 409, code: "IMAGE_ANALYSIS_RUNNING" }))
+    .mockResolvedValue(result);
+  const api = Object.assign(new DemoApi(), { analyzeImage, listImages: async () => [image],
+    listImageAnalyses: async () => [], getImageContentUrl: () => content });
+  function Library() {
+    return <SessionImages api={api} sessionId={image.session_id} library={useSessionImages(api, image.session_id, true)}
+      blocked={false} onUse={vi.fn()} />;
+  }
+  render(<Library />);
+  const open = await screen.findByRole("button", { name: "Изображения (1)" });
+  if (!screen.queryByRole("dialog")) fireEvent.click(open);
+  fireEvent.click(screen.getByRole("button", { name: "Анализировать всё изображение" }));
+  fireEvent.click(screen.getByRole("button", { name: "Закрыть изображение" }));
+  fireEvent.click(open);
+  fireEvent.click(screen.getByRole("button", { name: "Анализировать всё изображение" }));
+  const retry = await screen.findByRole("button", { name: "Повторить разбор" });
+  await act(async () => complete(result));
+  fireEvent.click(retry);
+  expect(await screen.findByText("Сохранённый разбор")).toBeVisible();
+  expect(analyzeImage).toHaveBeenCalledTimes(3);
+  expect(analyzeImage.mock.calls.every(call => call[3] === analyzeImage.mock.calls[0]![3])).toBe(true);
 });
 
 it("opens the same image region from a requirement, a model element and a check explanation", async () => {
