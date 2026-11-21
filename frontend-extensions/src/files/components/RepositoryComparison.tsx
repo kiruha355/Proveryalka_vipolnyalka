@@ -160,8 +160,9 @@ function ComparisonWorkspace({ provider, comparisons, generation, disabledReason
         )}
       </form>
       {loadError && <p role="alert">История сравнений. {loadError}</p>}
-      {(loadError || snapshotsError || snapshots?.length === 0) && (
-        <button type="button" className="pv-button" onClick={() => setAttempt((value) => value + 1)}>Обновить данные сравнения</button>
+      {(snapshots !== null || loadError || snapshotsError) && (
+        <button type="button" className="pv-button" disabled={busy}
+          onClick={() => setAttempt((value) => value + 1)}>Обновить данные сравнения</button>
       )}
       {error && <p role="alert" className="pv-codegen-error">{error}</p>}
       {runs.length > 1 && (
@@ -212,9 +213,23 @@ function ComparisonResult({ run, generation, provider }: {
   }
   return (
     <section className="pv-comparison__result" aria-label="Результат сравнения">
-      <p role="status">{isTerminalTestRun(run) ? verdicts[result.status]
-        : run.status === "queued" ? "Сравнение в очереди" : "Выполняется сравнение"}</p>
+      <p>
+        <span role="status">{isTerminalTestRun(run) ? verdicts[result.status]
+          : run.status === "queued" ? "Сравнение в очереди" : "Выполняется сравнение"}</span>
+        {" · Снимок "}<code>{result.snapshot_id}</code>
+        {" · Коммит "}<code title={result.commit_sha}>{result.commit_sha.slice(0, 12)}</code>
+      </p>
       {run.error_code && <p>{run.message ?? run.error_code}</p>}
+      {run.log_available && !showLog && (
+        <button type="button" className="pv-button" onClick={() => {
+          setLogError(null);
+          setShowLog(true);
+        }}>Журнал сравнения</button>
+      )}
+      {logError && <p role="alert">{logError}</p>}
+      {showLog && (log === null ? <p role="status">Загрузка журнала…</p> : (
+        <pre className="pv-test-log">{log}{run.log_truncated ? "\n[журнал сокращён сервером]" : ""}</pre>
+      ))}
       {result.differences.length > 0 && (
         <ul>{result.differences.map((difference, index) => (
           <li key={`${difference.scenario_id}:${index}`}>
@@ -226,9 +241,8 @@ function ComparisonResult({ run, generation, provider }: {
         ))}</ul>
       )}
       <details>
-        <summary>Снимок и хеши сравнения</summary>
+        <summary>Хеши сравнения</summary>
         <dl>
-          <dt>Снимок</dt><dd><code>{result.snapshot_id}</code></dd>
           <dt>Коммит</dt><dd><code>{result.commit_sha}</code></dd>
           <dt>Хеш manifest</dt><dd><code>{result.manifest_sha256}</code></dd>
           <dt>Хеш спецификации</dt><dd><code>{run.spec_hash}</code></dd>
@@ -238,16 +252,6 @@ function ComparisonResult({ run, generation, provider }: {
           <dt>Адаптер</dt><dd>{result.adapter.kind} · {result.adapter.module} · {result.adapter.api_prefix || "без префикса"}</dd>
         </dl>
       </details>
-      {run.log_available && !showLog && (
-        <button type="button" className="pv-button" onClick={() => {
-          setLogError(null);
-          setShowLog(true);
-        }}>Журнал сравнения</button>
-      )}
-      {logError && <p role="alert">{logError}</p>}
-      {showLog && (log === null ? <p role="status">Загрузка журнала…</p> : (
-        <pre className="pv-test-log">{log}{run.log_truncated ? "\n[журнал сокращён сервером]" : ""}</pre>
-      ))}
     </section>
   );
 }

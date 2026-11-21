@@ -71,13 +71,22 @@ it("opens the saved generation referenced by chat on the configured backend and 
   const view = render(<Files context={context} />);
   expect(await screen.findByRole("combobox", { name: "Генерация" })).toHaveValue(latest.generation_id);
 
-  act(() => focusGeneratedFile({ generation_id: generation.generation_id, version_id: version.id, path: "app/rules.py" }));
+  const path = "app/rules.py";
+  const ref = {
+    generation_id: generation.generation_id, version_id: version.id, path,
+    sha256: generation.files.find((entry) => entry.path === path)!.sha256,
+  };
+  act(() => focusGeneratedFile(ref));
   expect(await screen.findByLabelText("Содержимое app/rules.py")).toBeVisible();
   expect(fetcher).toHaveBeenCalledWith(
     `${base}/api/generations/${generation.generation_id}/files/app/rules.py`,
     expect.objectContaining({ signal: expect.any(AbortSignal) }),
   );
   expect(screen.getByRole("combobox", { name: "Генерация" })).toHaveValue(generation.generation_id);
+
+  act(() => focusGeneratedFile({ ...ref, sha256: "0".repeat(64) }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("не совпадает с хешем в ссылке");
+  expect(screen.queryByLabelText("Содержимое app/rules.py")).toBeNull();
 
   view.rerender(<Files context={{ ...context, version: nextVersion }} />);
   expect(await screen.findByText(/Утверждённая версия .*TLC: not_checked/)).toBeVisible();

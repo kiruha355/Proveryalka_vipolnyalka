@@ -49,6 +49,7 @@ export function GenerationForm({
   version,
   status,
   verificationState,
+  verificationAttempt,
   hidden,
   disabled,
   busy,
@@ -60,6 +61,7 @@ export function GenerationForm({
   version: VersionRef;
   status: CodegenStatus | null;
   verificationState: VerificationState | null;
+  verificationAttempt: number;
   hidden: boolean;
   disabled: boolean;
   busy: boolean;
@@ -70,7 +72,11 @@ export function GenerationForm({
   const [draft, setDraft] = useState<Partial<TechnicalConditions>>({});
   const [mode, setMode] = useState<ApplicationMode>("template");
   const [error, setError] = useState<string | null>(null);
-  const [gate, setGate] = useState<ReturnType<typeof verificationDetails>>(null);
+  const [confirmation, setConfirmation] = useState<{
+    attempt: number;
+    properties: NonNullable<ReturnType<typeof verificationDetails>>;
+  } | null>(null);
+  const gate = confirmation?.attempt === verificationAttempt ? confirmation.properties : null;
   const retry = useRef<{ body: string; key: string } | null>(null);
   const lifetime = useRef<AbortController | null>(null);
   useEffect(() => {
@@ -103,7 +109,7 @@ export function GenerationForm({
 
   const edit = () => {
     setError(null);
-    setGate(null);
+    setConfirmation(null);
   };
   const submit = async (allowUnverified: boolean) => {
     const signal = lifetime.current?.signal;
@@ -118,7 +124,7 @@ export function GenerationForm({
       const generation = await provider.createGeneration(version, options, retry.current.key, signal);
       if (signal?.aborted) return;
       retry.current = null;
-      setGate(null);
+      setConfirmation(null);
       onCreated(generation);
     } catch (cause) {
       if (signal?.aborted) return;
@@ -128,7 +134,7 @@ export function GenerationForm({
         const statuses = details.map(({ status }) => status);
         onVerificationState(!statuses.some(Boolean) ? "not_checked"
           : statuses.includes("PROPERTY_VIOLATED") ? "violated" : "inconclusive");
-        setGate(details);
+        setConfirmation({ attempt: verificationAttempt, properties: details });
       } else {
         setError(codegenErrorMessage(cause));
       }
@@ -222,7 +228,7 @@ export function GenerationForm({
           <button type="button" className="pv-button" disabled={cannotSubmit} onClick={() => submit(true)}>
             {busy ? "Генерация…" : "Создать с текущими результатами TLC"}
           </button>{" "}
-          <button type="button" className="pv-button" disabled={busy} onClick={() => setGate(null)}>Отмена</button>
+          <button type="button" className="pv-button" disabled={busy} onClick={() => setConfirmation(null)}>Отмена</button>
         </section>
       ) : (
         <button type="submit" className="pv-button" disabled={cannotSubmit}>

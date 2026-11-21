@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useCore } from "../../app/core";
 import { workspaceViews, type WorkspaceViewDefinition } from "../../app/extensions";
 import type { WorkspaceContextValue } from "../../app/workspace";
@@ -19,6 +19,7 @@ interface Props {
   fallbackVersion: ModelVersion | null;
   onOpenFallback(): void;
   onReturnToChats(): void;
+  fileOpenNotice?: ReactNode;
 }
 
 function missingVersionDetail(state: Extract<VersionResolution, { status: "missing" }>): string {
@@ -78,7 +79,7 @@ function Approval({ context }: { context: WorkspaceContextValue }) {
   );
 }
 
-export function WorkspacePanel({ context, viewId, versionState, fallbackVersion, onOpenFallback, onReturnToChats }: Props) {
+export function WorkspacePanel({ context, viewId, versionState, fallbackVersion, onOpenFallback, onReturnToChats, fileOpenNotice }: Props) {
   const core = useCore();
   const { workspace } = core;
   const isMissingVersion = versionState.status === "missing";
@@ -170,11 +171,12 @@ export function WorkspacePanel({ context, viewId, versionState, fallbackVersion,
       </header>
 
       <div className={`workspace__body${isReady && active?.id === "diagram" ? " workspace__body--diagram" : ""}`}>
-        {versionState.status === "error" && (
+        {fileOpenNotice}
+        {!fileOpenNotice && versionState.status === "error" && (
           <ErrorNotice error={workspace.models.error} title="Модели не загружены"
             action={<button type="button" className="button button--small" onClick={workspace.reloadModels}>Повторить</button>} />
         )}
-        {isLoadingVersion && (
+        {!fileOpenNotice && isLoadingVersion && (
           <QuietStatus busy>Загрузка модели</QuietStatus>
         )}
         {isMissingVersion && (
@@ -195,7 +197,7 @@ export function WorkspacePanel({ context, viewId, versionState, fallbackVersion,
             }
           />
         )}
-        {isReady && nothing && workspace.models.data && (
+        {isReady && nothing && workspace.models.data && !fileOpenNotice && (
           <div className="view view--empty">
             <div className="empty">
               <h2 className="empty__title">Модель появится здесь</h2>
@@ -206,7 +208,7 @@ export function WorkspacePanel({ context, viewId, versionState, fallbackVersion,
         {isReady && !context.version && dialogue && (
           <ModelIssues issues={dialogue.analysis.model_issues} missing={dialogue.analysis.missing_information} />
         )}
-        {isReady && ActiveView && !nothing && (
+        {isReady && ActiveView && !nothing && !(fileOpenNotice && active?.id === "files") && (
           <div role="tabpanel" id={`panel-${active!.id}`} aria-labelledby={`tab-${active!.id}`} className={`workspace__view${active!.id === "files" ? " workspace__view--files" : active!.id === "diagram" ? " workspace__view--diagram" : ""}`}>
             <ActiveView context={context} />
           </div>
