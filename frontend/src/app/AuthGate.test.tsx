@@ -21,6 +21,7 @@ function server(initial: typeof alice | null = null, enabled = true) {
   let csrf = "csrf-me";
   let loginCount = 0;
   let holdRegistration: Promise<Response> | null = null;
+  let documentUploaded = false;
   let nextRead: { path: string; response: Promise<Response> } | null = null;
   const accounts = new Map([[alice.email, alice], [bob.email, bob]]);
   const session = () => ({
@@ -32,7 +33,10 @@ function server(initial: typeof alice | null = null, enabled = true) {
     const method = init?.method ?? "GET";
     const headers = new Headers(init?.headers);
     if (path === "/ready") return json({ status: "ready" });
-    if (path === "/openapi.json") return json({ paths: { "/api/sessions": {}, "/api/sessions/{session_id}/messages": {} } });
+    if (path === "/openapi.json") return json({
+      paths: { "/api/sessions": {}, "/api/sessions/{session_id}/messages": {}, "/api/sessions/{session_id}/documents": {} },
+      components: { schemas: { MessageCreate: { properties: { base_version_id: {} } } } },
+    });
     if (path === "/api/auth/me") return !enabled ? failure(404, "HTTP_ERROR")
       : user ? json({ user, csrf_token: csrf }) : failure(401, "AUTH_REQUIRED");
     if (path === "/api/auth/login") {
@@ -63,8 +67,18 @@ function server(initial: typeof alice | null = null, enabled = true) {
     if (path === "/api/auth/password") return JSON.parse(String(init?.body)).current_password === PASSWORD
       ? empty() : failure(401, "INVALID_CREDENTIALS");
     if (path === "/api/sessions") return json([session()]);
-    if (path === `/api/sessions/${session().id}`) return json({ ...session(), messages: [], sources: [], requirements: [] });
+    if (path === `/api/sessions/${session().id}`) return json({
+      ...session(), messages: [], sources: [], requirements: [],
+      documents: documentUploaded ? [{ source_id: "uploaded-source", filename: "rules.txt", size_bytes: 14, characters: 7 }] : [],
+    });
     if (path === `/api/sessions/${session().id}/models`) return json([]);
+    if (path === `/api/sessions/${session().id}/documents` && method === "POST") {
+      documentUploaded = true;
+      return json({
+        source: { id: "uploaded-source", text: "Правила", session_id: session().id },
+        document: { source_id: "uploaded-source", filename: "rules.txt", size_bytes: 14, characters: 7 },
+      }, 201);
+    }
     if (path === `/api/sessions/${session().id}/messages` && method === "POST") {
       return json({ run_id: "saved-send", session_id: session().id, state: "completed", version_id: null, error_code: null }, 202);
     }
@@ -258,6 +272,27 @@ it("keeps the same session and draft after reauthentication, then isolates a dif
   expect(browserStorage).not.toContain("csrf-");
   expect(browserStorage).not.toContain(PASSWORD);
   expect(loadLocal({ id: "http:same-origin", ownerId: bob.id }, "__new__").draft).toBe("Черновик Боба");
+});
+
+it("retries an interrupted document upload in the existing chat with the same file and key", async () => {
+  const service = server(alice);
+  const { container } = render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: /Чат alice/ }));
+  await screen.findByRole("button", { name: "Приложить документ TXT, MD или DOCX" });
+  const file = new File(["Правила"], "rules.txt");
+  const picker = container.querySelector('input[type="file"]')!;
+  const path = "/api/sessions/chat-alice/documents";
+  service.expire();
+  fireEvent.change(picker, { target: { files: [file] } });
+  signIn(alice.email, await screen.findByRole("dialog", { name: "Войдите снова" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Повторить загрузку" }));
+
+  expect(await screen.findByText("rules.txt")).toBeVisible();
+  const uploads = service.requests(path);
+  expect(uploads).toHaveLength(2);
+  expect(new Headers(uploads[1]?.headers).get("Idempotency-Key"))
+    .toBe(new Headers(uploads[0]?.headers).get("Idempotency-Key"));
+  expect((uploads[1]?.body as FormData).get("file")).toBe(file);
 });
 
 it("validates registration fields, shows pending submission, and maps server errors to the field", async () => {

@@ -261,7 +261,8 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
               </>
             ) : undefined} />
         )}
-        {workspace.upload.error !== null && <ErrorNotice error={workspace.upload.error} title="Документ не загружен"/>}
+        {workspace.upload.error !== null && <ErrorNotice error={workspace.upload.error} title="Документ не загружен"
+          action={workspace.upload.retry ? <button type="button" className="button button--small" onClick={workspace.upload.retry}>Повторить загрузку</button> : undefined} />}
         {pending && !active && <div className="quiet">
           <button type="button" className="button button--small" disabled={workspace.send.sending} onClick={() => void workspace.retryPending()}>Повторить разбор</button>
           <button type="button" className="button button--small button--ghost" disabled={workspace.send.sending} onClick={() => void workspace.discardPending()}>Отменить разбор</button>

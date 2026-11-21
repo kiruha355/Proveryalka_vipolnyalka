@@ -217,6 +217,7 @@ export interface CheckStartState {
 export interface UploadState {
   uploading: string | null;
   error: unknown | null;
+  retry: (() => void) | null;
   documents: DocumentSource[];
 }
 
@@ -279,7 +280,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
   const [send, setSend] = useState<SendState>(() => ({ sending: false, outbox: loadLocal(api, sessionId).outbox, error: null }));
   const [checkStart, setCheckStart] = useState<CheckStartState>({ starting: false, error: null, retry: null });
   const [approveError, setApproveError] = useState<unknown | null>(null);
-  const [upload, setUpload] = useState<UploadState>({ uploading: null, error: null, documents: [] });
+  const [upload, setUpload] = useState<UploadState>({ uploading: null, error: null, retry: null, documents: [] });
 
   const root = useRef<AbortController>(new AbortController());
   const trackers = useRef(new Map<string, RunTracker>());
@@ -760,22 +761,27 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
     }
   }, [api]);
 
-  const uploadDocument = useCallback(async (file: File) => {
+  const uploadDocument = useCallback(async function attempt(file: File, key = newKey()) {
     if (!capabilities.documents || !api.uploadDocument || uploadingRef.current) return null;
     const validationError = validateDocumentFile(file);
     if (validationError) {
-      setUpload((u) => ({ ...u, uploading: null, error: validationError }));
+      setUpload((u) => ({ ...u, uploading: null, error: validationError, retry: null }));
       return null;
     }
     uploadingRef.current = true;
-    setUpload((u) => ({ ...u, uploading: file.name, error: null }));
+    setUpload((u) => ({ ...u, uploading: file.name, error: null, retry: null }));
     try {
-      const document = await api.uploadDocument(sessionId, file, newKey(), root.current.signal);
-      setUpload((u) => ({ uploading: null, error: null, documents: [...u.documents.filter((d) => d.id !== document.id), document] }));
+      const document = await api.uploadDocument(sessionId, file, key, root.current.signal);
+      setUpload((u) => ({ uploading: null, error: null, retry: null, documents: [...u.documents.filter((d) => d.id !== document.id), document] }));
       reloadDetail();
       return document;
     } catch (error) {
-      if (!isAbort(error)) setUpload((u) => ({ ...u, uploading: null, error }));
+      if (!isAbort(error)) {
+        const retry = error instanceof ApiError && (error.retryable || requiresSignIn(error))
+          ? () => { void attempt(file, key); }
+          : null;
+        setUpload((u) => ({ ...u, uploading: null, error, retry }));
+      }
       return null;
     }
     finally { uploadingRef.current = false; }
