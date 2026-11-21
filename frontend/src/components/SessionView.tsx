@@ -6,7 +6,7 @@ import {loadLocal, updateLocal} from "../state/persist";
 import {focusGeneratedFile} from "../extensions/load";
 import { CoreContext, type CoreActions } from "../app/core";
 import { workspaceViews } from "../app/extensions";
-import type { Route } from "../app/route";
+import { formatRoute, type Route } from "../app/route";
 import { WorkspaceContext, type ElementRef, type TraceFocus, type WorkspaceContextValue } from "../app/workspace";
 import { indexRequirements } from "../domain/requirements";
 import { traceRole } from "../domain/status";
@@ -101,6 +101,7 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
   useEffect(() => {const controller = new AbortController(); lifetime.current = controller; return () => controller.abort();}, []);
   const routeRef = useRef(route);
   routeRef.current = route;
+  const automaticReportLocation = useRef<string | null>(null);
   const [pane, setPane] = useState<"chat" | "workspace">(() =>
     route.view || route.check || route.modelId || route.version !== undefined ? "workspace" : "chat",
   );
@@ -118,8 +119,9 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
   const [limits, setLimits] = useState<CheckLimits>(DEFAULT_LIMITS);
   const composer = useRef<ComposerHandle>(null);
 
-  const go = useCallback((patch: Partial<Route>) => {
+  const go = useCallback((patch: Partial<Route>, preservePane = false) => {
     const next: Route = { ...routeRef.current, ...patch, sessionId, error: undefined };
+    automaticReportLocation.current = preservePane ? formatRoute({ ...next, snapshotId: undefined }) : null;
     routeRef.current = next;
     navigate(next, { replace: true });
   }, [navigate, sessionId]);
@@ -188,9 +190,14 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
     else navigate({ sessionId: null });
   }, [onReturnToChats, navigate]);
 
+  const reportLocation = formatRoute({ ...route, snapshotId: undefined });
   useEffect(() => {
+    if (automaticReportLocation.current === reportLocation) {
+      automaticReportLocation.current = null;
+      return;
+    }
     if (route.check) setPane("workspace");
-  }, [route.check, route.modelId, route.version, route.view, route.property, route.step]);
+  }, [reportLocation, route.check]);
 
   useEffect(() => {
     if (route.check) workspace.ensureCheck(route.check);
@@ -233,12 +240,12 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
         setElement(next);
         if (next) setPane("workspace");
       },
-      focusTrace: (target) => {
+      focusTrace: (target, options) => {
         if (!target) go({
           view: routeRef.current.view ?? (routeRef.current.check ? "check" : undefined),
           check: undefined, property: undefined, step: undefined,
         });
-        else go({ check: target.checkRunId, property: target.propertyId || undefined, step: target.step });
+        else go({ check: target.checkRunId, property: target.propertyId || undefined, step: target.step }, options?.preservePane);
       },
       setTraceStep: (step) => {
         if (!trace) return;

@@ -91,7 +91,7 @@ export function CheckView({ context }: WorkspaceViewProps) {
   // Open the most informative result once a run has results and nothing is chosen yet.
   useEffect(() => {
     if (selected && matchesVersion && !result && ordered[0]) {
-      context.focusTrace({ checkRunId: selected.runId, propertyId: ordered[0].property_id });
+      context.focusTrace({ checkRunId: selected.runId, propertyId: ordered[0].property_id }, { preservePane: true });
     }
   }, [selected, matchesVersion, result, ordered, context]);
 

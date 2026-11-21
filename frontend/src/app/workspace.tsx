@@ -65,7 +65,7 @@ export interface WorkspaceContextValue {
   trace: TraceFocus | null;
   selection: WorkspaceSelection;
   select(element: ElementRef | null): void;
-  focusTrace(target: Omit<TraceTarget, "step"> & { step?: number } | null): void;
+  focusTrace(target: Omit<TraceTarget, "step"> & { step?: number } | null, options?: { preservePane?: boolean }): void;
   setTraceStep(step: number): void;
   createVersion?(modelId: string, body: {spec: ModelVersion["spec"]; parent_id?: string | null}, key: string): Promise<ModelVersion>;
   selectVersion(versionId: string): void;
