@@ -12,6 +12,7 @@ import { boundResults } from "../views/CheckView";
 import { QuestionStatusTag } from "../views/RequirementsView";
 import { Expr, Val } from "../Expr";
 import { StatusBadge } from "../StatusBadge";
+import { ErrorNotice } from "../Notice";
 import { Doc, Shield, Stop } from "../icons";
 
 export function UserBubble({ text, time, children }: { text: ReactNode; time?: string | null; children?: ReactNode }) {
@@ -201,6 +202,7 @@ export function CheckCard({ check, version, modelName, context, onCancel }: Chec
           )}
         </p>
       )}
+      {running && check.cancelError != null && <ErrorNotice error={check.cancelError} title="Не удалось остановить проверку" />}
       {check.failure && <p className="small">{check.failure.code === "CANCELLED" ? "Остановлено, результата нет." : `Не выполнена: ${check.failure.code}`}</p>}
       {scenario}
       {!violated && results.length > 0 && (

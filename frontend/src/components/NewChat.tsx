@@ -40,7 +40,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
   const documentSession = useRef<{session: Session | null; sessionKey: string; uploadKey: string; file: File} | null>(null);
   const [documentError, setDocumentError] = useState(false);
   const [draft, setDraft] = useState(() => loadLocal(api, NEW).draft);
-  const draftRevRef = useRef(0);
+  const draftRevRef = useRef(loadLocal(api, NEW).draftRevision ?? 0);
   const draftRef = useRef(draft);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -50,7 +50,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     draftRevRef.current += 1;
     draftRef.current = value;
     setDraft(value);
-    updateLocal(api, NEW, (local) => ({ ...local, draft: value }));
+    updateLocal(api, NEW, (local) => ({ ...local, draft: value, draftRevision: draftRevRef.current }));
   };
 
   const blocked = !capabilities
@@ -59,16 +59,15 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
       ? capabilities.adapter === "demo" ? "Записанные данные: выберите пример слева." : "Агент не настроен. Проверьте подключение."
       : null;
 
-  const start = async () => {
-    const text = draft.trim();
+  const start = async (retry = false) => {
+    const saved = loadLocal(api, NEW).outbox;
+    const text = retry && saved?.sessionKey ? saved.text : draft.trim();
     if (!text || inFlight.current) return;
     inFlight.current = true;
-    const rev = draftRevRef.current;
     setDocumentError(false);
-    const saved = loadLocal(api, NEW).outbox;
     const outbox = saved && saved.text === text && saved.sessionKey
       ? saved
-      : { text, questionId: null, key: newKey(), sessionKey: newKey(), sessionTitle: titleFrom(text) };
+      : { text, questionId: null, key: newKey(), sessionKey: newKey(), sessionTitle: titleFrom(text), draftRevision: draftRevRef.current };
     updateLocal(api, NEW, (local) => ({ ...local, outbox }));
     setBusy(true);
     setError(null);
@@ -76,7 +75,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     try {
       const session = await api.createSession({ title: outbox.sessionTitle ?? titleFrom(text) }, outbox.sessionKey!, signal);
       if (signal.aborted) return;
-      const unchanged = draftRevRef.current === rev;
+      const unchanged = draftRevRef.current === outbox.draftRevision;
       const remainingDraft = unchanged ? "" : draftRef.current;
       // The session view sends the message with the key reserved here.
       updateLocal(api, session.id, (local) => ({
@@ -149,7 +148,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
   };
 
   const documentToRetry = documentSession.current?.file;
-  const retryError = documentError ? (documentToRetry ? () => void attach(documentToRetry) : null) : () => void start();
+  const retryError = documentError ? (documentToRetry ? () => void attach(documentToRetry) : null) : () => void start(true);
   return (
     <div className="session" ref={split.container} style={split.style}>
     <section className="chat chat--new" aria-labelledby="new-chat-title">

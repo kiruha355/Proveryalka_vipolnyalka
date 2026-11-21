@@ -7,8 +7,11 @@ import type { CheckRun, DialogueView, ModelVersion, Question, Run, RunEvent, Ses
 import { App } from "../App";
 import { registerCoreViews } from "../app/coreViews";
 import { resetExtensions } from "../app/extensions";
+import type { WorkspaceContextValue } from "../app/workspace";
 import { NewChat } from "../components/NewChat";
+import { CheckCard } from "../components/chat/entries";
 import { loadLocal, updateLocal } from "./persist";
+import type { CheckRunView } from "./types";
 import { useSessionWorkspace } from "./useSessionWorkspace";
 
 const sid = "demo_s_order";
@@ -130,8 +133,11 @@ describe("UX [9] + F07: version checks discovery and direct check links", () => 
     window.location.hash = `#/s/${sid}?m=${base.model_id}&v=${base.number}&view=model`;
     render(<App initialApi={api} />);
     await screen.findByRole("tabpanel", { name: "Модель" });
+    fireEvent.click(screen.getByRole("button", { name: "Чат" }));
+    expect(screen.getByRole("button", { name: "Чат" })).toHaveAttribute("aria-pressed", "true");
     act(() => { window.location.hash = `#/s/${sid}?check=chk_v3`; });
     expect(await screen.findByText("Модели не загружены")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Модель и проверка" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
     expect(await screen.findByRole("button", { name: "Проверить версию 3" })).toBeVisible();
     expect(await screen.findByRole("list", { name: "Проверяемые правила" })).toBeVisible();
@@ -347,9 +353,50 @@ describe("F01: chat draft protection on late POST response", () => {
     expect(onCreated).toHaveBeenCalledTimes(1);
     expect(loadLocal(api.id, "s_new_1").draft).toBe("Добавил ещё правило");
   });
+
+  it("reuses the original new-chat attempt and preserves edits made during it", async () => {
+    const api = makeApi();
+    let fail!: (error: ApiError) => void;
+    const created = { id: "created-after-retry", title: "А", mode: "analyzer" as const, created_at: "2026-11-21T00:00:00Z" };
+    api.createSession = vi.fn<ProveryalkaApi["createSession"]>()
+      .mockImplementationOnce(() => new Promise<Session>((_resolve, reject) => { fail = reject; }))
+      .mockResolvedValue(created);
+    const onCreated = vi.fn();
+    render(<NewChat api={api} capabilities={baseCaps} onCreated={onCreated} />);
+    const draft = screen.getByRole("textbox", { name: "Описание поведения" });
+    fireEvent.change(draft, { target: { value: "А" } });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+    fireEvent.change(draft, { target: { value: "Б" } });
+    fireEvent.change(draft, { target: { value: "А" } });
+    await act(async () => fail(new ApiError("http", "Temporary", { status: 503 })));
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created));
+    const calls = vi.mocked(api.createSession).mock.calls;
+    expect(calls[1]?.[1]).toBe(calls[0]?.[1]);
+    expect(loadLocal(api, created.id)).toMatchObject({ draft: "А", outbox: { text: "А", autoSend: true } });
+  });
 });
 
 describe("F05 + F06: cancel races and check report fetch retry", () => {
+  it("shows check cancellation failure on its chat card until the run ends", async () => {
+    const api = makeApi();
+    const version = (await api.listVersions("demo_m_order"))[0]!;
+    const run: Run = { run_id: "check-cancel", session_id: sid, version_id: version.id, state: "running", error_code: null };
+    const check: CheckRunView = {
+      runId: run.run_id, versionId: version.id, startedAt: null, run, results: null, resultsLoading: false,
+      resultsError: null, stream: { kind: "closed" }, failure: null,
+      artifacts: { data: null, loading: false, error: null },
+      cancelRequested: false, cancelError: new ApiError("http", "Temporary", { status: 503 }),
+    };
+    const context = { openLocation: vi.fn() } as unknown as WorkspaceContextValue;
+    const onCancel = vi.fn();
+    const { rerender } = render(<ol><CheckCard check={check} version={version} context={context} onCancel={onCancel} /></ol>);
+    expect(screen.getByRole("alert")).toHaveTextContent("Не удалось остановить проверку");
+    expect(screen.getByRole("button", { name: "Остановить" })).toBeEnabled();
+    rerender(<ol><CheckCard check={{...check, run: { ...run, state: "completed" }}} version={version} context={context} onCancel={onCancel} /></ol>);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("never rolls back a terminal agent run on late cancel response and allows cancelling again after a failure", async () => {
     const api = makeApi();
     const version = (await api.listVersions("demo_m_order"))[0]!;

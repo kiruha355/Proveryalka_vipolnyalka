@@ -189,7 +189,10 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
   }, [onReturnToChats, navigate]);
 
   useEffect(() => {
-    if (route.check) workspace.ensureCheck(route.check);
+    if (route.check) {
+      setPane("workspace");
+      workspace.ensureCheck(route.check);
+    }
   }, [route.check, workspace.ensureCheck]);
   const session: Session | undefined = workspace.detail.data ?? listed;
   const checks = useMemo(() => (version ? workspace.checks.filter((c) => c.versionId === version.id) : []), [version, workspace.checks]);
