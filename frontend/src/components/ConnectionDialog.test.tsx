@@ -253,7 +253,7 @@ describe("ConnectionDialog", () => {
     expect(within(details).getByText(/SQLite or Java\/TLC is unavailable/)).toBeInTheDocument();
   });
 
-  it("clears cancelled probe loading spinner when switching to Demo and back (S3)", async () => {
+  it("clears the cancelled candidate probe without showing saved API readiness (S3)", async () => {
     const user = userEvent.setup();
     const pending = deferred<ReadyInfo>();
     render(
@@ -267,17 +267,23 @@ describe("ConnectionDialog", () => {
       />,
     );
 
+    const input = screen.getByLabelText("Адрес API");
+    await user.clear(input);
+    await user.type(input, "http://server-b.local:9000");
     await user.click(screen.getByRole("button", { name: "Проверить" }));
     expect(screen.getByText("Проверка подключения…")).toBeInTheDocument();
 
     await user.click(screen.getByLabelText(/Демо на записанных данных/));
     await user.click(screen.getByLabelText(/Сервер Проверялки/));
     expect(screen.queryByText("Проверка подключения…")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Адрес API")).toHaveValue("http://server-b.local:9000");
+    expect(screen.getByText(/Адрес изменён/)).toBeInTheDocument();
+    expect(screen.queryByText(/Сервер доступен/)).not.toBeInTheDocument();
   });
 
-  it("rejects HTTP 200 JSON without status='ready' in HttpApi.ready (S4)", async () => {
+  it.each([{ unrelated: true }, { status: "ready", llm_provider: { name: "openai" } }])("rejects malformed ready payload %j (S4)", async (payload) => {
     const api = new HttpApi("http://unrelated.example", vi.fn<typeof fetch>(async () =>
-      new Response(JSON.stringify({ unrelated: true }), { status: 200, headers: { "Content-Type": "application/json" } }),
+      new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } }),
     ));
     await expect(api.ready()).rejects.toThrow(/Ответ \/ready не подтверждает готовность/);
   });
@@ -301,7 +307,11 @@ describe("ConnectionDialog", () => {
         return new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } });
       }
       if (url === "/ready") {
-        if (readyRequests++ > 0) return activeProbe.promise;
+        const request = readyRequests++;
+        if (request > 1) return activeProbe.promise;
+        if (request === 1) return new Response(JSON.stringify({
+          error: { code: "DEPENDENCY_UNAVAILABLE", message: "Unavailable" },
+        }), { status: 503, headers: { "Content-Type": "application/json" } });
         return new Response(JSON.stringify({ status: "ready", checker: "TLC", agent_configured: false }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -317,6 +327,10 @@ describe("ConnectionDialog", () => {
 
       expect(await screen.findByText(/Агент не настроен/)).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: /Подключение/ }));
+
+      await user.click(screen.getByRole("button", { name: "Проверить" }));
+      expect(await screen.findByText("Сервер не готов к работе")).toBeInTheDocument();
+      expect(screen.getByText(/Агент не настроен/)).toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "Проверить" }));
       await user.click(screen.getByText("Технические сведения"));

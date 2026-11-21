@@ -22,6 +22,9 @@ const DEFAULT_PREFS: Prefs = {
   sidebarOpen: true,
 };
 
+type ApiReadiness = { api: ProveryalkaApi; ready: Loadable<ReadyInfo> };
+const unknownReadiness: Loadable<ReadyInfo> = { data: null, error: null, loading: true };
+
 function useLoad<T>(load: (signal: AbortSignal) => Promise<T>, deps: unknown[]): [Loadable<T>, () => void] {
   const [state, setState] = useState<Loadable<T>>({ data: null, error: null, loading: true });
   const [tick, setTick] = useState(0);
@@ -60,9 +63,24 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   const [connectionOpen, setConnectionOpen] = useState(false);
   const [capabilities, retryCapabilities] = useLoad<ApiCapabilities>((signal) => api.capabilities(signal), [api]);
   const [sessions, reloadSessions] = useLoad<Session[]>((signal) => api.listSessions(signal), [api]);
-  const [loadedReady] = useLoad<ReadyInfo>((signal) => api.ready(signal), [api]);
-  const [activeProbe, setActiveProbe] = useState<{ api: ProveryalkaApi; ready: Loadable<ReadyInfo> } | null>(null);
-  const ready = activeProbe?.api === api ? activeProbe.ready : loadedReady;
+  const [loadedReady, setLoadedReady] = useState<ApiReadiness | null>(null);
+  const [activeProbe, setActiveProbe] = useState<ApiReadiness | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    api.ready(controller.signal).then(
+      (data) => { if (!controller.signal.aborted) setLoadedReady({ api, ready: { data, error: null, loading: false } }); },
+      (error: unknown) => {
+        if (!controller.signal.aborted && !isAbort(error)) {
+          setLoadedReady({ api, ready: { data: null, error, loading: false } });
+        }
+      },
+    );
+    return () => controller.abort();
+  }, [api]);
+  const initialReady = loadedReady?.api === api ? loadedReady.ready : unknownReadiness;
+  const ready = activeProbe?.api === api
+    ? { ...activeProbe.ready, data: activeProbe.ready.data ?? initialReady.data }
+    : initialReady;
   const closeConnection = useCallback(() => setConnectionOpen(false), []);
 
   const checkReady = useCallback((targetUrl: string, signal: AbortSignal): Promise<ReadyInfo> => {
@@ -77,7 +95,10 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
       },
       (error: unknown) => {
         if (isActiveHttp && !signal.aborted && !isAbort(error)) {
-          setActiveProbe({ api, ready: { data: null, error, loading: false } });
+          setActiveProbe((previous) => ({
+            api,
+            ready: { data: previous?.api === api ? previous.ready.data : null, error, loading: false },
+          }));
         }
         throw error;
       },

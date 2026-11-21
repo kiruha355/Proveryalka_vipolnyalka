@@ -96,7 +96,10 @@ export function ConnectionDialog({ adapter, baseUrl, ready, onApply, onCheckRead
   const handleModeChange = (nextMode: "http" | "demo") => {
     if (nextMode !== "http") {
       abortProbe();
-      setProbe((prev) => (prev?.kind === "loading" ? null : prev));
+      setProbe((prev) => {
+        if (prev?.kind !== "loading") return prev;
+        return prev.target === normalizeBaseUrl(baseUrl) ? null : { kind: "idle", edited: true };
+      });
     }
     setMode(nextMode);
   };
