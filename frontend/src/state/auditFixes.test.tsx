@@ -148,7 +148,7 @@ describe("UX [9] + F07: version checks discovery and direct check links", () => 
     await waitFor(() => expect(screen.getByRole("button", { name: "Модель и проверка" })).toHaveAttribute("aria-pressed", "true"));
   });
 
-  it("does not hide a chat draft when a pending report selects its default property", async () => {
+  it.each([false, true])("preserves the intended pane as a pending report resolves (external link: %s)", async (external) => {
     const api = makeApi();
     const version = (await api.listVersions("demo_m_order"))[0]!;
     const report = await api.getCheck((await (api as DemoApi).listCheckRuns(version))[0]!);
@@ -160,9 +160,15 @@ describe("UX [9] + F07: version checks discovery and direct check links", () => 
     fireEvent.click(screen.getByRole("button", { name: "Чат" }));
     const draft = screen.getByRole("textbox", { name: "Сообщение агенту" });
     fireEvent.change(draft, { target: { value: "Уточнение в процессе" } });
+    if (external) window.history.replaceState(null, "", `#/s/${sid}?check=chk_waiting&p=NoCancelledExecution`);
     await act(async () => resolve({ ...report, run: { ...report.run, run_id: "chk_waiting" } }));
     await waitFor(() => expect(new URLSearchParams(window.location.hash.split("?")[1]).has("p")).toBe(true));
-    expect(screen.getByRole("button", { name: "Чат" })).toHaveAttribute("aria-pressed", "true");
+    if (external) {
+      act(() => window.dispatchEvent(new HashChangeEvent("hashchange")));
+      expect(screen.getByRole("button", { name: "Модель и проверка" })).toHaveAttribute("aria-pressed", "true");
+    } else {
+      expect(screen.getByRole("button", { name: "Чат" })).toHaveAttribute("aria-pressed", "true");
+    }
     expect(draft).toHaveValue("Уточнение в процессе");
   });
 

@@ -6,7 +6,7 @@ import {loadLocal, updateLocal} from "../state/persist";
 import {focusGeneratedFile} from "../extensions/load";
 import { CoreContext, type CoreActions } from "../app/core";
 import { workspaceViews } from "../app/extensions";
-import { formatRoute, type Route } from "../app/route";
+import { formatRoute, parseRoute, type Route } from "../app/route";
 import { WorkspaceContext, type ElementRef, type TraceFocus, type WorkspaceContextValue } from "../app/workspace";
 import { indexRequirements } from "../domain/requirements";
 import { traceRole } from "../domain/status";
@@ -120,7 +120,12 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
   const composer = useRef<ComposerHandle>(null);
 
   const go = useCallback((patch: Partial<Route>, preservePane = false) => {
-    const next: Route = { ...routeRef.current, ...patch, sessionId, error: undefined };
+    const current = routeRef.current;
+    if (preservePane) {
+      const browser = parseRoute(window.location.hash);
+      if (browser.error || formatRoute(browser) !== formatRoute(current)) return;
+    }
+    const next: Route = { ...current, ...patch, sessionId, error: undefined };
     automaticReportLocation.current = preservePane ? formatRoute({ ...next, snapshotId: undefined }) : null;
     routeRef.current = next;
     navigate(next, { replace: true });
