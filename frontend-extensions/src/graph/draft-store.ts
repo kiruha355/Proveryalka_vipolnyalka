@@ -1,6 +1,16 @@
 import type { BehavioralModel, ModelVersion } from "../contracts/model";
 
-type GraphEdits = { spec: BehavioralModel; revision: number };
+export type TransitionEditorFields = {
+  name: string;
+  requirementIds: string[];
+  guardText: string;
+  rows: { key: number; variable: string; text: string }[];
+  nextKey: number;
+};
+
+export type TransitionEdit = { transitionId: string; fields?: TransitionEditorFields };
+
+type GraphEdits = { spec: BehavioralModel; revision: number; editor?: TransitionEdit };
 
 const drafts = new Map<string, GraphEdits>();
 
@@ -11,6 +21,11 @@ export function loadGraphDraft(key: string | null, base: ModelVersion | null) {
 
 export function saveGraphDraft(key: string | null, { spec, revision }: GraphEdits) {
   if (key) drafts.set(key, { spec, revision });
+}
+
+export function saveGraphEditor(key: string | null, editor?: TransitionEdit) {
+  const draft = key ? drafts.get(key) : undefined;
+  if (key && draft) drafts.set(key, { ...draft, editor });
 }
 
 export function deleteGraphDraft(key: string | null) {

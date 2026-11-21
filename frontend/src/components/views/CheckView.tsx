@@ -66,6 +66,16 @@ export function CheckView({ context }: WorkspaceViewProps) {
     );
   }
 
+  const linkedVersion = core.workspace.linkedCheckVersion;
+  if (requestedId && linkedVersion && !linkedVersion.data) {
+    return <div className="view check-view">
+      {linkedVersion.loading
+        ? <QuietStatus busy>Загрузка версии отчёта</QuietStatus>
+        : <ErrorNotice error={linkedVersion.error} title="Версия отчёта не загружена"
+            action={<button type="button" className="button button--small" onClick={core.workspace.reloadModels}>Повторить</button>} />}
+    </div>;
+  }
+
   if (requestedId && !matchesVersion && !core.workspace.models.loading) {
     return <div className="view check-view"><ErrorNotice title="Отчёт недоступен для выбранной версии"
       action={<button type="button" className="button button--small" onClick={() => context.focusTrace(null)}>Закрыть отчёт</button>} /></div>;
@@ -73,7 +83,17 @@ export function CheckView({ context }: WorkspaceViewProps) {
 
   if (!version || (requestedId && !matchesVersion)) return null;
 
+  const listing = core.workspace.checkListings[version.id];
+  const canList = context.capabilities.checkDiscovery && context.api.listCheckRuns;
+  const listingNotice = !canList ? null : listing?.error != null
+    ? <ErrorNotice error={listing.error} title="Список проверок версии не загружен"
+        action={<button type="button" className="button button--small" onClick={() => void core.workspace.reloadChecks(version)}>Повторить</button>} />
+    : !requestedId && checks.length === 0 && (listing?.loading ?? true)
+      ? <QuietStatus busy>Загрузка списка проверок версии</QuietStatus>
+      : null;
+
   if (checks.length === 0) {
+    if (listingNotice) return <div className="view check-view">{listingNotice}</div>;
     return (
       <div className="view view--empty">
         <div className="empty">
@@ -92,6 +112,7 @@ export function CheckView({ context }: WorkspaceViewProps) {
 
   return (
     <div className="view check-view">
+      {listingNotice}
       {checks.length > 1 && (
         <nav className="runs" aria-label="Проверки версии">
           {checks.map((check) => {

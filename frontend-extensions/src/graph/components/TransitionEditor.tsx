@@ -16,8 +16,8 @@ import { cx } from "../../ui/cx";
 import { CloseIcon, PlusIcon } from "../../ui/icons";
 import { applyDraftAction } from "../draft";
 import type { DraftAction } from "../draft";
+import type { TransitionEditorFields } from "../draft-store";
 
-type EffectRow = { key: number; variable: string; text: string };
 
 type Parsed = { expression: Expression | null; error: string | null };
 
@@ -43,32 +43,38 @@ function parse(text: string): Parsed {
 export function TransitionEditor({
   spec,
   transition,
+  initialFields,
+  onFieldsChange,
   onApply,
   onRemove,
   onClose,
 }: {
   spec: BehavioralModel;
   transition: Transition;
+  initialFields?: TransitionEditorFields;
+  onFieldsChange?: (fields: TransitionEditorFields) => void;
   onApply: (actions: DraftAction[]) => void;
   onRemove: () => void;
   onClose: () => void;
 }) {
   const formId = useId();
-  const [name, setName] = useState(transition.name);
-  const [requirementIds, setRequirementIds] = useState<string[]>(
-    transition.requirement_ids,
-  );
-  const [guardText, setGuardText] = useState(
-    formatExpression(transition.guard),
-  );
-  const [rows, setRows] = useState<EffectRow[]>(
-    transition.effects.map((effect, index) => ({
+  const [fields, setFields] = useState<TransitionEditorFields>(() => initialFields ?? ({
+    name: transition.name,
+    requirementIds: transition.requirement_ids,
+    guardText: formatExpression(transition.guard),
+    rows: transition.effects.map((effect, index) => ({
       key: index,
       variable: effect.variable,
       text: formatExpression(effect.value),
     })),
-  );
-  const [nextKey, setNextKey] = useState(transition.effects.length);
+    nextKey: transition.effects.length,
+  }));
+  const { name, requirementIds, guardText, rows, nextKey } = fields;
+  const update = (patch: Partial<TransitionEditorFields>) => {
+    const next = { ...fields, ...patch };
+    setFields(next);
+    onFieldsChange?.(next);
+  };
 
   const guard = useMemo(() => parse(guardText), [guardText]);
   const parsedRows = useMemo(
@@ -163,7 +169,7 @@ export function TransitionEditor({
           <span>Название</span>
           <input
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) => update({ name: event.target.value })}
             required
           />
         </label>
@@ -182,13 +188,9 @@ export function TransitionEditor({
                   <input
                     type="checkbox"
                     checked={checked}
-                    onChange={() =>
-                      setRequirementIds((current) =>
-                        checked
-                          ? current.filter((id) => id !== requirement.id)
-                          : [...current, requirement.id],
-                      )
-                    }
+                    onChange={() => update({ requirementIds: checked
+                      ? requirementIds.filter((id) => id !== requirement.id)
+                      : [...requirementIds, requirement.id] })}
                   />
                   {requirement.id}
                 </label>
@@ -208,7 +210,7 @@ export function TransitionEditor({
             className="pv-mono"
             rows={2}
             value={guardText}
-            onChange={(event) => setGuardText(event.target.value)}
+            onChange={(event) => update({ guardText: event.target.value })}
             spellCheck={false}
             aria-invalid={Boolean(guard.error || guardIssues.length)}
             aria-describedby={`${formId}-guard-help`}
@@ -236,15 +238,12 @@ export function TransitionEditor({
                 <select
                   aria-label={`Переменная эффекта ${index + 1}`}
                   value={row.variable}
-                  onChange={(event) =>
-                    setRows((current) =>
-                      current.map((item) =>
+                  onChange={(event) => update({
+                      rows: rows.map((item) =>
                         item.key === row.key
                           ? { ...item, variable: event.target.value }
                           : item,
-                      ),
-                    )
-                  }
+                      ) })}
                 >
                   {spec.variables
                     .filter(
@@ -267,25 +266,18 @@ export function TransitionEditor({
                   value={row.text}
                   spellCheck={false}
                   aria-invalid={Boolean(message)}
-                  onChange={(event) =>
-                    setRows((current) =>
-                      current.map((item) =>
+                  onChange={(event) => update({
+                      rows: rows.map((item) =>
                         item.key === row.key
                           ? { ...item, text: event.target.value }
                           : item,
-                      ),
-                    )
-                  }
+                      ) })}
                 />
                 <button
                   type="button"
                   className="pv-icon-button"
                   aria-label={`Убрать присваивание ${row.variable}`}
-                  onClick={() =>
-                    setRows((current) =>
-                      current.filter((item) => item.key !== row.key),
-                    )
-                  }
+                  onClick={() => update({ rows: rows.filter((item) => item.key !== row.key) })}
                 >
                   <CloseIcon />
                 </button>
@@ -303,8 +295,8 @@ export function TransitionEditor({
               className="pv-button pv-button--quiet"
               onClick={() => {
                 const variable = free[0]!;
-                setRows((current) => [
-                  ...current,
+                update({ rows: [
+                  ...rows,
                   {
                     key: nextKey,
                     variable: variable.id,
@@ -313,8 +305,7 @@ export function TransitionEditor({
                       value: variable.initial_value,
                     }),
                   },
-                ]);
-                setNextKey((key) => key + 1);
+                ], nextKey: nextKey + 1 });
               }}
             >
               <PlusIcon /> Присваивание

@@ -74,6 +74,7 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
 
   const workspace = useSessionWorkspace({
     api, capabilities, sessionId,
+    checkOnlyRunId: !route.modelId && route.version === undefined ? route.check : undefined,
     onModelProposed: (proposal) => { setElement(null); go({ modelId: proposal.model_id, version: proposal.number, check: undefined, property: undefined, step: undefined }); },
   });
 
@@ -82,10 +83,9 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   const routed = explicitVersion
     ? workspace.versions.find((v) => v.model_id === route.modelId && v.number === route.version)
     : undefined;
-  const linkedCheck = workspace.checks.find((check) => check.runId === route.check);
   const version = route.check && explicitVersion
     ? routed ?? null
-    : routed ?? workspace.versions.find((v) => v.id === linkedCheck?.versionId) ?? defaultVersion(groups);
+    : workspace.linkedCheckVersion ? workspace.linkedCheckVersion.data : routed ?? defaultVersion(groups);
   useEffect(() => {
     if (route.check) workspace.ensureCheck(route.check);
   }, [route.check, workspace.ensureCheck]);

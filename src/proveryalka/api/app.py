@@ -150,10 +150,7 @@ def create_app(
         "properties": {"file": {"type": "string", "format": "binary", "description": ".txt, .md (UTF-8) или .docx"}},
     }}}}}
 
-    @app.post("/api/sessions/{session_id}/documents", response_model=DocumentUpload, status_code=201,
-              responses=document_errors, openapi_extra=document_body)
-    async def upload_document(session_id: str, request: Request,
-                              idempotency_key: str = Header(min_length=1, max_length=128)):
+    async def read_document(request: Request):
         # Размер проверяется до разбора multipart, чтобы большой файл не попадал во временное хранилище.
         length = request.headers.get("content-length", "")
         if not length.isdigit():
@@ -165,10 +162,22 @@ def create_app(
             upload = form.get("file")
             if not isinstance(upload, UploadFile):
                 raise ServiceError(422, "INVALID_REQUEST", "Multipart field 'file' is required")
-            data = await upload.read(settings.max_document_bytes + 1)
-            filename = upload.filename
+            return upload.filename, await upload.read(settings.max_document_bytes + 1)
         finally:
             await form.close()
+
+    @app.post("/api/sessions/from-document", response_model=Session, status_code=201,
+              responses=document_errors, openapi_extra=document_body)
+    async def create_session_with_document(request: Request, idempotency_key: str = Header(min_length=1, max_length=128)):
+        filename, data = await read_document(request)
+        return await run_in_threadpool(adapter.call, "create_session_with_document",
+                                       filename=filename, data=data, key=idempotency_key)
+
+    @app.post("/api/sessions/{session_id}/documents", response_model=DocumentUpload, status_code=201,
+              responses=document_errors, openapi_extra=document_body)
+    async def upload_document(session_id: str, request: Request,
+                              idempotency_key: str = Header(min_length=1, max_length=128)):
+        filename, data = await read_document(request)
         return await run_in_threadpool(adapter.call, "create_document", session_id=session_id,
                                        filename=filename, data=data, key=idempotency_key)
 

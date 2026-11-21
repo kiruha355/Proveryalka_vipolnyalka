@@ -3,7 +3,7 @@ import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
 import { newKey } from "../api/api";
 import { ApiError, validateDocumentFile } from "../api/errors";
 import type { Session } from "../api/types";
-import { loadLocal, updateLocal } from "../state/persist";
+import { loadLocal, updateLocal, type Outbox } from "../state/persist";
 import { Composer, type ComposerHandle } from "./chat/Composer";
 import { PaneSeparator, usePaneWidth } from "./PaneSeparator";
 import { ErrorNotice } from "./Notice";
@@ -30,20 +30,20 @@ interface Props {
 export function NewChat({ api, capabilities, onCreated }: Props) {
   const split = usePaneWidth("proveryalka:chat-width", .36, 250, 390, .65);
   const inFlight = useRef(false);
-  const documentSession = useRef<{session: Session | null; sessionKey: string; uploadKey: string; file: File} | null>(null);
+  const documentRequest = useRef<{ key: string; file: File } | null>(null);
   const [documentError, setDocumentError] = useState(false);
   const [draft, setDraft] = useState(() => loadLocal(api.id, NEW).draft);
-  const draftRevRef = useRef(0);
+  const draftRevision = useRef(loadLocal(api.id, NEW).draftRevision);
   const draftRef = useRef(draft);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const composer = useRef<ComposerHandle>(null);
 
   const updateDraft = (value: string) => {
-    draftRevRef.current += 1;
+    draftRevision.current = newKey();
     draftRef.current = value;
     setDraft(value);
-    updateLocal(api.id, NEW, (local) => ({ ...local, draft: value }));
+    updateLocal(api.id, NEW, (local) => ({ ...local, draft: value, draftRevision: draftRevision.current }));
   };
 
   const blocked = !capabilities
@@ -52,31 +52,34 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
       ? capabilities.adapter === "demo" ? "Записанные данные: выберите пример слева." : "Агент не настроен. Проверьте подключение."
       : null;
 
-  const start = async () => {
-    const text = draft.trim();
+  const start = async (retry?: Outbox) => {
+    const text = retry?.text ?? draft.trim();
     if (!text || inFlight.current) return;
     inFlight.current = true;
-    const rev = draftRevRef.current;
     setDocumentError(false);
-    const saved = loadLocal(api.id, NEW).outbox;
+    const saved = retry ?? loadLocal(api.id, NEW).outbox;
+    const revision = draftRevision.current ?? newKey();
+    draftRevision.current = revision;
     const outbox = saved && saved.text === text && saved.sessionKey
       ? saved
-      : { text, questionId: null, key: newKey(), sessionKey: newKey(), sessionTitle: titleFrom(text) };
-    updateLocal(api.id, NEW, (local) => ({ ...local, outbox }));
+      : { text, questionId: null, key: newKey(), sessionKey: newKey(), sessionTitle: titleFrom(text), draftRevision: revision };
+    updateLocal(api.id, NEW, (local) => ({ ...local, draftRevision: revision, outbox }));
     setBusy(true);
     setError(null);
     try {
       const session = await api.createSession({ title: outbox.sessionTitle ?? titleFrom(text) }, outbox.sessionKey!);
-      const unchanged = draftRevRef.current === rev;
+      const unchanged = draftRevision.current === outbox.draftRevision;
       const remainingDraft = unchanged ? "" : draftRef.current;
       // The session view sends the message with the key reserved here.
       updateLocal(api.id, session.id, (local) => ({
         ...local,
         draft: remainingDraft,
-        outbox: { text, questionId: null, key: outbox.key, autoSend: true },
+        draftRevision: unchanged ? undefined : draftRevision.current,
+        outbox: { text, questionId: null, key: outbox.key, draftRevision: outbox.draftRevision, autoSend: true },
       }));
       updateLocal(api.id, NEW, () => ({ agentRuns: [], checkRuns: [], draft: "", outbox: null }));
       if (unchanged) {
+        draftRevision.current = undefined;
         draftRef.current = "";
         setDraft("");
       }
@@ -95,35 +98,39 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     }
   };
 
-  const attach = async (file: File) => {
-    if (inFlight.current || !api.uploadDocument) return;
+  const attach = async (file: File, key = newKey()) => {
+    if (inFlight.current || !api.createSessionWithDocument) return;
     const validationError = validateDocumentFile(file);
     if (validationError) {
+      documentRequest.current = null;
       setDocumentError(true);
       setError(validationError);
       return;
     }
     inFlight.current = true; setBusy(true); setError(null); setDocumentError(true);
-    const saved = documentSession.current;
-    const attempt = saved && saved.file === file
-      ? saved
-      : { session: null, sessionKey: newKey(), uploadKey: newKey(), file };
-    documentSession.current = attempt;
+    documentRequest.current = { key, file };
     try {
-      if (!attempt.session) attempt.session = await api.createSession({title: titleFrom(file.name)}, attempt.sessionKey);
-      await api.uploadDocument(attempt.session.id, file, attempt.uploadKey);
-      const currentDraft = draftRef.current;
-      updateLocal(api.id, attempt.session.id, local => ({...local, draft: currentDraft}));
-      updateLocal(api.id, NEW, local => ({...local, draft: "", outbox: null}));
-      documentSession.current = null;
-      onCreated(attempt.session);
+      const session = await api.createSessionWithDocument(file, key);
+      updateLocal(api.id, session.id, local => ({ ...local, draft: draftRef.current, draftRevision: draftRevision.current }));
+      updateLocal(api.id, NEW, local => ({ ...local, draft: "", draftRevision: undefined, outbox: null }));
+      documentRequest.current = null;
+      onCreated(session);
     } catch (failure) {
       if (!(failure instanceof ApiError && failure.retryable)) {
-        documentSession.current = null;
+        documentRequest.current = null;
       }
       setError(failure);
     }
     finally {inFlight.current = false; setBusy(false);}
+  };
+
+  const retry = () => {
+    if (documentError) {
+      const request = documentRequest.current;
+      if (request) void attach(request.file, request.key);
+    } else {
+      void start(loadLocal(api.id, NEW).outbox ?? undefined);
+    }
   };
 
   return (
@@ -145,14 +152,14 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
         </div>
       </div>
       <div className="chat__footer">
-        {error !== null && (
+        {(error !== null || (!busy && loadLocal(api.id, NEW).outbox)) && (
           <ErrorNotice error={error} title={documentError ? "Документ не загружен" : "Чат не создан"}
-            action={documentError ? undefined : <button type="button" className="button button--small" onClick={() => void start()}>Повторить</button>} />
+            action={(!documentError || documentRequest.current) && <button type="button" className="button button--small" onClick={retry}>Повторить</button>} />
         )}
         <Composer ref={composer} value={draft} label="Описание поведения"
           onChange={updateDraft}
           onSubmit={() => void start()} busy={busy} blockedReason={blocked}
-          attach={capabilities?.documents ? {busy, onFile: file => void attach(file)} : null}
+          attach={capabilities?.documentSessions && api.createSessionWithDocument ? {busy, onFile: file => void attach(file)} : null}
           placeholder="Например: заявку можно согласовать, отменить или исполнить…" />
       </div>
     </section>

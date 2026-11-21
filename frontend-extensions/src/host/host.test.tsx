@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -366,6 +366,35 @@ describe("подключение к рабочей области ядра", () 
     fourthRender.unmount();
     render(<Host initial={context} />);
     expect(screen.queryByText(/Черновик от версии/)).not.toBeInTheDocument();
+  });
+
+  it("восстанавливает введённые guard и эффект до применения к черновику (F03)", async () => {
+    const { context } = makeContext({
+      session: { id: "s_pending_editor" },
+      createVersion: vi.fn(async () => ORDER_VERSIONS[0]!),
+    });
+    const user = userEvent.setup();
+    const first = render(<Host initial={context} />);
+    await user.click(screen.getByRole("button", { name: "Изменить" }));
+    await user.click(screen.getByRole("button", { name: "Таблица" }));
+    await user.click(screen.getByRole("button", { name: "Исполнить" }));
+    await user.click(screen.getByRole("button", { name: /Изменить guard и effects/ }));
+    const guard = "approved ==";
+    const effect = '"Exec';
+    fireEvent.change(screen.getByRole("textbox", { name: "Условие (guard)" }), { target: { value: guard } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Новое значение status" }), { target: { value: effect } });
+    first.unmount();
+
+    const restored = render(<Host initial={context} />);
+    const editor = screen.getByRole("region", { name: "Правка перехода Execute" });
+    expect(within(editor).getByRole("textbox", { name: /^Условие \(guard\)/ })).toHaveValue(guard);
+    expect(within(editor).getByRole("textbox", { name: "Новое значение status" })).toHaveValue(effect);
+    expect(within(editor).getByRole("button", { name: "Применить к черновику" })).toBeDisabled();
+    expect(screen.getByText("Черновик от версии 1")).toBeInTheDocument();
+    await user.click(within(editor).getByRole("button", { name: "Закрыть правку" }));
+    restored.unmount();
+    render(<Host initial={context} />);
+    expect(screen.queryByRole("region", { name: "Правка перехода Execute" })).not.toBeInTheDocument();
   });
 });
 

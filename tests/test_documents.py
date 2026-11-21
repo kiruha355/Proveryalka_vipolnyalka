@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from proveryalka.agent import dialogue
 from proveryalka.api.app import create_app
 from proveryalka.config import Settings
+from proveryalka.services import ServiceError
 from test_analyst_http import TEXT, Script
 from test_check_api import FakeChecker, wait_run
 
@@ -36,6 +37,52 @@ def client(tmp_path):
 
 def upload(client, name, data, key="d"):
     return client.post(f"/api/sessions/{client.sid}/documents", files={"file": (name, data, "application/octet-stream")}, headers={"Idempotency-Key": key})
+
+
+def create_with_document(client, name, data, key="new-doc"):
+    return client.post("/api/sessions/from-document", files={"file": (name, data, "application/octet-stream")},
+                       headers={"Idempotency-Key": key})
+
+
+@pytest.mark.parametrize("name,data,code", [
+    ("blank.md", b" \n\t", "DOCUMENT_EMPTY"),
+    ("empty.txt", b"", "DOCUMENT_EMPTY"),
+    ("broken.docx", b"not a zip", "DOCUMENT_INVALID"),
+])
+def test_rejected_first_document_does_not_create_session(client, name, data, code):
+    before = client.get("/api/sessions").json()
+    rejected = create_with_document(client, name, data)
+    assert rejected.status_code == 422 and rejected.json()["error"]["code"] == code
+    assert client.get("/api/sessions").json() == before
+
+    created = create_with_document(client, "rules.txt", b"valid rules")
+    assert created.status_code == 201
+    session = created.json()
+    assert session["title"] == "rules.txt"
+    assert create_with_document(client, "rules.txt", b"valid rules").json() == session
+    assert create_with_document(client, "rules.txt", b"other rules").status_code == 409
+    assert client.get("/api/sessions").json() == [*before, session]
+    detail = client.get(f"/api/sessions/{session['id']}").json()
+    assert len(detail["documents"]) == len(detail["sources"]) == 1
+    assert detail["documents"][0]["source_id"] == detail["sources"][0]["id"]
+    assert detail["sources"][0]["text"] == "valid rules"
+    assert detail["messages"] == []
+
+
+def test_first_document_write_failure_rolls_back_the_session_and_key(client, monkeypatch):
+    store = client.app.state.backend.store
+    insert_document = store._insert_document
+    before = client.get("/api/sessions").json()
+
+    def fail_after_insert(*args):
+        insert_document(*args)
+        raise ServiceError(503, "STORAGE_UNAVAILABLE", "Test write failure")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(store, "_insert_document", fail_after_insert)
+        assert create_with_document(client, "rules.txt", b"original").status_code == 503
+    assert client.get("/api/sessions").json() == before
+    assert create_with_document(client, "rules.txt", b"recovered").status_code == 201
 
 
 def test_text_and_markdown_become_sources_with_provenance(client, tmp_path):

@@ -33,7 +33,9 @@ import {
   deleteGraphDraft,
   loadGraphDraft,
   saveGraphDraft,
+  saveGraphEditor,
 } from "../draft-store";
+import type { TransitionEdit } from "../draft-store";
 import type { GraphSelection, TraceView } from "../flow-elements";
 import { layoutProjection } from "../layout";
 import {
@@ -96,7 +98,7 @@ export type StateGraphWorkspaceProps = {
   className?: string;
 };
 
-type Draft = { base: ModelVersion; spec: BehavioralModel; revision: number };
+type Draft = { base: ModelVersion; spec: BehavioralModel; revision: number; editor?: TransitionEdit };
 type SaveState =
   | { phase: "idle" }
   | { phase: "saving" }
@@ -197,7 +199,7 @@ export function StateGraphWorkspace({
   const selection =
     selectionProp !== undefined ? selectionProp : localSelection;
   const [editingTransition, setEditingTransition] = useState<string | null>(
-    null,
+    () => draft?.editor?.transitionId ?? null,
   );
   const [view, setView] = useState<"graph" | "table">("graph");
   const [showConditional, setShowConditional] = useState(true);
@@ -248,7 +250,7 @@ export function StateGraphWorkspace({
     setSave({ phase: "idle" });
     setDraftError(null);
     setLocalSelection(focus);
-    setEditingTransition(null);
+    setEditingTransition(restored?.editor?.transitionId ?? null);
     setLocalTraceIndex(0);
     // focus применяется при смене версии и при его собственном изменении (эффект ниже).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -355,7 +357,7 @@ export function StateGraphWorkspace({
     if (!draft) return;
     try {
       const next = actions.reduce(applyDraftAction, draft.spec);
-      const nextDraft = { ...draft, spec: next, revision: draft.revision + 1 };
+      const nextDraft = { base: draft.base, spec: next, revision: draft.revision + 1 };
       saveGraphDraft(draftStorageKey, nextDraft);
       setDraft(nextDraft);
       setDraftError(null);
@@ -409,9 +411,12 @@ export function StateGraphWorkspace({
   const select = useCallback(
     (next: GraphSelection | null) => {
       setSelection(next);
-      if (next?.kind !== "transition") setEditingTransition(null);
+      if (editingTransition && (next?.kind !== "transition" || next.transitionId !== editingTransition)) {
+        saveGraphEditor(draftStorageKey);
+        setEditingTransition(null);
+      }
     },
-    [setSelection],
+    [setSelection, editingTransition, draftStorageKey],
   );
 
   if (versions.length === 0 || !version || !spec) {
@@ -431,6 +436,15 @@ export function StateGraphWorkspace({
           (transition) => transition.id === selection.transitionId,
         ) ?? null)
       : null;
+  const transitionInEditor = draft ? spec.transitions.find((transition) => transition.id === editingTransition) : undefined;
+  const openEditor = (transitionId: string) => {
+    saveGraphEditor(draftStorageKey, { transitionId });
+    setEditingTransition(transitionId);
+  };
+  const closeEditor = () => {
+    saveGraphEditor(draftStorageKey);
+    setEditingTransition(null);
+  };
   const singleEnum =
     projection &&
     projection.variables.length === 1 &&
@@ -480,33 +494,32 @@ export function StateGraphWorkspace({
   );
 
   const inspectorContent = (() => {
-    if (
-      draft &&
-      selectedTransition &&
-      editingTransition === selectedTransition.id
-    ) {
+    if (draft && transitionInEditor) {
+      const editor = loadGraphDraft(draftStorageKey, draft.base)?.editor;
       return (
         <TransitionEditor
-          key={`${selectedTransition.id}:${draft.revision}`}
+          key={`${transitionInEditor.id}:${draft.revision}`}
           spec={draft.spec}
-          transition={selectedTransition}
+          transition={transitionInEditor}
+          initialFields={editor?.transitionId === transitionInEditor.id ? editor.fields : undefined}
+          onFieldsChange={(fields) => saveGraphEditor(draftStorageKey, { transitionId: transitionInEditor.id, fields })}
           onApply={(actions) => {
-            if (apply(actions)) setEditingTransition(null);
+            if (apply(actions)) closeEditor();
           }}
           onRemove={() => {
             if (
               apply([
                 {
                   type: "remove_transition",
-                  transitionId: selectedTransition.id,
+                  transitionId: transitionInEditor.id,
                 },
               ])
             ) {
               setSelection(null);
-              setEditingTransition(null);
+              closeEditor();
             }
           }}
-          onClose={() => setEditingTransition(null)}
+          onClose={closeEditor}
         />
       );
     }
@@ -524,7 +537,7 @@ export function StateGraphWorkspace({
           <button
             type="button"
             className="pv-button"
-            onClick={() => setEditingTransition(selectedTransition.id)}
+            onClick={() => openEditor(selectedTransition.id)}
           >
             <PencilIcon /> Изменить guard и effects
           </button>
@@ -542,7 +555,7 @@ export function StateGraphWorkspace({
           onClose={() => select(null)}
           onEdit={
             draft
-              ? () => setEditingTransition(selectedTransition.id)
+              ? () => openEditor(selectedTransition.id)
               : undefined
           }
           onRequirementSelect={onRequirementSelect}
@@ -608,7 +621,7 @@ export function StateGraphWorkspace({
                         transitionId: id,
                         edgeId: null,
                       });
-                      setEditingTransition(id);
+                      openEditor(id);
                     }
                   }}
                 >
@@ -707,9 +720,7 @@ export function StateGraphWorkspace({
     return null;
   })();
 
-  const isEditingTransition = Boolean(
-    draft && selectedTransition && editingTransition === selectedTransition.id,
-  );
+  const isEditingTransition = Boolean(transitionInEditor);
 
   const stepCard =
     inspector === "full" && trace && trace.analysis.steps[traceIndex] ? (

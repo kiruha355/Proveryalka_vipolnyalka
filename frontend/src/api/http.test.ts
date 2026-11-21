@@ -67,6 +67,22 @@ describe("public HTTP contract", () => {
     const options=(fetcher.mock.calls[0] as unknown as [string,RequestInit])[1];
     expect(options.body).toBeInstanceOf(FormData);expect(options.headers).not.toHaveProperty("Content-Type");expect(fetcher).toHaveBeenCalledTimes(1);
   });
+  it("creates a session with its first document through the shared transport and one idempotency key", async () => {
+    const path = "/api/sessions/from-document";
+    expect(detectCapabilities({ paths: { "/api/sessions": {}, [path]: { post: {} } } }).documentSessions).toBe(true);
+    expect(detectCapabilities({ paths: { "/api/sessions": {} } }).documentSessions).toBe(false);
+    const session = { id: "s", title: "rules.md", mode: "analyzer", created_at: "2026-11-21T00:00:00Z" };
+    const fetcher = vi.fn<typeof fetch>(async () => json(session, 201));
+    const api = new HttpApi("", fetcher);
+    const file = new File(["правило"], session.title);
+    expect(await api.createSessionWithDocument(file, "new-doc")).toEqual(session);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const [url, options] = fetcher.mock.calls[0]!;
+    expect(url).toBe(path);
+    expect(options).toMatchObject({ method: "POST", headers: { "Idempotency-Key": "new-doc" } });
+    expect((options!.body as FormData).get("file")).toBe(file);
+    expect(new Headers(options!.headers).has("Content-Type")).toBe(false);
+  });
   it.each([[415,"UNSUPPORTED_DOCUMENT"],[422,"DOCUMENT_ENCODING"],[413,"DOCUMENT_TOO_LARGE"]])("preserves document error %s",async(status,code)=>{
     const api=new HttpApi("",vi.fn<typeof fetch>(async()=>json({error:{code,message:"Invalid document"}},status)));
     await expect(api.uploadDocument("s",new File(["x"],"bad.txt"),"u")).rejects.toMatchObject({code,status});

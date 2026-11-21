@@ -57,6 +57,12 @@ export class HttpApi implements ProveryalkaApi {
     return expect(await this.request("POST", "/api/sessions", { body: { title: body.title, mode: "analyzer" }, key, signal }), isSession, "Сессия");
   }
 
+  async createSessionWithDocument(file: File, key: string, signal?: AbortSignal) {
+    const body = new FormData();
+    body.append("file", file);
+    return expect(await this.request("POST", "/api/sessions/from-document", { body, key, signal }), isSession, "Сессия с документом");
+  }
+
   async getSession(sessionId: string, signal?: AbortSignal) {
     return expect(await this.request("GET", `/api/sessions/${segment(sessionId)}`, { signal }), isSessionDetail, "Сессия с историей");
   }
@@ -235,6 +241,7 @@ export function detectCapabilities(doc: unknown): ApiCapabilities {
     artifacts: "/api/checks/{run_id}/artifacts" in paths,
     checkDiscovery: typeof checksPath === "object" && checksPath !== null && "get" in checksPath,
     documents: "/api/sessions/{session_id}/documents" in paths,
+    documentSessions: "/api/sessions/from-document" in paths,
     dialogue: "/api/sessions/{session_id}/dialogue" in paths,
     explanations: "/api/checks/{run_id}/explanation" in paths,
     agentTrace: "/api/sessions/{session_id}/agent-runs" in paths,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useCore } from "../../app/core";
 import type { WorkspaceContextValue } from "../../app/workspace";
+import { newKey } from "../../api/api";
 import { describeCode } from "../../api/errors";
 import { isTerminal, type FileContextRef, type Question } from "../../api/types";
 import { RUN_STATE } from "../../domain/status";
@@ -28,7 +29,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   const { workspace, history } = core;
   const { api, capabilities, session } = context;
   const [draft, setDraft] = useState(() => loadLocal(api.id, session.id).draft);
-  const draftRevRef = useRef(0);
+  const draftRevision = useRef(loadLocal(api.id, session.id).draftRevision);
   const fileContextRef = useRef(fileContext);
   fileContextRef.current = fileContext;
   const replyQuestionIdRef = useRef(replyQuestionId);
@@ -39,9 +40,9 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   const last = workspace.lastAgentRun;
 
   const setDraftPersist = (value: string) => {
-    draftRevRef.current += 1;
+    draftRevision.current = newKey();
     setDraft(value);
-    updateLocal(api.id, session.id, (local) => ({ ...local, draft: value }));
+    updateLocal(api.id, session.id, (local) => ({ ...local, draft: value, draftRevision: draftRevision.current }));
   };
 
   const openQuestions = (workspace.dialogue?.questions ?? history?.dialogue?.questions ?? []).filter((q) => q.status === "open");
@@ -66,11 +67,10 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
     else composerRef.current?.focus();
   };
 
-  const sendDraft = async (send: () => Promise<boolean>, fromComposer: boolean) => {
-    const rev = draftRevRef.current;
+  const sendDraft = async (send: () => Promise<boolean>, revision?: string) => {
     const sentFile = fileContext;
     const sentReplyId = replyQuestionId;
-    if (await send() && fromComposer && draftRevRef.current === rev
+    if (await send() && revision && draftRevision.current === revision
       && fileContextRef.current === sentFile && replyQuestionIdRef.current === sentReplyId) {
       setDraftPersist("");
       onClearFile();
@@ -80,7 +80,13 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
 
   const submit = () => {
     const text = draft.trim();
-    if (text) void sendDraft(() => workspace.sendMessage(text, fileContext ? null : replyQuestion?.id ?? null, fileContext), true);
+    if (!text) return;
+    if (!draftRevision.current) {
+      draftRevision.current = newKey();
+      updateLocal(api.id, session.id, (local) => ({ ...local, draftRevision: draftRevision.current }));
+    }
+    const revision = draftRevision.current;
+    void sendDraft(() => workspace.sendMessage(text, fileContext ? null : replyQuestion?.id ?? null, fileContext, revision), revision);
   };
 
   const retryOutbox = () => {
@@ -89,7 +95,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
       && outbox.text === draft.trim()
       && outbox.questionId === replyQuestionId
       && JSON.stringify(outbox.fileContext ?? null) === JSON.stringify(fileContext);
-    void sendDraft(workspace.retryOutbox, fromComposer);
+    void sendDraft(workspace.retryOutbox, fromComposer ? outbox.draftRevision : undefined);
   };
 
   let blocked: string | null = null;
@@ -226,6 +232,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
                   <ErrorNotice error={active.stream.error} title="Нет связи с ходом анализа"
                     action={<button type="button" className="button button--small" onClick={() => workspace.reconnect(active.runId)}>Переподключиться</button>} />
                 )}
+                {active.cancelError != null && <ErrorNotice error={active.cancelError} title="Не удалось остановить анализ" />}
                 {active.delta && <MessageText text={active.delta}/>}
               </AgentBlock>
             </>
@@ -242,7 +249,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
       </div>
 
       <div className="chat__footer">
-        {workspace.send.error !== null && (
+        {!workspace.send.sending && (workspace.send.error !== null || workspace.send.outbox) && (
           <ErrorNotice error={workspace.send.error} title={workspace.send.outbox ? "Сообщение не отправлено" : "Сервер не принял сообщение"}
             action={workspace.send.outbox ? (
               <>

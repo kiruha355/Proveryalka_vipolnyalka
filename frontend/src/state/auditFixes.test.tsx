@@ -20,6 +20,7 @@ const baseCaps = {
   artifacts: false,
   checkDiscovery: false,
   documents: true,
+  documentSessions: true,
   dialogue: true,
   explanations: false,
 };
@@ -128,6 +129,66 @@ describe("UX [9] + F07: version checks discovery and direct check links", () => 
 
     expect(await screen.findByText("Результат проверки не загружен")).toBeInTheDocument();
     expect(screen.queryByText(/ещё не проверялась/)).toBeNull();
+  });
+
+  it("shows loading and a per-version list error, then retries that version", async () => {
+    const api = makeApi();
+    const version = (await api.listVersions("demo_m_order"))[0]!;
+    const [runId] = await (api as DemoApi).listCheckRuns(version.id);
+    let rejectList!: (error: Error) => void;
+    let attempts = 0;
+    api.capabilities = vi.fn(async () => ({ ...baseCaps, checkDiscovery: true }));
+    const list = vi.fn<NonNullable<ProveryalkaApi["listCheckRuns"]>>(async (ref) => {
+      if (ref.id !== version.id) return [];
+      if (++attempts > 1) return [runId!];
+      return new Promise((_, reject) => { rejectList = reject; });
+    });
+    api.listCheckRuns = list;
+
+    window.location.hash = `#/s/${sid}?m=${version.model_id}&v=1&view=check`;
+    render(<App initialApi={api} />);
+    expect(await screen.findByText("Загрузка списка проверок версии")).toBeInTheDocument();
+    expect(screen.queryByText(/ещё не проверялась/)).toBeNull();
+    await act(async () => rejectList(new ApiError("network", "Unavailable")));
+    expect(await screen.findByText("Список проверок версии не загружен")).toBeInTheDocument();
+    expect(screen.queryByText(/ещё не проверялась/)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+    expect(await screen.findByRole("list", { name: "Проверяемые правила" })).toBeInTheDocument();
+    expect(list.mock.calls.filter(([ref]) => ref.id === version.id)).toHaveLength(2);
+  });
+
+  it.each([false, true])("refreshes the stale version list for a check-only link (refresh fails first: %s)", async (fails) => {
+    const api = makeApi();
+    const stale = await api.listVersions("demo_m_order");
+    const base = stale[0]!;
+    const version = { ...base, id: "v3", number: 3, parent_id: stale[1]!.id };
+    const report = await api.getCheck((await (api as DemoApi).listCheckRuns(base.id))[0]!);
+    const id = "check_v3";
+    const versions = vi.fn<ProveryalkaApi["listVersions"]>()
+      .mockResolvedValueOnce(stale);
+    if (fails) versions.mockRejectedValueOnce(new ApiError("network", "Versions unavailable"));
+    versions.mockResolvedValue([...stale, version]);
+    api.listVersions = versions;
+    api.getCheck = vi.fn(async () => ({
+      ...report,
+      run: { ...report.run, run_id: id, version_id: version.id },
+      results: report.results.map((result) => ({ ...result, version_id: version.id })),
+    }));
+
+    window.location.hash = `#/s/${sid}?check=${id}`;
+    render(<App initialApi={api} />);
+    if (fails) {
+      expect(await screen.findByText("Версия отчёта не загружена")).toBeInTheDocument();
+      expect(screen.queryByText("Отчёт недоступен для выбранной версии")).toBeNull();
+      expect(window.location.hash).toContain(`check=${id}`);
+      fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+    }
+    expect(await screen.findByRole("list", { name: "Проверяемые правила" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Версия модели" })).toHaveValue(version.id);
+    expect(versions).toHaveBeenCalledTimes(fails ? 3 : 2);
+    expect(api.getCheck).toHaveBeenCalledTimes(1);
+    expect(window.location.hash).toContain(`check=${id}`);
   });
 
   it("keeps an explicit missing Demo ID while other reports load and allows closing the error", async () => {
@@ -285,6 +346,64 @@ describe("F01: chat draft protection on late POST response", () => {
     expect(onCreated).toHaveBeenCalledTimes(1);
     expect(loadLocal(api.id, "s_new_1").draft).toBe("Добавил ещё правило");
   });
+
+  it("keeps the newer same-text draft when retrying new chat creation", async () => {
+    const api = makeApi();
+    let rejectCreate!: (error: Error) => void;
+    const create = vi.fn<ProveryalkaApi["createSession"]>()
+      .mockImplementationOnce(() => new Promise((_, reject) => { rejectCreate = reject; }))
+      .mockResolvedValue({ id: "s_retry", title: "Правила", mode: "analyzer", created_at: "2026-11-21T00:00:00Z" });
+    api.createSession = create;
+    const onCreated = vi.fn();
+    render(<NewChat api={api} capabilities={baseCaps} onCreated={onCreated} />);
+    const input = screen.getByRole("textbox", { name: "Описание поведения" });
+    fireEvent.change(input, { target: { value: "Правила" } });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+    fireEvent.change(input, { target: { value: "Дополнение" } });
+    fireEvent.change(input, { target: { value: "Правила" } });
+    await act(async () => rejectCreate(new ApiError("network", "Lost response")));
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+    const local = loadLocal(api.id, "s_retry");
+    expect(local.draft).toBe("Правила");
+    expect(local.outbox?.draftRevision).not.toBe(local.draftRevision);
+    expect(create.mock.calls[0]).toEqual(create.mock.calls[1]);
+  });
+
+  it.each([true, false])("uses the original edit revision on retry after remount (edited: %s)", async (edited) => {
+    const api = makeApi();
+    const context = { generation_id: "g_1", path: "rules.py", version_id: "v1", sha256: "a".repeat(64) };
+    let rejectSend!: (error: Error) => void;
+    const send = vi.fn<ProveryalkaApi["sendMessage"]>()
+      .mockImplementationOnce(() => new Promise((_, reject) => { rejectSend = reject; }))
+      .mockResolvedValue({ run_id: "retried", session_id: sid, state: "completed", version_id: null, error_code: null });
+    api.sendMessage = send;
+    updateLocal(api.id, sid, (local) => ({ ...local, draft: "Исходный вопрос", draftFileContext: context }));
+    window.location.hash = `#/s/${sid}`;
+    const first = render(<App initialApi={api} />);
+    const input = await screen.findByRole("textbox", { name: "Сообщение агенту" });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+    const submittedRevision = loadLocal(api.id, sid).outbox?.draftRevision;
+    expect(submittedRevision).toBeTruthy();
+    if (edited) {
+      fireEvent.change(input, { target: { value: "Промежуточный текст" } });
+      fireEvent.change(input, { target: { value: "Исходный вопрос" } });
+    }
+    await act(async () => rejectSend(new ApiError("network", "Lost response")));
+    expect(loadLocal(api.id, sid).outbox?.draftRevision).toBe(submittedRevision);
+    first.unmount();
+
+    render(<App initialApi={api} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Повторить отправку" }));
+    await waitFor(() => expect(loadLocal(api.id, sid).outbox).toBeNull());
+    expect(screen.getByRole("textbox", { name: "Сообщение агенту" })).toHaveValue(edited ? "Исходный вопрос" : "");
+    expect(loadLocal(api.id, sid)).toMatchObject({
+      draft: edited ? "Исходный вопрос" : "",
+      draftFileContext: edited ? context : null,
+    });
+    expect(send.mock.calls[0]!.slice(1, 3)).toEqual(send.mock.calls[1]!.slice(1, 3));
+  });
 });
 
 describe("F05 + F06: cancel races and check report fetch retry", () => {
@@ -319,6 +438,8 @@ describe("F05 + F06: cancel races and check report fetch retry", () => {
     // 1. Cancel fails -> cancelRequested resets to false.
     await act(async () => { await result.current.cancelAgent(); });
     expect(result.current.activeAgentRun?.cancelRequested).toBe(false);
+    expect(result.current.activeAgentRun?.cancelError).toBeInstanceOf(ApiError);
+    expect(result.current.send.error).toBeNull();
 
     // 2. Second cancel starts, meanwhile SSE completes the run, then late cancel response returns "cancelling".
     let cancelPromise!: Promise<void>;
@@ -333,6 +454,28 @@ describe("F05 + F06: cancel races and check report fetch retry", () => {
     });
     // Terminal state must not be rolled back to cancelling.
     expect(result.current.lastAgentRun?.run?.state).toBe("completed");
+  });
+
+  it("ignores a cancel failure that arrives after the agent run finished", async () => {
+    const api = makeApi();
+    let rejectCancel!: (error: Error) => void;
+    let finishStream!: () => void;
+    api.sendMessage = vi.fn(async (): Promise<Run> => ({
+      run_id: "agent_done", session_id: sid, state: "running", version_id: null, error_code: null,
+    }));
+    api.cancelRun = vi.fn(() => new Promise<Run>((_, reject) => { rejectCancel = reject; }));
+    api.streamEvents = async function* (id) {
+      await new Promise<void>((resolve) => { finishStream = resolve; });
+      yield runEvent(id, "run_finished");
+    };
+    const { result } = renderHook(() => useSessionWorkspace({ api, capabilities: baseCaps, sessionId: sid }));
+    await act(async () => { await result.current.sendMessage("Сообщение", null); });
+    act(() => { void result.current.cancelAgent(); });
+    await act(async () => finishStream());
+    await waitFor(() => expect(result.current.activeAgentRun).toBeNull());
+    await act(async () => rejectCancel(new ApiError("network", "Late failure")));
+    expect(result.current.lastAgentRun?.cancelError).toBeNull();
+    expect(result.current.send.error).toBeNull();
   });
 
   it("keeps a completed check terminal while GET requests are pending and a stale cancel response arrives", async () => {
@@ -435,9 +578,9 @@ describe("UX [2] + [12]: pre-session file validation and friendly error messages
   it("rejects PDF before calling createSession and displays friendly Russian message without raw HTTP 415 code", async () => {
     const api = makeApi();
     const createSession = vi.fn<ProveryalkaApi["createSession"]>();
-    const uploadDocument = vi.fn<NonNullable<ProveryalkaApi["uploadDocument"]>>();
+    const uploadDocument = vi.fn<NonNullable<ProveryalkaApi["createSessionWithDocument"]>>();
     api.createSession = createSession;
-    api.uploadDocument = uploadDocument;
+    api.createSessionWithDocument = uploadDocument;
 
     const { container } = render(<NewChat api={api} capabilities={baseCaps} onCreated={vi.fn()} />);
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -452,29 +595,17 @@ describe("UX [2] + [12]: pre-session file validation and friendly error messages
     expect(uploadDocument).not.toHaveBeenCalled();
   });
 
-  it("does not reuse an empty session created for a previously rejected file", async () => {
+  it("creates a session and its first document through one request and reuses the key on retry", async () => {
     const api = makeApi();
-    let seq = 0;
-    const createSession = vi.fn<ProveryalkaApi["createSession"]>(async ({ title }) => ({
-      id: `s_${++seq}`,
-      title,
-      mode: "analyzer",
-      created_at: "2026-11-21T00:00:00Z",
-    }));
-    const uploadDocument = vi.fn<NonNullable<ProveryalkaApi["uploadDocument"]>>()
+    const createSession = vi.fn<ProveryalkaApi["createSession"]>();
+    const uploadDocument = vi.fn<NonNullable<ProveryalkaApi["createSessionWithDocument"]>>()
       .mockRejectedValueOnce(new ApiError("http", "DOCX is invalid", { status: 422, code: "DOCUMENT_INVALID" }))
+      .mockRejectedValueOnce(new ApiError("network", "Lost response"))
       .mockResolvedValueOnce({
-        id: "src_ok",
-        session_id: "s_2",
-        filename: "good.txt",
-        media_type: "text/plain",
-        size: 12,
-        status: "extracted",
-        text: "Правила",
-        error: null,
+        id: "s_with_document", title: "good.txt", mode: "analyzer", created_at: "2026-11-21T00:00:00Z",
       });
     api.createSession = createSession;
-    api.uploadDocument = uploadDocument;
+    api.createSessionWithDocument = uploadDocument;
     const onCreated = vi.fn();
 
     const { container } = render(<NewChat api={api} capabilities={baseCaps} onCreated={onCreated} />);
@@ -482,14 +613,17 @@ describe("UX [2] + [12]: pre-session file validation and friendly error messages
 
     fireEvent.change(fileInput, { target: { files: [new File(["bad"], "broken.docx")] } });
     await screen.findByRole("alert");
-    expect(createSession).toHaveBeenCalledTimes(1);
-    expect(createSession.mock.calls[0]![0]).toEqual({ title: "broken.docx" });
+    expect(uploadDocument.mock.calls[0]![0].name).toBe("broken.docx");
+    expect(onCreated).not.toHaveBeenCalled();
 
-    fireEvent.change(fileInput, { target: { files: [new File(["ok"], "good.txt")] } });
+    const file = new File(["ok"], "good.txt");
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    fireEvent.click(await screen.findByRole("button", { name: "Повторить" }));
     await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
-    expect(createSession).toHaveBeenCalledTimes(2);
-    expect(createSession.mock.calls[1]![0]).toEqual({ title: "good.txt" });
-    expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: "s_2", title: "good.txt" }));
+    expect(createSession).not.toHaveBeenCalled();
+    expect(uploadDocument.mock.calls[1]).toEqual([file, expect.any(String)]);
+    expect(uploadDocument.mock.calls[2]).toEqual(uploadDocument.mock.calls[1]);
+    expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: "s_with_document", title: "good.txt" }));
   });
 
   it("formats server UNSUPPORTED_DOCUMENT errors cleanly without raw HTTP 415 text", () => {

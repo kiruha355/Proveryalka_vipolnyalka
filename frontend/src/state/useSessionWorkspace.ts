@@ -26,7 +26,7 @@ type Action =
   | { type: "agent/events"; runId: string; events: RunEvent[] }
   | { type: "agent/stream"; runId: string; stream: StreamStatus }
   | { type: "agent/run"; run: Run }
-  | { type: "agent/cancel"; runId: string; requested: boolean }
+  | { type: "agent/cancel"; runId: string; requested: boolean; error?: unknown }
   | { type: "check/add"; view: CheckRunView }
   | { type: "check/order"; runIds: string[] }
   | { type: "check/events"; runId: string; events: RunEvent[] }
@@ -114,7 +114,11 @@ function reducer(state: RunsState, action: Action): RunsState {
     }
     case "agent/cancel": {
       const view = state.agent[action.runId];
-      return view ? { ...state, agent: { ...state.agent, [action.runId]: { ...view, cancelRequested: action.requested } } } : state;
+      if (!view || (view.run && isTerminal(view.run.state))) return state;
+      return {
+        ...state,
+        agent: { ...state.agent, [action.runId]: { ...view, cancelRequested: action.requested, cancelError: action.error ?? null } },
+      };
     }
     case "check/add":
       if (state.checks[action.view.runId]) return state;
@@ -187,7 +191,7 @@ function agentView(record: AgentRunRecord, sessionId: string): AgentRunView {
     run: known
       ? { run_id: record.runId, session_id: sessionId, state: record.state as Run["state"], version_id: null, error_code: record.errorCode ?? null }
       : null, events: [], stream: { kind: "connecting" }, delta: "", questions: [], proposed: [],
-    failure: record.errorCode ? { code: record.errorCode, message: "" } : null, cancelRequested: false,
+    failure: record.errorCode ? { code: record.errorCode, message: "" } : null, cancelRequested: false, cancelError: null,
   };
 }
 
@@ -229,6 +233,7 @@ export interface SessionWorkspace {
   history: ParsedHistory | null;
   models: Loadable<ModelGroup[]>;
   versions: ModelVersion[];
+  linkedCheckVersion: Loadable<ModelVersion> | null;
   agentRuns: AgentRunView[];
   agentTraceHistory: {loading: boolean; error: unknown | null; nextCursor: number | null};
   loadOlderAgentRuns(): void;
@@ -237,8 +242,10 @@ export interface SessionWorkspace {
   /** Latest finished agent run, for the failure/cancel line under the pending message. */
   lastAgentRun: AgentRunView | null;
   checks: CheckRunView[];
+  checkListings: Record<string, { loading: boolean; error: unknown | null }>;
+  reloadChecks(version: ModelVersion): Promise<void>;
   send: SendState;
-  sendMessage(text: string, questionId: string | null, fileContext?: FileContextRef | null): Promise<boolean>;
+  sendMessage(text: string, questionId: string | null, fileContext?: FileContextRef | null, draftRevision?: string): Promise<boolean>;
   retryOutbox(): Promise<boolean>;
   discardOutbox(): void;
   retryPending(): Promise<boolean>;
@@ -262,10 +269,12 @@ export interface SessionWorkspaceOptions {
   api: ProveryalkaApi;
   capabilities: ApiCapabilities;
   sessionId: string;
+  /** Report URL without an explicit model or version. */
+  checkOnlyRunId?: string;
   onModelProposed?: (proposal: { model_id: string; version_id: string; number: number }) => void;
 }
 
-export function useSessionWorkspace({ api, capabilities, sessionId, onModelProposed }: SessionWorkspaceOptions): SessionWorkspace {
+export function useSessionWorkspace({ api, capabilities, sessionId, checkOnlyRunId, onModelProposed }: SessionWorkspaceOptions): SessionWorkspace {
   const [runs, dispatch] = useReducer(reducer, INITIAL);
   const runsRef = useRef(runs);
   runsRef.current = runs;
@@ -273,6 +282,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const [dialogue, setDialogue] = useState<DialogueView | null>(null);
   const [agentTraceHistory, setAgentTraceHistory] = useState({loading: false, error: null as unknown | null, nextCursor: null as number | null});
   const [models, setModels] = useState<Loadable<ModelGroup[]>>({ data: null, error: null, loading: true });
+  const [checkListings, setCheckListings] = useState<SessionWorkspace["checkListings"]>({});
   const [send, setSend] = useState<SendState>(() => ({ sending: false, outbox: loadLocal(api.id, sessionId).outbox, error: null }));
   const [checkStart, setCheckStart] = useState<CheckStartState>({ starting: false, error: null, retry: null });
   const [approveError, setApproveError] = useState<unknown | null>(null);
@@ -287,6 +297,8 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const explainingRef = useRef(new Set<string>());
   const detailSeq = useRef(0);
   const modelsSeq = useRef(0);
+  const checkListingsSeq = useRef(new Map<string, number>());
+  const refreshedLinkedVersion = useRef<string | null>(null);
   const agentTraceSeq = useRef(0);
   const proposedRef = useRef(onModelProposed);
   proposedRef.current = onModelProposed;
@@ -329,38 +341,51 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     );
   }, [api, sessionId, capabilities.dialogue]);
 
-  const discoverChecks = useCallback(async (groups: ModelGroup[]) => {
+  const reloadChecks = useCallback(async (version: ModelVersion) => {
     if (!capabilities.checkDiscovery || !api.listCheckRuns) return;
     const signal = root.current.signal;
-    for (const group of groups) {
-      for (const version of group.versions) {
-        try {
-          const ids = await api.listCheckRuns(version, signal);
-          if (signal.aborted) return;
-          for (const runId of ids) addCheckRef.current({ runId, versionId: version.id, startedAt: null });
-          if (ids.length > 1) dispatch({ type: "check/order", runIds: ids });
-        } catch (error) {
-          if (isAbort(error)) return;
-        }
+    const seq = (checkListingsSeq.current.get(version.id) ?? 0) + 1;
+    checkListingsSeq.current.set(version.id, seq);
+    const current = () => !signal.aborted && checkListingsSeq.current.get(version.id) === seq;
+    setCheckListings((state) => ({ ...state, [version.id]: { loading: true, error: null } }));
+    try {
+      const ids = await api.listCheckRuns(version, signal);
+      if (!current()) return;
+      for (const runId of ids) addCheckRef.current({ runId, versionId: version.id, startedAt: null });
+      if (ids.length > 1) dispatch({ type: "check/order", runIds: ids });
+      setCheckListings((state) => ({ ...state, [version.id]: { loading: false, error: null } }));
+    } catch (error) {
+      if (current() && !isAbort(error)) {
+        setCheckListings((state) => ({ ...state, [version.id]: { loading: false, error } }));
       }
     }
   }, [api, capabilities.checkDiscovery]);
+
+  const discoverChecks = useCallback(async (groups: ModelGroup[], seq: number, signal: AbortSignal) => {
+    if (!capabilities.checkDiscovery) return;
+    for (const group of groups) {
+      for (const version of group.versions) {
+        if (signal.aborted || seq !== modelsSeq.current) return;
+        await reloadChecks(version);
+      }
+    }
+  }, [capabilities.checkDiscovery, reloadChecks]);
 
   const reloadModels = useCallback(() => {
     const seq = ++modelsSeq.current;
     setModels((m) => ({ ...m, loading: true }));
     const signal = root.current.signal;
     return (async () => {
-      const list = await api.listModels(sessionId, root.current.signal);
-      const groups = await Promise.all(list.map(async (model) => ({ model, versions: await api.listVersions(model.id, root.current.signal) })));
+      const list = await api.listModels(sessionId, signal);
+      const groups = await Promise.all(list.map(async (model) => ({ model, versions: await api.listVersions(model.id, signal) })));
       return groups;
     })().then(
       (groups) => {
         if (signal.aborted || seq !== modelsSeq.current) return;
         setModels({ data: groups, error: null, loading: false });
-        void discoverChecks(groups);
+        void discoverChecks(groups, seq, signal);
       },
-      (error: unknown) => { if (!isAbort(error) && seq === modelsSeq.current) setModels((m) => ({ data: m.data, error, loading: false })); },
+      (error: unknown) => { if (!signal.aborted && !isAbort(error) && seq === modelsSeq.current) setModels((m) => ({ data: m.data, error, loading: false })); },
     );
   }, [api, sessionId, discoverChecks]);
 
@@ -577,13 +602,13 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     }
   }, [api, refreshRun, sessionId, track]);
 
-  const sendMessage = useCallback((text: string, questionId: string | null, fileContext: FileContextRef | null = null) => {
+  const sendMessage = useCallback((text: string, questionId: string | null, fileContext: FileContextRef | null = null, draftRevision?: string) => {
     const current = send.outbox;
     if (current && (current.text !== text || current.questionId !== questionId || JSON.stringify(current.fileContext ?? null) !== JSON.stringify(fileContext))) return Promise.resolve(false);
     // Same text and target as the unsent message: reuse its key so a lost response cannot duplicate the run.
     const outbox = current && current.text === text && current.questionId === questionId
       ? current
-      : { text, questionId, fileContext, key: newKey() };
+      : { text, questionId, fileContext, key: newKey(), draftRevision };
     return dispatchSend(outbox);
   }, [dispatchSend, send.outbox]);
 
@@ -648,8 +673,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
       dispatch({ type: "agent/run", run });
     } catch (error) {
       if (!isAbort(error)) {
-        dispatch({ type: "agent/cancel", runId: view.runId, requested: false });
-        setSend((s) => ({ ...s, error }));
+        dispatch({ type: "agent/cancel", runId: view.runId, requested: false, error });
       }
     }
   }, [activeAgentRun, api]);
@@ -752,8 +776,27 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const versions = useMemo(() => (models.data ?? []).flatMap((g) => g.versions), [models.data]);
   const checks = runs.checkOrder.map((id) => runs.checks[id]).filter((v): v is CheckRunView => Boolean(v)).reverse();
 
+  const linkedVersionId = checkOnlyRunId ? runs.checks[checkOnlyRunId]?.run?.version_id : null;
+  const linkedVersion = linkedVersionId ? versions.find((version) => version.id === linkedVersionId) ?? null : null;
+  const refreshKey = linkedVersionId ? JSON.stringify([checkOnlyRunId, linkedVersionId]) : null;
+  const needsRefresh = Boolean(refreshKey && !linkedVersion && refreshedLinkedVersion.current !== refreshKey);
+  useEffect(() => {
+    if (!needsRefresh || models.loading || models.error !== null) return;
+    refreshedLinkedVersion.current = refreshKey;
+    void reloadModels();
+  }, [needsRefresh, refreshKey, models.loading, models.error, reloadModels]);
+
+  const linkedCheckVersion: Loadable<ModelVersion> | null = !linkedVersionId ? null : linkedVersion
+    ? { data: linkedVersion, loading: false, error: null }
+    : {
+        data: null,
+        loading: models.loading || (needsRefresh && models.error === null),
+        error: models.loading ? null : models.error ?? (needsRefresh ? null : new Error("Версия модели для этого отчёта отсутствует в сессии.")),
+      };
+
   return {
-    detail, dialogue, discardPending, analyzeDocument, retryExplanation, history, models, versions, agentRuns, agentTraceHistory, loadOlderAgentRuns, reloadAgentRuns, activeAgentRun, lastAgentRun, checks,
+    detail, dialogue, discardPending, analyzeDocument, retryExplanation, history, models, versions, linkedCheckVersion, agentRuns, agentTraceHistory, loadOlderAgentRuns, reloadAgentRuns, activeAgentRun, lastAgentRun, checks,
+    checkListings, reloadChecks,
     send, sendMessage, retryOutbox, discardOutbox, retryPending, cancelAgent,
     checkStart, startCheck, cancelCheck, fetchCheck, ensureCheck, reconnect, approve, approveError,
     reloadDetail, reloadModels, loadArtifacts, upload, uploadDocument,

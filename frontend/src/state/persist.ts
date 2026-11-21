@@ -29,6 +29,8 @@ export interface Outbox {
   questionId: string | null;
   /** Reused on retry so a lost response cannot start a second run. */
   key: string;
+  /** Revision of the composer when the message was first submitted. */
+  draftRevision?: string;
   /** For a message that also creates its session. */
   sessionTitle?: string;
   sessionKey?: string;
@@ -42,6 +44,7 @@ export interface SessionLocal {
   agentRuns: AgentRunRecord[];
   checkRuns: CheckRunRecord[];
   draft: string;
+  draftRevision?: string;
   outbox: Outbox | null;
 }
 
@@ -63,6 +66,7 @@ export function loadLocal(apiId: string, sessionId: string): SessionLocal {
       draftFileContext: value.draftFileContext ?? null,
       draftQuestionId: typeof value.draftQuestionId === "string" ? value.draftQuestionId : null,
       draft: typeof value.draft === "string" ? value.draft : "",
+      draftRevision: typeof value.draftRevision === "string" ? value.draftRevision : undefined,
       outbox: value.outbox && typeof value.outbox.key === "string" ? value.outbox : null,
     };
   } catch {
