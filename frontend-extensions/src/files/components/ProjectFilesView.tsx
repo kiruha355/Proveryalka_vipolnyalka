@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ApiError, describeApiError } from "../../api/http";
+import { ApiError } from "../../api/http";
 import { SplitPane } from "../../ui/SplitPane";
 import type {
+  CodegenStatus,
   Generation,
   LineRange,
   ModelElementRef,
   TestRun,
+  VerificationState,
   VersionRef,
 } from "../contract";
 import { isTerminalTestRun } from "../contract";
@@ -16,13 +18,17 @@ import {
 } from "../manifest";
 import {
   newActionKey,
-  verificationDetails,
+  codegenErrorMessage,
   type CodegenProvider,
 } from "../provider";
 import { decodeText } from "../text";
 import { allFolderPaths, buildFileTree } from "../tree";
 import { sha256Hex } from "../../util/sha256";
 import { archiveBlockers, downloadProjectArchive, saveBytes } from "../zip";
+import { useRunPolling } from "../useRunPolling";
+import { GenerationForm, generationLabel } from "./GenerationForm";
+import { RepositoryComparison } from "./RepositoryComparison";
+import { ProjectSourcePane } from "./ProjectSourcePane";
 import { CodeViewer } from "./CodeViewer";
 import { FileTree } from "./FileTree";
 import { TestResultsPanel } from "./TestResultsPanel";
@@ -30,6 +36,7 @@ export type ProjectFocus = {
   path: string;
   lines?: LineRange | null;
   generationId?: string;
+  versionId?: string;
 };
 export type ProjectFilesViewProps = {
   onAskFile?: (generation: Generation, entry: Generation["files"][number])=>void;
@@ -60,187 +67,126 @@ function VersionProjects({
   onManifestLoaded, onAskFile,
   className,
 }: ProjectFilesViewProps & { currentVersion: VersionRef }) {
-  const [projects, setProjects] = useState<Generation[]>([]),
-    [selected, setSelected] = useState<string | null>(null);
-  const [phase, setPhase] = useState("loading"),
-    [error, setError] = useState<string | null>(null),
-    [attempt, setAttempt] = useState(0);
-  const [sandboxReason, setSandboxReason] = useState<string | null>(null);
-  const [unavailable, setUnavailable] = useState<string | null>(null),
-    [busy, setBusy] = useState(false);
-  const [gate, setGate] =
-    useState<ReturnType<typeof verificationDetails>>(null);
-  const alive = useRef(true),
-    actionKey = useRef<string | null>(null);
+  const [projects, setProjects] = useState<Generation[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [dismissedFocus, setDismissedFocus] = useState<ProjectFocus | null>(null);
+  const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [status, setStatus] = useState<CodegenStatus | null>(null);
+  const [verificationState, setVerificationState] = useState<VerificationState | null>(null);
+  const [unavailable, setUnavailable] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
   useEffect(() => {
-    alive.current = true;
-    return () => {
-      alive.current = false;
-    };
-  }, []);
-  useEffect(() => {
-    const ac = new AbortController();
+    const controller = new AbortController();
+    const { signal } = controller;
     setPhase("loading");
     setError(null);
+    setVerificationState(null);
     (async () => {
-      const state = await provider.status(ac.signal);
-      if (ac.signal.aborted) return;
+      const state = await provider.status(signal);
+      if (signal.aborted) return;
       if (!state.available) {
         setUnavailable(state.reason);
+        setStatus(null);
         setPhase("ready");
         return;
       }
       setUnavailable(null);
-      setSandboxReason(
-        state.status.sandbox_status === "engine_unavailable"
-          ? (state.status.sandbox_reason ?? "Песочница тестов недоступна")
-          : null,
-      );
-      const all = await provider.listGenerations(currentVersion, ac.signal);
-      if (ac.signal.aborted) return;
+      setStatus(state.status);
+      const all = await provider.listGenerations(currentVersion, signal, (verification) => {
+        if (!signal.aborted) setVerificationState(verification);
+      });
+      if (signal.aborted) return;
       setProjects(all);
-      setSelected((old) =>
-        all.some((g) => g.generation_id === old)
-          ? old
-          : (all.at(-1)?.generation_id ?? null),
-      );
       setPhase("ready");
-    })().catch((e) => {
-      if (!ac.signal.aborted) {
-        setError(describeApiError(e).title);
-        setPhase("error");
-      }
+    })().catch((cause) => {
+      if (signal.aborted) return;
+      setError(codegenErrorMessage(cause));
+      setPhase("error");
     });
-    return () => ac.abort();
+    return () => controller.abort();
   }, [provider, currentVersion.id, attempt]);
-  const generation = projects.find((p) => p.generation_id === selected) ?? null;
-  const create = async (allowUnverified: boolean) => {
-    setBusy(true);
-    setError(null);
-    const key = actionKey.current ?? newActionKey("generate");
-    actionKey.current = key;
-    try {
-      const g = await provider.createGeneration(
-        currentVersion,
-        { allowUnverified },
-        key,
-      );
-      if (!alive.current) return;
-      setProjects((old) => [
-        ...old.filter((p) => p.generation_id !== g.generation_id),
-        g,
-      ]);
-      setSelected(g.generation_id);
-      setGate(null);
-      actionKey.current = null;
-    } catch (e) {
-      if (!alive.current) return;
-      const details = verificationDetails(e);
-      if (details) {
-        setGate(details);
-        actionKey.current = null;
-      } else {
-        setError(describeApiError(e).title);
-        if (e instanceof ApiError) actionKey.current = null;
-      }
-    } finally {
-      if (alive.current) setBusy(false);
-    }
-  };
+
+  const activeFocus = focus !== dismissedFocus && (!focus?.versionId || focus.versionId === currentVersion.id)
+    ? focus : null;
+  const focused = activeFocus?.generationId
+    ? projects.find((project) => project.generation_id === activeFocus.generationId)
+    : undefined;
+  const generation = focused ?? projects.find((project) => project.generation_id === selected) ?? projects.at(-1);
+  useEffect(() => {
+    if (focused) setSelected(focused.generation_id);
+  }, [focused]);
+
+  const sandboxReason = status?.sandbox_status === "engine_unavailable"
+    ? (status.sandbox_reason ?? "Песочница тестов недоступна") : null;
   return (
     <div className={`pv-root pv-files ${className ?? ""}`}>
       <div className="pv-files__bar">
-        <span>Версия {currentVersion.number}</span>
-        {provider.label && <span className="pv-muted">{provider.label}</span>}
         {projects.length > 0 && (
-          <label>
+          <label className="pv-generation-picker">
             Генерация{" "}
             <select
-              aria-label="Генерация"
-              value={selected ?? ""}
-              onChange={(e) => setSelected(e.target.value)}
+              value={generation?.generation_id ?? ""}
+              title={generation ? generationLabel(generation) : undefined}
+              onChange={(event) => {
+                setDismissedFocus(focus ?? null);
+                setSelected(event.target.value);
+              }}
             >
-              {projects.map((g) => (
-                <option key={g.generation_id} value={g.generation_id}>
-                  {new Date(g.created_at).toLocaleString("ru-RU")} /{" "}
-                  {g.generation_id.slice(0, 12)}
+              {projects.map((project) => (
+                <option key={project.generation_id} value={project.generation_id}>
+                  {generationLabel(project)}
                 </option>
               ))}
             </select>
           </label>
         )}
-        <span className="pv-toolbar__spacer" />
-        <button
-          className="pv-button"
-          disabled={
-            busy ||
-            phase !== "ready" ||
-            !!unavailable ||
-            !currentVersion.approved
-          }
-          title={
-            !currentVersion.approved
-              ? "Сначала подтвердите, что эта версия отражает требования"
-              : undefined
-          }
-          onClick={() => create(false)}
-        >
-          {busy ? "Генерация…" : "Создать проект"}
-        </button>
-        <button
-          className="pv-button"
-          disabled={busy}
-          onClick={() => setAttempt((v) => v + 1)}
-        >
+        {provider.label && <span className="pv-muted">{provider.label}</span>}
+        {projects.length > 0 && phase === "ready" && !unavailable && (
+          <button
+            type="button"
+            className="pv-button"
+            aria-expanded={showForm}
+            disabled={busy}
+            onClick={() => setShowForm((open) => !open)}
+          >
+            {showForm ? "Свернуть форму" : "Новая генерация…"}
+          </button>
+        )}
+        <button type="button" className="pv-button" disabled={busy || phase === "loading"}
+          onClick={() => setAttempt((value) => value + 1)}>
           Обновить
         </button>
       </div>
-      {!currentVersion.approved && (
-        <p className="pv-note">
-          Для генерации подтвердите, что выбранная версия модели отражает
-          требования. Подтверждение не является результатом TLC.
-        </p>
-      )}
       {phase === "loading" && <p role="status">Загрузка проектов…</p>}
       {unavailable && <p role="status">{unavailable}</p>}
       {error && <p role="alert">{error}</p>}
-      {gate && (
-        <section
-          className="pv-generation-gate"
-          aria-label="Подтверждение генерации"
-        >
-          <p>
-            Не все правила имеют результат PROPERTY_HOLDS. Проект воспроизведёт
-            текущую модель, включая найденные нарушения.
-          </p>
-          <ul>
-            {gate.map((p) => (
-              <li key={p.property_id}>
-                {p.property_id}: {p.status ?? "не проверено"}
-              </li>
-            ))}
-          </ul>
-          <button
-            className="pv-button"
-            disabled={busy}
-            onClick={() => create(true)}
-          >
-            Создать с текущими результатами TLC
-          </button>
-          <button
-            className="pv-button"
-            disabled={busy}
-            onClick={() => setGate(null)}
-          >
-            Отмена
-          </button>
-        </section>
+      {phase === "ready" && !unavailable && activeFocus?.generationId && !focused && (
+        <p role="alert">Генерация {activeFocus.generationId} из ссылки не найдена у версии {currentVersion.number}.</p>
       )}
-      {phase === "ready" && !unavailable && !generation && (
-        <p className="pv-note">
-          Для этой версии ещё нет сгенерированного проекта.
-        </p>
+      {phase === "ready" && !unavailable && projects.length === 0 && (
+        <p className="pv-note">Для этой версии ещё нет сгенерированного проекта.</p>
       )}
+      <GenerationForm
+        provider={provider}
+        version={currentVersion}
+        status={status}
+        verificationState={verificationState}
+        hidden={projects.length > 0 && !showForm}
+        disabled={phase !== "ready" || !!unavailable}
+        busy={busy}
+        onBusy={setBusy}
+        onVerificationState={setVerificationState}
+        onCreated={(created) => {
+          setProjects((old) => [...old.filter((project) => project.generation_id !== created.generation_id), created]);
+          setDismissedFocus(focus ?? null);
+          setSelected(created.generation_id);
+          setShowForm(false);
+        }}
+      />
       {generation && (
         <GenerationFiles
           key={generation.generation_id}
@@ -248,7 +194,7 @@ function VersionProjects({
           provider={provider}
           generation={generation}
           currentVersion={currentVersion}
-          focus={focus}
+          focus={activeFocus}
           onRuleSelect={onRuleSelect}
           onManifestLoaded={onManifestLoaded} onAskFile={onAskFile}
         />
@@ -303,7 +249,10 @@ function GenerationFiles({
     [download, setDownload] = useState(false),
     [downloadError, setDownloadError] = useState<string | null>(null);
   const alive = useRef(true),
-    testKey = useRef<string | null>(null);
+    testKey = useRef<string | null>(null),
+    localRun = useRef(false);
+  const [sourceView, setSourceView] = useState<"files" | "code">(activeFocus ? "code" : "files");
+  const codeButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -321,6 +270,7 @@ function GenerationFiles({
   useEffect(() => {
     if (!activeFocus) return;
     setPath(activeFocus.path);
+    setSourceView("code");
     setHighlight(activeFocus.lines ?? null);
     const parts = activeFocus.path.split("/");
     setOpened((old) => {
@@ -365,31 +315,14 @@ function GenerationFiles({
     provider
       .listTestRuns(generation.generation_id, ac.signal)
       .then((r) => {
-        if (!ac.signal.aborted) setTest(r.at(-1) ?? null);
+        if (!ac.signal.aborted && !localRun.current) setTest(r.at(-1) ?? null);
       })
       .catch((e) => {
-        if (!ac.signal.aborted) setTestError(describeApiError(e).title);
+        if (!ac.signal.aborted && !localRun.current) setTestError(codegenErrorMessage(e));
       });
     return () => ac.abort();
-  }, [provider, generation]);
-  useEffect(() => {
-    if (!test || isTerminalTestRun(test)) return;
-    const ac = new AbortController();
-    const timer = setTimeout(() => {
-      provider
-        .getTestRun(test.test_run_id, ac.signal)
-        .then((t) => {
-          if (!ac.signal.aborted) setTest(t);
-        })
-        .catch((e) => {
-          if (!ac.signal.aborted) setTestError(describeApiError(e).title);
-        });
-    }, 1000);
-    return () => {
-      clearTimeout(timer);
-      ac.abort();
-    };
-  }, [provider, test]);
+  }, [provider, generation.generation_id]);
+  const pollError = useRunPolling(provider, test, setTest, testBusy);
   const action = async (fn: () => Promise<TestRun>) => {
     setTestBusy(true);
     setTestError(null);
@@ -397,12 +330,14 @@ function GenerationFiles({
     try {
       const t = await fn();
       if (alive.current) {
+        localRun.current = true;
+        setTestError(null);
         setTest(t);
         testKey.current = null;
       }
     } catch (e) {
       if (alive.current) {
-        setTestError(describeApiError(e).title);
+        setTestError(codegenErrorMessage(e));
         if (e instanceof ApiError) testKey.current = null;
       }
     } finally {
@@ -421,7 +356,9 @@ function GenerationFiles({
             Модель {generation.model_id}; версия {generation.version_id};
             генератор {generation.generator.name} {generation.generator.version}
           </p>
-          <p>Код и тесты собираются по шаблонам из согласованной модели. LLM не генерирует файлы проекта.</p>
+          <p>{generation.application_mode === "agent"
+            ? "Агент составляет прикладной план. Генератор собирает реализацию правил и тесты из согласованной модели."
+            : "Код и тесты собираются по шаблонам из согласованной модели."}</p>
           <code>
             {generation.spec_hash} / {generation.code_hash}
           </code>
@@ -477,14 +414,7 @@ function GenerationFiles({
           max={85}
         >
           {[
-            <SplitPane
-              key="source"
-              label="Ширина дерева файлов"
-              storageKey="pv-files-tree-width"
-              initial={27}
-              min={15}
-              max={60}
-            >
+            <ProjectSourcePane key="source" view={sourceView} onViewChange={setSourceView} hasFile={path !== null} codeButtonRef={codeButton}>
               {[
                 <FileTree
                   key="tree"
@@ -495,6 +425,8 @@ function GenerationFiles({
                   onOpen={(p) => {
                     setPath(p);
                     setHighlight(null);
+                    setSourceView("code");
+                    codeButton.current?.focus();
                   }}
                   onToggle={(p, open) =>
                     setOpened((old) => {
@@ -510,7 +442,9 @@ function GenerationFiles({
                     {entry?.path ?? "Выберите файл"}
                     {onAskFile && valid && entry && file?.path === entry.path && !file.error && file.text != null && <button type="button" className="pv-button" disabled={entry.size>65536} title={entry.size>65536 ? "Объяснение доступно для файлов до 64 КиБ" : undefined} onClick={()=>onAskFile(generation,entry)}>Спросить агента о файле</button>}
                   </header>
-                  {!valid ? null : entry && file?.path !== entry.path ? (
+                  {!valid ? null : path && !entry ? (
+                    <p role="alert">Файл {path} отсутствует в выбранной генерации.</p>
+                  ) : entry && file?.path !== entry.path ? (
                     <p role="status">Загрузка файла…</p>
                   ) : file?.error ? (
                     <p role="alert">{file.error}</p>
@@ -529,7 +463,7 @@ function GenerationFiles({
                   ) : null}
                 </div>,
               ]}
-            </SplitPane>,
+            </ProjectSourcePane>,
             <div key="tests" className="pv-tests-area">
               <div className="pv-files__bar">
                 <button
@@ -587,7 +521,7 @@ function GenerationFiles({
                         if (alive.current) setLog(s);
                       } catch (e) {
                         if (alive.current)
-                          setTestError(describeApiError(e).title);
+                          setTestError(codegenErrorMessage(e));
                       }
                     }}
                   >
@@ -597,6 +531,15 @@ function GenerationFiles({
               </div>
               {sandboxReason && <p role="status">{sandboxReason}</p>}
               {testError && <p role="alert">{testError}</p>}
+              {pollError && <p role="status">{pollError}</p>}
+              {provider.comparisons && (
+                <RepositoryComparison
+                  provider={provider}
+                  comparisons={provider.comparisons}
+                  generation={generation}
+                  disabledReason={!valid || !compatible ? "Генерация не прошла проверку происхождения." : sandboxReason}
+                />
+              )}
               <TestResultsPanel
                 tests={test}
                 provenance={testsProvenance(test, generation)}

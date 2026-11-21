@@ -43,8 +43,11 @@ export function createRecordedCodegenProvider(): CodegenProvider {
       available: true,
       status: recording.status as CodegenStatus,
     }),
-    listGenerations: async (v) =>
-      v.model_id === g.model_id && v.number === g.version_number ? [g] : [],
+    listGenerations: async (v, _signal, onVerificationState) => {
+      if (v.model_id !== g.model_id || v.number !== g.version_number) return [];
+      onVerificationState?.(g.verification.state);
+      return [g];
+    },
     getGeneration: async (id) => {
       check(id);
       return g;

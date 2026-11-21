@@ -1731,6 +1731,109 @@ span.pv-req-code {
 .pv-provenance details {
   overflow-wrap: anywhere;
 }
+.pv-generation-picker {
+  display: flex;
+  flex: 1 1 320px;
+  align-items: baseline;
+  gap: 6px;
+}
+.pv-generation-picker select {
+  flex: 1;
+  min-width: 0;
+}
+.pv-generation-form:not([hidden]),
+.pv-comparison__body {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--pv-border);
+}
+.pv-generation-form > .pv-button {
+  justify-self: start;
+}
+.pv-generation-form p,
+.pv-comparison p {
+  margin: 0;
+}
+.pv-generation-fields,
+.pv-comparison__form fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.pv-generation-fields fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  flex-basis: 100%;
+}
+.pv-generation-fields label,
+.pv-comparison__form label {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+.pv-generation-fields legend,
+.pv-comparison__form legend {
+  padding: 0;
+  margin-bottom: 4px;
+}
+.pv-comparison__form,
+.pv-comparison__result {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pv-comparison select,
+.pv-comparison input,
+.pv-generation-fields select {
+  max-width: 100%;
+}
+.pv-comparison__result > * {
+  max-width: 100%;
+}
+.pv-comparison__result dd {
+  margin-left: 0;
+}
+.pv-codegen-error {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pv-source-mobile {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  gap: 4px;
+}
+.pv-source-mobile > .pv-segmented {
+  align-self: flex-start;
+}
+.pv-source-mobile > .pv-tree,
+.pv-source-mobile > .pv-viewer {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+.pv-source-mobile .pv-tree__name,
+.pv-source-mobile .pv-viewer__head {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .pv-req-text small {
   display: block;
 }

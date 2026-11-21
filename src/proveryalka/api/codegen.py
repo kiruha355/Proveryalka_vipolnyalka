@@ -59,8 +59,13 @@ def create_codegen_router(store, settings=None, sandbox=None, planner=None):
             return error_response(error)
 
     @router.get("/api/models/{model_id}/versions/{number}/generations", response_model=list[Generation], responses=errors)
-    def list_version_generations(model_id: str, number: int):
-        return call(service.list_for_version, model_id, number)
+    def list_version_generations(model_id: str, number: int, response: Response):
+        try:
+            generations, state = service.list_for_version(model_id, number)
+        except ServiceError as error:
+            return error_response(error)
+        response.headers["X-TLC-Verification-State"] = state
+        return generations
 
     @router.get("/api/sessions/{session_id}/generations", response_model=list[Generation], responses=errors)
     def list_session_generations(session_id: str):

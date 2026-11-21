@@ -16,8 +16,27 @@ import {
   RECORDED_TEST_RUN as run,
 } from "../../fixtures/codegen";
 import { ProjectFilesView } from "./ProjectFilesView";
-import type { TestRun } from "../contract";
+import type { CandidateComparison, TestRun } from "../contract";
 import { SplitPane } from "../../ui/SplitPane";
+
+const supportedConditions = {
+  language: ["python"],
+  platform: ["fastapi"],
+  api_prefix: ["", "/api/v1"],
+  storage: ["memory", "sqlite"],
+  integrations: [],
+};
+
+async function currentProvider() {
+  const provider = createRecordedCodegenProvider();
+  const available = await provider.status();
+  if (!available.available) throw new Error(available.reason);
+  provider.status = async () => ({
+    available: true,
+    status: { ...available.status, supported_conditions: supportedConditions },
+  });
+  return provider;
+}
 
 describe("project viewer реального контракта", () => {
   it("показывает manifest/строки/модель/pytest с явным recording provenance", async () => {
@@ -43,11 +62,14 @@ describe("project viewer реального контракта", () => {
       expect.objectContaining({ kind: "transition", id: "Cancel" }),
     );
     expect(await screen.findByText(/пройдено 79 из 79/)).toBeInTheDocument();
-    expect(screen.getByText(/TLC: holds/)).toBeInTheDocument();
+    expect(screen.getByText(/^TLC: holds/)).toBeVisible();
   });
   it("требует явного подтверждения после VERIFICATION_REQUIRED и не запускает тесты автоматически", async () => {
-    const p = createRecordedCodegenProvider();
-    p.listGenerations = async () => [];
+    const p = await currentProvider();
+    p.listGenerations = async (_version, _signal, onVerification) => {
+      onVerification?.("violated");
+      return [];
+    };
     p.startTestRun = vi.fn();
     p.createGeneration = vi
       .fn()
@@ -70,6 +92,7 @@ describe("project viewer реального контракта", () => {
       });
     render(<ProjectFilesView provider={p} currentVersion={version} />);
     await screen.findByText(/ещё нет сгенерированного/);
+    expect(screen.getByText(/Утверждённая версия .*TLC: violated/)).toBeVisible();
     await userEvent.click(
       screen.getByRole("button", { name: "Создать проект" }),
     );
@@ -80,11 +103,16 @@ describe("project viewer реального контракта", () => {
         name: "Создать с текущими результатами TLC",
       }),
     );
-    expect(await screen.findByText(/TLC: violated/)).toBeInTheDocument();
+    expect(await screen.findByText(/^TLC: violated/)).toBeVisible();
     expect(p.createGeneration).toHaveBeenLastCalledWith(
       version,
-      { allowUnverified: true },
+      expect.objectContaining({
+        allowUnverified: true,
+        applicationMode: "template",
+        technicalConditions: expect.objectContaining({ storage: "memory" }),
+      }),
       expect.any(String),
+      expect.any(AbortSignal),
     );
     expect(p.startTestRun).not.toHaveBeenCalled();
     expect(await screen.findByText(/пройдено 79 из 79/)).toBeInTheDocument();
@@ -175,6 +203,7 @@ describe("project viewer реального контракта", () => {
       />,
     );
     await screen.findByText(/Версия.*файлов/);
+    await userEvent.click(screen.getByRole("button", { name: "Новая генерация…" }));
     expect(
       screen.getByRole("button", { name: "Создать проект" }),
     ).toBeDisabled();
@@ -207,6 +236,240 @@ describe("project viewer реального контракта", () => {
     fireEvent.keyDown(next, { key: "Home" });
     expect(next).toHaveAttribute("aria-valuenow", "15");
   });
+});
+
+it("сохраняет комбинацию и режим после отказа сервера, затем выбирает созданный проект", async () => {
+  const p = await currentProvider();
+  const conditions = {
+    language: "python",
+    platform: "fastapi",
+    api_prefix: "/api/v1",
+    storage: "sqlite",
+    integrations: [],
+  };
+  const created = {
+    ...g,
+    generation_id: "gen_agent",
+    application_mode: "agent" as const,
+    technical_conditions: conditions,
+  };
+  const readFile = p.readFile;
+  p.readFile = vi.fn(async (_id, path, signal) => readFile(g.generation_id, path, signal));
+  p.listTestRuns = async () => [];
+  p.createGeneration = vi.fn()
+    .mockRejectedValueOnce(new ApiError(422, "UNSUPPORTED_TECHNICAL_CONDITIONS", "Условия отклонены", [
+      { path: "storage", reason: "SQLite временно недоступен" },
+    ]))
+    .mockResolvedValueOnce(created);
+  render(<ProjectFilesView provider={p} currentVersion={version} />);
+
+  const picker = await screen.findByRole("combobox", { name: "Генерация" });
+  expect(screen.queryByRole("form", { name: "Технические условия" })).toBeNull();
+  await userEvent.click(screen.getByRole("button", { name: "Новая генерация…" }));
+  const form = within(screen.getByRole("form", { name: "Технические условия" }));
+  expect(form.getByText(/Утверждённая версия .*TLC: holds/)).toBeVisible();
+  expect(form.getByText("python-fastapi")).toBeVisible();
+  expect(form.getByRole("combobox", { name: "Язык" })).toHaveValue("python");
+  expect(form.getByRole("combobox", { name: "Платформа" })).toHaveValue("fastapi");
+  expect(form.getByText(/Внешние интеграции пока не поддерживаются/)).toBeVisible();
+  const storage = form.getByRole("combobox", { name: "Хранилище" });
+  const prefix = form.getByRole("combobox", { name: "Префикс API" });
+  const mode = form.getByRole("radio", { name: "Прикладной проект с агентом" });
+  await userEvent.selectOptions(storage, "sqlite");
+  await userEvent.selectOptions(prefix, "/api/v1");
+  await userEvent.click(mode);
+  await userEvent.click(form.getByRole("button", { name: "Создать проект" }));
+  expect(await form.findByRole("alert")).toHaveTextContent("storage: SQLite временно недоступен");
+  expect(storage).toHaveValue("sqlite");
+  expect(prefix).toHaveValue("/api/v1");
+  expect(mode).toBeChecked();
+  await userEvent.click(form.getByRole("button", { name: "Создать проект" }));
+  await waitFor(() => expect(picker).toHaveValue(created.generation_id));
+  expect(p.createGeneration).toHaveBeenLastCalledWith(version, {
+    target: "python-fastapi",
+    applicationMode: "agent",
+    technicalConditions: conditions,
+    allowUnverified: false,
+  }, expect.any(String), expect.any(AbortSignal));
+  expect(within(picker).getByRole("option", {
+    name: /Версия .*Прикладной проект с агентом.*\/api\/v1.*sqlite.*Без интеграций/,
+  })).toBeInTheDocument();
+  expect(screen.queryByRole("form", { name: "Технические условия" })).toBeNull();
+  await userEvent.selectOptions(picker, g.generation_id);
+  await screen.findByLabelText("Содержимое app/__init__.py");
+  expect(p.readFile).toHaveBeenLastCalledWith(g.generation_id, "app/__init__.py", expect.any(AbortSignal));
+});
+
+it("блокирует комбинацию, исключённую из статуса сервера после обновления", async () => {
+  const p = await currentProvider();
+  const supported = await p.status();
+  if (!supported.available) throw new Error(supported.reason);
+  p.listGenerations = async () => [];
+  p.createGeneration = vi.fn();
+  render(<ProjectFilesView provider={p} currentVersion={version} />);
+  await screen.findByText(/ещё нет сгенерированного/);
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: "Хранилище" }), "sqlite");
+  p.status = async () => ({
+    available: true,
+    status: { ...supported.status, supported_conditions: { ...supportedConditions, storage: ["memory"] } },
+  });
+  await userEvent.click(screen.getByRole("button", { name: "Обновить" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Хранилище: доступно memory");
+  expect(screen.getByRole("button", { name: "Создать проект" })).toBeDisabled();
+  expect(p.createGeneration).not.toHaveBeenCalled();
+});
+
+it("переключает сохранённую генерацию по ссылке и сообщает об отсутствующей", async () => {
+  const p = createRecordedCodegenProvider();
+  const newer = { ...g, generation_id: "gen_newer" };
+  p.listGenerations = async (ref) => ref.number === version.number ? [g, newer] : [];
+  p.listTestRuns = async () => [];
+  const readFile = p.readFile;
+  p.readFile = vi.fn(async (_id, path, signal) => readFile(g.generation_id, path, signal));
+  const view = render(<ProjectFilesView provider={p} currentVersion={version} />);
+  const picker = await screen.findByRole("combobox", { name: "Генерация" });
+  expect(picker).toHaveValue(newer.generation_id);
+
+  const focus = { generationId: g.generation_id, versionId: version.id, path: "app/rules.py", lines: { start: 34, end: 34 } };
+  view.rerender(<ProjectFilesView provider={p} currentVersion={version} focus={focus} />);
+  expect(picker).toHaveValue(g.generation_id);
+  const code = await screen.findByLabelText("Содержимое app/rules.py");
+  expect(code.querySelector('[data-line="34"]')).toHaveClass("is-marked");
+  expect(p.readFile).toHaveBeenLastCalledWith(g.generation_id, focus.path, expect.any(AbortSignal));
+  await userEvent.selectOptions(picker, newer.generation_id);
+  expect(picker).toHaveValue(newer.generation_id);
+  view.rerender(<ProjectFilesView provider={p} currentVersion={version} focus={{ ...focus, generationId: "missing" }} />);
+  expect(await screen.findByRole("alert")).toHaveTextContent(/missing.*не найдена/);
+
+  view.rerender(<ProjectFilesView provider={p} currentVersion={{ ...version, id: "new_version", number: version.number + 1 }} focus={focus} />);
+  expect(await screen.findByText(/ещё нет сгенерированного/)).toBeVisible();
+  expect(screen.queryByRole("alert")).toBeNull();
+  view.rerender(<ProjectFilesView provider={p} currentVersion={version} focus={focus} />);
+  expect(await screen.findByRole("combobox", { name: "Генерация" })).toHaveValue(g.generation_id);
+  expect(await screen.findByLabelText("Содержимое app/rules.py")).toBeVisible();
+});
+
+it("на 640px открывает код с клавиатуры и позволяет вернуться к дереву", async () => {
+  vi.stubGlobal("matchMedia", vi.fn((media: string) => ({
+    matches: media === "(max-width: 640px)",
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })));
+  try {
+    render(<ProjectFilesView provider={createRecordedCodegenProvider()} currentVersion={version} />);
+    const tree = await screen.findByRole("tree");
+    const file = within(tree).getByRole("treeitem", { name: "requirements.txt" });
+    expect(screen.queryByRole("separator", { name: "Ширина дерева файлов" })).toBeNull();
+    expect(screen.queryByLabelText(/Содержимое/)).toBeNull();
+    file.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(await screen.findByLabelText("Содержимое requirements.txt")).toBeVisible();
+    expect(screen.queryByRole("tree")).toBeNull();
+    expect(screen.getByRole("button", { name: "Код", pressed: true })).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Файлы" }));
+    expect(within(screen.getByRole("tree")).getByRole("treeitem", {
+      name: "requirements.txt", selected: true,
+    })).toBeVisible();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+it("повторяет опрос по ID локального запуска после ошибки и игнорирует запоздавшую историю", async () => {
+  const p = createRecordedCodegenProvider();
+  let finishList!: (runs: TestRun[]) => void;
+  p.listTestRuns = vi.fn(() => new Promise<TestRun[]>((resolve) => { finishList = resolve; }));
+  const started: TestRun = { ...run, test_run_id: "local_run", status: "queued" };
+  p.startTestRun = vi.fn().mockResolvedValue(started);
+  p.getTestRun = vi.fn()
+    .mockRejectedValueOnce(new TypeError("offline"))
+    .mockResolvedValueOnce({ ...started, status: "running" })
+    .mockResolvedValueOnce({ ...started, status: "passed" });
+  render(<ProjectFilesView provider={p} currentVersion={version} />);
+  const start = await screen.findByRole("button", { name: "Запустить тесты" });
+  await waitFor(() => expect(p.listTestRuns).toHaveBeenCalled());
+
+  vi.useFakeTimers();
+  try {
+    await act(async () => { fireEvent.click(start); });
+    expect(p.startTestRun).toHaveBeenCalledWith(g.generation_id, expect.any(String));
+    await act(async () => { finishList([run]); });
+    expect(screen.getByText("Тесты в очереди")).toBeVisible();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(p.getTestRun).toHaveBeenCalledTimes(1);
+    expect(start).toBeDisabled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1999); });
+    expect(p.getTestRun).toHaveBeenCalledTimes(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.getByText("Тесты выполняются")).toBeVisible();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(screen.getByText("Тесты пройдены")).toBeVisible();
+    expect(vi.mocked(p.getTestRun).mock.calls.map(([id]) => id)).toEqual(Array(3).fill("local_run"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(8000); });
+    expect(p.getTestRun).toHaveBeenCalledTimes(3);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("сравнивает выбранный снимок с выбранной генерацией и открывает расхождения и журнал", async () => {
+  const p = createRecordedCodegenProvider();
+  const snapshot = { id: "snapshot_2", manifest_sha256: "a".repeat(64), commit_sha: "b".repeat(40), remote_url: "https://example.test/project" };
+  const result: CandidateComparison = {
+    snapshot_id: snapshot.id,
+    manifest_sha256: snapshot.manifest_sha256,
+    commit_sha: snapshot.commit_sha,
+    reference_code_hash: g.code_hash,
+    code_hash: "c".repeat(64),
+    tests_hash: "d".repeat(64),
+    adapter: { kind: "fastapi-evaluate-v1", module: "candidate.api", api_prefix: "/api/v1" },
+    status: "pending",
+    differences: [],
+  };
+  const pending: TestRun = { ...run, code_hash: result.code_hash, comparison: result, test_run_id: "cmp_new", status: "queued", log_available: false };
+  const mismatch: TestRun = { ...pending, status: "failed", log_available: true, comparison: {
+    ...result, status: "mismatch",
+    differences: [{ scenario_id: "guard-disabled", transition_id: "Approve", requirement_ids: ["R-01"], message: "expected 409" }],
+  } };
+  const saved: TestRun = { ...pending, test_run_id: "cmp_saved", status: "passed", comparison: { ...result, status: "matches" } };
+  const comparisons = {
+    listSnapshots: vi.fn(async () => [{ ...snapshot, id: "snapshot_1" }, snapshot]),
+    list: vi.fn(async () => [saved]),
+    start: vi.fn(async () => pending),
+  };
+  p.getTestRun = vi.fn(async () => mismatch);
+  p.getTestLog = vi.fn(async () => "Код кандидата вернул 200");
+  render(<ProjectFilesView provider={{ ...p, comparisons }} currentVersion={version} />);
+  await userEvent.click(await screen.findByText("Сравнить с репозиторием"));
+  const picker = await screen.findByRole("combobox", { name: "Снимок репозитория" });
+  expect(comparisons.listSnapshots).toHaveBeenCalledWith(g.session_id, expect.any(AbortSignal));
+  expect(comparisons.list).toHaveBeenCalledWith(g.generation_id, expect.any(AbortSignal));
+  expect(await screen.findByText("Совпадает на проверенных сценариях")).toBeVisible();
+  await userEvent.selectOptions(picker, snapshot.id);
+  await userEvent.type(screen.getByRole("textbox", { name: "Модуль Python" }), "candidate.api");
+  await userEvent.type(screen.getByRole("textbox", { name: "Префикс API кандидата" }), "/api/v1");
+  const start = screen.getByRole("button", { name: "Запустить сравнение" });
+  vi.useFakeTimers();
+  try {
+    await act(async () => { fireEvent.click(start); });
+    expect(comparisons.start).toHaveBeenCalledWith(g.generation_id, {
+      snapshot_id: snapshot.id, manifest_sha256: snapshot.manifest_sha256,
+      reference_code_hash: g.code_hash, adapter: result.adapter,
+    }, expect.any(String));
+    expect(screen.getByText("Сравнение в очереди")).toBeVisible();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(p.getTestRun).toHaveBeenCalledWith("cmp_new", expect.any(AbortSignal));
+    expect(screen.getByText("Есть расхождения с моделью")).toBeVisible();
+    expect(screen.getByText("guard-disabled").closest("li")).toHaveTextContent(/Approve.*R-01.*expected 409/);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Журнал сравнения" })); });
+    expect(p.getTestLog).toHaveBeenCalledWith("cmp_new", expect.any(AbortSignal));
+    expect(screen.getByText("Код кандидата вернул 200")).toBeVisible();
+    fireEvent.change(screen.getByRole("combobox", { name: "Сохранённое сравнение" }), { target: { value: "cmp_saved" } });
+    expect(screen.queryByText("Код кандидата вернул 200")).toBeNull();
+    expect(screen.getByText("Совпадает на проверенных сценариях")).toBeVisible();
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it("недоступная Docker-песочница блокирует запуск, оставляя просмотр и экспорт", async () => {
