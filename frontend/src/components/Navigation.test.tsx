@@ -214,15 +214,53 @@ describe("issue #72 navigation fixes", () => {
     expect(openView).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Требования и цитаты" }));
-    expect(openLocation).toHaveBeenCalledTimes(2);
-    expect(openLocation).toHaveBeenLastCalledWith({
-      modelId: v1.model_id,
-      version: v1.number,
-      view: "requirements",
-      check: undefined,
-      property: undefined,
-      step: undefined,
+    expect(openLocation).toHaveBeenCalledTimes(1);
+    expect(openView).toHaveBeenCalledWith("requirements");
+  });
+
+  it("preserves explicit check ID in URL while another run loads first (S1)", async () => {
+    const baseApi = new DemoApi();
+    const firstCheck = await baseApi.getCheck("demo_chk_demo_order_v1_1");
+    const secondCheck = {
+      ...firstCheck,
+      run: { ...firstCheck.run, run_id: "demo_chk_demo_order_v1_2" },
+    };
+    let resolveTarget: ((value: typeof secondCheck) => void) | undefined;
+    const api = new DemoApi();
+    api.listCheckRuns = vi.fn(async (versionId: string) =>
+      versionId === "demo_order_v1" ? ["demo_chk_demo_order_v1_1", "demo_chk_demo_order_v1_2"] : [],
+    );
+    api.getCheck = vi.fn(async (runId: string) => {
+      if (runId === "demo_chk_demo_order_v1_2") {
+        return new Promise<typeof secondCheck>((resolve) => { resolveTarget = resolve; });
+      }
+      return firstCheck;
     });
+
+    window.location.hash = "#/s/demo_s_order?m=demo_m_order&v=1&view=check&check=demo_chk_demo_order_v1_2&p=NoCancelledExecution";
+    render(<App initialApi={api} />);
+
+    // First run loads immediately, but explicit URL check ID must NOT be overwritten.
+    await waitFor(() => {
+      expect(api.getCheck).toHaveBeenCalledWith("demo_chk_demo_order_v1_1", expect.anything());
+      expect(resolveTarget).toBeDefined();
+    });
+    expect(parseRoute(window.location.hash).check).toBe("demo_chk_demo_order_v1_2");
+
+    // Once requested run finishes loading, it becomes active and stays selected.
+    await act(async () => {
+      resolveTarget!(secondCheck);
+    });
+    expect(await screen.findByRole("region", { name: "Контрпример, найденный движком" })).toBeInTheDocument();
+    expect(parseRoute(window.location.hash).check).toBe("demo_chk_demo_order_v1_2");
+  });
+
+  it("initializes narrow-screen pane to workspace when reloading a report URL (S2)", async () => {
+    window.location.hash = "#/s/demo_s_order?m=demo_m_order&v=1&view=check&check=demo_chk_demo_order_v1_1&p=NoCancelledExecution";
+    render(<App initialApi={new DemoApi()} />);
+
+    const workspaceToggle = await screen.findByRole("button", { name: "Модель и проверка" });
+    expect(workspaceToggle).toHaveAttribute("aria-pressed", "true");
   });
 
   it("shows a recoverable route error for #/s/% and invalid numeric params instead of throwing URIError", async () => {
@@ -315,6 +353,15 @@ describe("issue #72 navigation fixes", () => {
     expect(
       resolveVersionState({ sessionId: "demo_s_order", modelId: "missing", version: 999 }, { data: groups, error: null, loading: false }, versions),
     ).toEqual({ status: "missing", version: null, requestedModelId: "missing", requestedVersion: 999 });
+
+    // Failed refresh with cached versions must return error (not missing) when requested version is not in cache (S3).
+    expect(
+      resolveVersionState(
+        { sessionId: "demo_s_order", modelId: "demo_m_order", version: 3 },
+        { data: groups, error: new Error("Network down"), loading: false },
+        versions,
+      ),
+    ).toEqual({ status: "error", version: null });
 
     expect(
       resolveVersionState({ sessionId: "demo_s_order", modelId: "demo_m_order", version: 1 }, { data: groups, error: null, loading: false }, versions),

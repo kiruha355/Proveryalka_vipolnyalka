@@ -66,7 +66,7 @@ export function resolveVersionState(
 
   if (matched) return { status: "ready", version: matched };
   if (models.loading) return { status: "loading", version: null };
-  if (models.error !== null && !models.data) return { status: "error", version: null };
+  if (models.error !== null) return { status: "error", version: null };
   return {
     status: "missing",
     version: null,
@@ -96,7 +96,9 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   useEffect(() => {const controller = new AbortController(); lifetime.current = controller; return () => controller.abort();}, []);
   const routeRef = useRef(route);
   routeRef.current = route;
-  const [pane, setPane] = useState<"chat" | "workspace">("chat");
+  const [pane, setPane] = useState<"chat" | "workspace">(() =>
+    route.view || route.check || route.modelId || route.version !== undefined ? "workspace" : "chat",
+  );
   const [element, setElement] = useState<ElementRef | null>(null);
   const [fileContext, setFileContext] = useState<FileContextRef | null>(()=>loadLocal(api.id,sessionId).draftFileContext ?? null);
   const fileReply = (ref: FileContextRef | null) => {setFileContext(ref); updateLocal(api.id, sessionId, local=>({...local,draftFileContext:ref}));};
@@ -209,7 +211,6 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
       openGeneratedFile: (ref) => {
         const target=workspace.versions.find(v=>v.id===ref.version_id);
         if (!target) return;
-        if (target.id !== version?.id) setElement(null);
         focusGeneratedFile(ref); go({modelId:target.model_id,version:target.number,view:"files",check:undefined,property:undefined,step:undefined});setPane("workspace");
       },
       openView: (viewId) => {
