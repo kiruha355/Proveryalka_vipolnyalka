@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { useCore } from "../../app/core";
 import { workspaceViews, type WorkspaceViewDefinition } from "../../app/extensions";
 import type { WorkspaceContextValue } from "../../app/workspace";
@@ -7,6 +7,7 @@ import type { ModelVersion } from "../../api/types";
 import type { VersionResolution } from "../SessionView";
 import { ErrorNotice, QuietStatus } from "../Notice";
 import { Check } from "../icons";
+import { useHorizontalScrollCue } from "../ScrollCue";
 import { ModelIssues } from "../views/ModelView";
 import { CheckLauncher } from "./CheckLauncher";
 import { Inspector } from "./Inspector";
@@ -104,7 +105,15 @@ export function WorkspacePanel({ context, viewId, versionState, fallbackVersion,
   };
 
   const ActiveView = active?.component;
-  const nothing = !context.version && !dialogue;
+  const nothing = !context.version && !dialogue && !context.selection.trace;
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const tabsScroll = useHorizontalScrollCue(tabsRef, nothing ? "" : views.map((v) => v.id).join("|"));
+  const scrollTabsBy = (delta: number) => {
+    const el = tabsRef.current;
+    if (!el) return;
+    if (typeof el.scrollBy === "function") el.scrollBy({ left: delta, behavior: "smooth" });
+    else el.scrollLeft += delta;
+  };
 
   return (
     <section className="workspace" aria-label="Рабочая область">
@@ -132,18 +141,30 @@ export function WorkspacePanel({ context, viewId, versionState, fallbackVersion,
         )}
         {workspace.approveError !== null && <p className="warn-text" role="alert">Модель не подтверждена: {describeError(workspace.approveError)}</p>}
         {isReady && views.length > 0 && !nothing && (
-          <div className="tabs" role="tablist" aria-label="Разделы рабочей области" onKeyDown={onTabKey}>
-            {views.map((view) => {
-              const Icon = view.icon;
-              const selected = view.id === active?.id;
-              return (
-                <button key={view.id} id={`tab-${view.id}`} type="button" role="tab" aria-selected={selected}
-                  aria-controls={`panel-${view.id}`} tabIndex={selected ? 0 : -1} className="tab"
-                  onClick={() => context.openView(view.id)}>
-                  {Icon && <Icon size={16} />} {view.label}
-                </button>
-              );
-            })}
+          <div className={`tabs-wrap${tabsScroll.canLeft ? " is-scroll-left" : ""}${tabsScroll.canRight ? " is-scroll-right" : ""}`}>
+            {tabsScroll.canLeft && (
+              <button type="button" className="tabs-wrap__cue tabs-wrap__cue--left" aria-label="Прокрутить вкладки влево" onClick={() => scrollTabsBy(-140)}>
+                ‹
+              </button>
+            )}
+            <div ref={tabsRef} className="tabs" role="tablist" aria-label="Разделы рабочей области" onKeyDown={onTabKey}>
+              {views.map((view) => {
+                const Icon = view.icon;
+                const selected = view.id === active?.id;
+                return (
+                  <button key={view.id} id={`tab-${view.id}`} type="button" role="tab" aria-selected={selected}
+                    aria-controls={`panel-${view.id}`} tabIndex={selected ? 0 : -1} className="tab"
+                    onClick={() => context.openView(view.id)}>
+                    {Icon && <Icon size={16} />} {view.label}
+                  </button>
+                );
+              })}
+            </div>
+            {tabsScroll.canRight && (
+              <button type="button" className="tabs-wrap__cue tabs-wrap__cue--right" aria-label="Показать остальные вкладки" onClick={() => scrollTabsBy(140)}>
+                ›
+              </button>
+            )}
           </div>
         )}
       </header>

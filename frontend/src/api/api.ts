@@ -23,7 +23,9 @@ export interface ApiCapabilities {
   agentTrace?: boolean;
 }
 
-export const DOCUMENT_TYPES = [".txt", ".md", ".docx"] as const;
+export const DOCUMENT_TYPES = [".txt", ".md", ".markdown", ".docx"] as const;
+
+export type CheckVersion = Pick<ModelVersion, "id" | "model_id" | "number">;
 
 export interface MessageBody {
   file_context?: FileContextRef;
@@ -69,7 +71,7 @@ export interface ProveryalkaApi {
   listArtifacts(runId: string, signal?: AbortSignal): Promise<ArtifactEntry[]>;
   artifactUrl(runId: string, name: string): string;
   /** Only when capabilities().checkDiscovery is true. */
-  listCheckRuns?(versionId: string, signal?: AbortSignal): Promise<string[]>;
+  listCheckRuns?(version: CheckVersion, signal?: AbortSignal): Promise<string[]>;
   /** Only when capabilities().documents is true. HTTP extraction errors reject with their API code. */
   uploadDocument?(sessionId: string, file: File, key: string, signal?: AbortSignal): Promise<DocumentSource>;
 }

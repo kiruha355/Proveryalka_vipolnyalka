@@ -39,6 +39,7 @@ it("opens the saved generation referenced by chat on the configured backend and 
     selectVersion: vi.fn(),
     setTraceStep: vi.fn(),
     openView: vi.fn(),
+    openLocation: vi.fn(),
   };
   const latest = { ...generation, generation_id: "new_generation" };
   const base = "https://proveryalka.example.test";

@@ -10,5 +10,5 @@ export function registerCoreViews(): void {
     available: () => true,
   });
   registerWorkspaceView({ id: "model", label: "Модель", icon: Table, order: 20, component: ModelView, available: (ctx) => ctx.version !== null });
-  registerWorkspaceView({ id: "check", label: "Проверка", icon: Shield, order: 30, component: CheckView, available: (ctx) => ctx.version !== null });
+  registerWorkspaceView({ id: "check", label: "Проверка", icon: Shield, order: 30, component: CheckView, available: (ctx) => ctx.version !== null || ctx.selection.trace !== null });
 }

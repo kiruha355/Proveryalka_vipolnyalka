@@ -237,9 +237,10 @@ describe("issue #72 navigation fixes", () => {
     };
     let resolveTarget: ((value: typeof secondCheck) => void) | undefined;
     const api = new DemoApi();
-    api.listCheckRuns = vi.fn(async (versionId: string) =>
-      versionId === "demo_order_v1" ? ["demo_chk_demo_order_v1_1", "demo_chk_demo_order_v1_2"] : [],
-    );
+    api.listCheckRuns = vi.fn(async (version) => {
+      const id = typeof version === "string" ? version : version.id;
+      return id === "demo_order_v1" ? ["demo_chk_demo_order_v1_1", "demo_chk_demo_order_v1_2"] : [];
+    });
     api.getCheck = vi.fn(async (runId: string) => {
       if (runId === "demo_chk_demo_order_v1_2") {
         return new Promise<typeof secondCheck>((resolve) => { resolveTarget = resolve; });

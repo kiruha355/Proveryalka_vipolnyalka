@@ -11,6 +11,8 @@ export interface ElementChange {
   fields: string[];
   /** For transitions: effect lines added and removed, e.g. "approved := false". */
   effects?: { added: string[]; removed: string[] };
+  /** For transitions: previous and current guard expression text. */
+  guard?: { before: string; after: string };
 }
 
 // Quote offsets move whenever earlier source text changes; only the wording matters for a reader.
@@ -61,6 +63,12 @@ export function diffModels(before: BehavioralModel, after: BehavioralModel): Ele
       const fields = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => !sameJson(a[k], b[k]));
       if (!fields.length) continue;
       const change: ElementChange = { section, id, name, change: "changed", fields };
+      if (section === "transitions" && fields.includes("guard")) {
+        change.guard = {
+          before: formatExpression(previous.guard as Parameters<typeof formatExpression>[0]),
+          after: formatExpression(element.guard as Parameters<typeof formatExpression>[0]),
+        };
+      }
       if (section === "transitions" && fields.includes("effects")) {
         const before = effectLines(previous);
         const after = effectLines(element);

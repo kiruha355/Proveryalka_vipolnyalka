@@ -1,4 +1,4 @@
-import type { ApiCapabilities, MessageBody, ProveryalkaApi } from "./api";
+import type { ApiCapabilities, CheckVersion, MessageBody, ProveryalkaApi } from "./api";
 import { ApiError } from "./errors";
 import {
   expect, expectList, isAgentRunTracePage, isDialogueView, isDocumentUpload, isArtifactEntry, isCheckRun, isModel, isModelVersion, isRun, isRunEvent, isSession, isSessionDetail,
@@ -139,6 +139,15 @@ export class HttpApi implements ProveryalkaApi {
     return expectList(await this.request("GET", `/api/models/${segment(modelId)}/versions`, { signal }), isModelVersion, "Список версий");
   }
 
+  async listCheckRuns(version: CheckVersion, signal?: AbortSignal) {
+    const runs = expectList(
+      await this.request("GET", `/api/models/${segment(version.model_id)}/versions/${version.number}/checks`, { signal }),
+      isRun,
+      "Список проверок версии",
+    );
+    return runs.map((r) => r.run_id);
+  }
+
   async createVersion(modelId: string, body: {spec: import("./types").BehavioralModel; parent_id?: string | null}, key: string, signal?: AbortSignal) {
     return expect(await this.request("POST", `/api/models/${segment(modelId)}/versions`, {body, key, signal}), isModelVersion, "Новая версия модели");
   }
@@ -225,6 +234,7 @@ export function detectCapabilities(doc: unknown): ApiCapabilities {
   if (typeof paths !== "object" || !("/api/sessions" in paths)) {
     throw new ApiError("malformed", "OpenAPI сервера не содержит маршрутов Проверялки");
   }
+  const checksPath = paths["/api/models/{model_id}/versions/{number}/checks"];
   return {
     adapter: "http",
     agent: "/api/sessions/{session_id}/messages" in paths,
@@ -232,7 +242,7 @@ export function detectCapabilities(doc: unknown): ApiCapabilities {
     fileDialogue: Boolean(schemas.MessageCreate?.properties && "file_context" in schemas.MessageCreate.properties),
     customLimits: true,
     artifacts: "/api/checks/{run_id}/artifacts" in paths,
-    checkDiscovery: false,
+    checkDiscovery: typeof checksPath === "object" && checksPath !== null && "get" in checksPath,
     documents: "/api/sessions/{session_id}/documents" in paths,
     dialogue: "/api/sessions/{session_id}/dialogue" in paths,
     explanations: "/api/checks/{run_id}/explanation" in paths,

@@ -1,3 +1,4 @@
+import { useRef, type ReactNode } from "react";
 import { useCore } from "../../app/core";
 import type { ElementRef } from "../../app/workspace";
 import type { WorkspaceViewProps } from "../../app/extensions";
@@ -7,6 +8,22 @@ import { PROPERTY_KIND } from "../../domain/status";
 import { diffModels, sameJson, type ElementChange } from "../../domain/versionDiff";
 import { Expr, Val } from "../Expr";
 import { RequirementChips } from "../RequirementChips";
+import { useHorizontalScrollCue } from "../ScrollCue";
+
+function ScrollableTable({ children }: { children: ReactNode }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const { canLeft, canRight } = useHorizontalScrollCue(wrapRef);
+  return (
+    <>
+      <div className={`table-scroll${canLeft ? " is-scroll-left" : ""}${canRight ? " is-scroll-right" : ""}`}>
+        <div className="table-wrap" ref={wrapRef}>
+          {children}
+        </div>
+      </div>
+      {canRight && <span className="table-scroll__hint" aria-hidden="true">Листайте таблицу вправо →</span>}
+    </>
+  );
+}
 
 const SECTION_LABEL: Record<ElementChange["section"], string> = {
   requirements: "Требование", variables: "Переменная", transitions: "Переход", properties: "Свойство",
@@ -54,7 +71,13 @@ export function ModelView({ context }: WorkspaceViewProps) {
   const req = (ids: string[]) => <RequirementChips ids={ids} index={requirements} onSelect={(id) => select({ kind: "requirement", id })} />;
   const dialogue = core.history?.dialogue;
   const latestAnalysis = dialogue?.analysis.behavior;
-  const newerAnalysis = dialogue && latestAnalysis && !sameJson(latestAnalysis, spec) && version.id === versions[versions.length - 1]?.id;
+  const modelVersions = versions.filter((v) => v.model_id === version.model_id);
+  const isLatestVersion = version.id === modelVersions[modelVersions.length - 1]?.id;
+  const dialogueModel = core.workspace.dialogue?.model;
+  const analyzing = isLatestVersion && core.workspace.activeAgentRun?.run?.state === "running"
+    && latestAnalysis && !modelVersions.some((v) => sameJson(v.spec, latestAnalysis));
+  const newerVersion = dialogueModel?.model_id === version.model_id && dialogueModel.number > version.number
+    ? dialogueModel.number : null;
 
   return (
     <div className="view model-view">
@@ -65,30 +88,43 @@ export function ModelView({ context }: WorkspaceViewProps) {
             <p className="muted">Модель совпадает с версией {parent.number}.</p>
           ) : (
             <ul className="diff__list">
-              {changes.map((c) => (
-                <li key={`${c.section}:${c.id}`} className={`diff__item diff__item--${c.change}`}>
-                  <span className="diff__kind">{c.change === "added" ? "добавлено" : c.change === "removed" ? "удалено" : "изменено"}</span>
-                  {SECTION_LABEL[c.section]} «{c.name}»
-                  {c.effects ? (
-                    <span className="diff__effects">
-                      {c.effects.added.map((l) => <span key={`+${l}`}> добавлено <code>{l}</code></span>)}
-                      {c.effects.removed.map((l) => <span key={`-${l}`}> убрано <code>{l}</code></span>)}
-                      {c.fields.filter((f) => f !== "effects").length > 0 && <span className="muted"> — также {c.fields.filter((f) => f !== "effects").map((f) => FIELD_LABEL[f] ?? f).join(", ")}</span>}
-                    </span>
-                  ) : c.fields.length > 0 && <span className="muted"> — {c.fields.map((f) => FIELD_LABEL[f] ?? f).join(", ")}</span>}
-                </li>
-              ))}
+              {changes.map((c) => {
+                const otherFields = c.fields.filter((f) => !(f === "effects" && c.effects) && !(f === "guard" && c.guard));
+                const hasDetails = Boolean(c.effects || c.guard);
+                return (
+                  <li key={`${c.section}:${c.id}`} className={`diff__item diff__item--${c.change}`}>
+                    <span className="diff__kind">{c.change === "added" ? "добавлено" : c.change === "removed" ? "удалено" : "изменено"}</span>
+                    {SECTION_LABEL[c.section]} «{c.name}»
+                    {c.guard && (
+                      <span className="diff__guard">
+                        {" "}условие <code className="diff__before">{c.guard.before}</code> → <code className="diff__after">{c.guard.after}</code>
+                      </span>
+                    )}
+                    {c.effects && (
+                      <span className="diff__effects">
+                        {c.effects.added.map((l) => <span key={`+${l}`}> добавлено <code>{l}</code></span>)}
+                        {c.effects.removed.map((l) => <span key={`-${l}`}> убрано <code>{l}</code></span>)}
+                      </span>
+                    )}
+                    {otherFields.length > 0 && (
+                      <span className="muted"> — {hasDetails ? "также " : ""}{otherFields.map((f) => FIELD_LABEL[f] ?? f).join(", ")}</span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
       )}
-      {newerAnalysis && (
-        <p className="warn-text" role="note">Последний разбор агента отличается от этой версии; новая версия появится после завершения анализа.</p>
+      {(analyzing || newerVersion !== null) && (
+        <p className="warn-text" role="note">
+          {newerVersion !== null ? `Агент предложил версию ${newerVersion}.` : "Агент уточняет модель."}
+        </p>
       )}
 
       <section className="model-section" aria-labelledby="vars-title">
         <h3 id="vars-title">Переменные и начальное состояние</h3>
-        <div className="table-wrap">
+        <ScrollableTable>
           <table className="table">
             <thead>
               <tr>
@@ -114,13 +150,13 @@ export function ModelView({ context }: WorkspaceViewProps) {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollableTable>
       </section>
 
       <section className="model-section" aria-labelledby="transitions-title">
         <h3 id="transitions-title">Переходы</h3>
         {spec.transitions.length === 0 ? <p className="muted">В модели нет переходов.</p> : (
-          <div className="table-wrap">
+          <ScrollableTable>
             <table className="table">
               <thead>
                 <tr>
@@ -150,14 +186,14 @@ export function ModelView({ context }: WorkspaceViewProps) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollableTable>
         )}
       </section>
 
       <section className="model-section" aria-labelledby="props-title">
         <h3 id="props-title">Проверяемые правила</h3>
         {spec.properties.length === 0 ? <p className="muted">В модели нет проверяемых правил.</p> : (
-          <div className="table-wrap">
+          <ScrollableTable>
             <table className="table">
               <thead>
                 <tr>
@@ -194,7 +230,7 @@ export function ModelView({ context }: WorkspaceViewProps) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollableTable>
         )}
       </section>
     </div>

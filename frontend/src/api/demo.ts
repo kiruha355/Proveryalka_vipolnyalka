@@ -1,4 +1,4 @@
-import type { ApiCapabilities, MessageBody, ProveryalkaApi } from "./api";
+import type { ApiCapabilities, CheckVersion, MessageBody, ProveryalkaApi } from "./api";
 import { ApiError } from "./errors";
 import type {
   BehavioralModel, DialogueView, CheckLimits, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session,
@@ -296,7 +296,8 @@ export class DemoApi implements ProveryalkaApi {
     return "";
   }
 
-  async listCheckRuns(versionId: string): Promise<string[]> {
+  async listCheckRuns(version: CheckVersion | string): Promise<string[]> {
+    const versionId = typeof version === "string" ? version : version.id;
     return [...this.checks.values()].filter((c) => c.run.version_id === versionId).map((c) => c.run.run_id);
   }
 

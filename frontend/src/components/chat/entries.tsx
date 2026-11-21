@@ -55,7 +55,8 @@ interface QuestionProps {
 export function QuestionCard({ question, active, canAnswer, onAnswer }: QuestionProps) {
   const open = question.status === "open";
   return (
-    <div className={`question question--${question.kind}${active ? " is-active" : ""}`}>
+    <div className={`question question--${question.kind}${active ? " is-active" : ""}`}
+      data-question-open={open ? "true" : undefined}>
       <p className="question__text">{question.text}</p>
       <p className="question__reason">{question.reason}</p>
       {question.kind === "assumption" && question.assumption && (
@@ -150,8 +151,8 @@ export function CheckCard({ check, version, modelName, context, onCancel }: Chec
   const violated = results.find((r) => r.status === "PROPERTY_VIOLATED" && r.trace.length > 0);
   const show = (propertyId: string) => {
     context.openLocation({
-      modelId: version?.model_id ?? check.modelId,
-      version: version?.number ?? check.number,
+      modelId: version?.model_id,
+      version: version?.number,
       check: check.runId,
       property: propertyId,
       step: undefined,

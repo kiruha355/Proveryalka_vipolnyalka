@@ -5,6 +5,7 @@ import { DEFAULT_LIMITS } from "../api/types";
 import {loadLocal, updateLocal} from "../state/persist";
 import {focusGeneratedFile} from "../extensions/load";
 import { CoreContext, type CoreActions } from "../app/core";
+import { workspaceViews } from "../app/extensions";
 import type { Route } from "../app/route";
 import { WorkspaceContext, type ElementRef, type TraceFocus, type WorkspaceContextValue } from "../app/workspace";
 import { indexRequirements } from "../domain/requirements";
@@ -124,10 +125,14 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   });
 
   const groups = workspace.models.data ?? [];
-  const versionState = useMemo(
-    () => resolveVersionState(route, workspace.models, workspace.versions),
-    [route, workspace.models, workspace.versions],
-  );
+  const linkedVersionId = workspace.checks.find((check) => check.runId === route.check)?.versionId;
+  const versionState = useMemo<VersionResolution>(() => {
+    if (!route.modelId && route.version === undefined && linkedVersionId) {
+      const linkedVersion = workspace.versions.find((v) => v.id === linkedVersionId);
+      if (linkedVersion) return { status: "ready", version: linkedVersion };
+    }
+    return resolveVersionState(route, workspace.models, workspace.versions);
+  }, [route, workspace.models, workspace.versions, linkedVersionId]);
   const version = versionState.version;
   const fallbackVersion = useMemo(() => defaultVersion(groups), [groups]);
 
@@ -153,6 +158,9 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
     else navigate({ sessionId: null });
   }, [onReturnToChats, navigate]);
 
+  useEffect(() => {
+    if (route.check) workspace.ensureCheck(route.check);
+  }, [route.check, workspace.ensureCheck]);
   const session: Session | undefined = workspace.detail.data ?? listed;
   const checks = useMemo(() => (version ? workspace.checks.filter((c) => c.versionId === version.id) : []), [version, workspace.checks]);
   const trace = resolveTrace(version, checks, route);
@@ -181,7 +189,10 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
         if (next) setPane("workspace");
       },
       focusTrace: (target) => {
-        if (!target) go({ check: undefined, property: undefined, step: undefined });
+        if (!target) go({
+          view: routeRef.current.view ?? (routeRef.current.check ? "check" : undefined),
+          check: undefined, property: undefined, step: undefined,
+        });
         else go({ check: target.checkRunId, property: target.propertyId || undefined, step: target.step });
       },
       setTraceStep: (step) => {
@@ -285,13 +296,22 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
         <div ref={chatPane.container} style={chatPane.style} className={`session session--${pane}`}>
           <div className="pane-switch" role="group" aria-label="Панель">
             <button type="button" aria-pressed={pane === "chat"} onClick={() => setPane("chat")}>Чат</button>
-            <button type="button" aria-pressed={pane === "workspace"} onClick={() => setPane("workspace")}>Модель и проверка</button>
+            <button type="button" aria-pressed={pane === "workspace"} onClick={() => {
+              setPane("workspace");
+              if (!route.view && !route.check) {
+                const views = workspaceViews().filter((v) => (v.available ? v.available(context) : true));
+                const fallback = (version ? views.find((v) => v.id === "diagram") : undefined)
+                  ?? views.find((v) => v.id === (version ? "model" : "requirements"))
+                  ?? views[0];
+                if (fallback) go({ view: fallback.id });
+              }
+            }}>Модель и проверка</button>
           </div>
           <ChatPanel fileContext={fileContext} onClearFile={()=>fileReply(null)} context={context} replyQuestionId={reply} onReply={setReply} composerRef={composer} />
           <PaneSeparator pane={chatPane} label="Ширина чата"/>
           <WorkspacePanel
             context={context}
-            viewId={route.view}
+            viewId={route.view ?? (route.check ? "check" : undefined)}
             versionState={versionState}
             fallbackVersion={fallbackVersion}
             onOpenFallback={openFallback}
