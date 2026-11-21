@@ -387,11 +387,6 @@
     margin: 6px;
     max-width: calc(100% - 92px);
   }
-  .pv-legend {
-    gap: 4px 10px;
-    padding: 3px 6px;
-    font-size: 11px;
-  }
   .pv-canvas-controls {
     padding: 6px;
     gap: 6px 8px;
@@ -404,22 +399,6 @@
     padding: 3px 7px;
     font-size: 12px;
     gap: 4px;
-  }
-  .pv-tracebar__pos {
-    margin-left: 2px;
-    font-size: 12px;
-  }
-  .pv-zoom {
-    padding: 2px;
-    gap: 2px;
-  }
-  .pv-zoom__value {
-    min-width: 44px;
-    font-size: 12px;
-  }
-  .pv-zoom .pv-icon-button {
-    width: 28px;
-    height: 28px;
   }
   .pv-canvas-shell.is-expanded {
     inset: 4px;
@@ -787,6 +766,30 @@
 
 .pv-legend__dashed {
   stroke-dasharray: 5 4;
+}
+
+@media (max-width: 640px) {
+  .pv-legend {
+    gap: 4px 10px;
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+  .pv-tracebar__pos {
+    margin-left: 2px;
+    font-size: 12px;
+  }
+  .pv-zoom {
+    padding: 2px;
+    gap: 2px;
+  }
+  .pv-zoom__value {
+    min-width: 44px;
+    font-size: 12px;
+  }
+  .pv-zoom .pv-icon-button {
+    width: 28px;
+    height: 28px;
+  }
 }
 
 /* Инспектор */

@@ -60,16 +60,29 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   const [connectionOpen, setConnectionOpen] = useState(false);
   const [capabilities, retryCapabilities] = useLoad<ApiCapabilities>((signal) => api.capabilities(signal), [api]);
   const [sessions, reloadSessions] = useLoad<Session[]>((signal) => api.listSessions(signal), [api]);
-  const [ready] = useLoad<ReadyInfo>((signal) => api.ready(signal), [api]);
+  const [loadedReady] = useLoad<ReadyInfo>((signal) => api.ready(signal), [api]);
+  const [activeProbe, setActiveProbe] = useState<{ api: ProveryalkaApi; ready: Loadable<ReadyInfo> } | null>(null);
+  const ready = activeProbe?.api === api ? activeProbe.ready : loadedReady;
+  const closeConnection = useCallback(() => setConnectionOpen(false), []);
 
   const checkReady = useCallback((targetUrl: string, signal: AbortSignal): Promise<ReadyInfo> => {
     const normalized = targetUrl.trim().replace(/\/+$/, "");
     const currentNormalized = prefs.baseUrl.trim().replace(/\/+$/, "");
-    if (initialApi && prefs.adapter === "http" && normalized === currentNormalized) {
-      return initialApi.ready(signal);
-    }
-    return new HttpApi(normalized).ready(signal);
-  }, [initialApi, prefs.adapter, prefs.baseUrl]);
+    const isActiveHttp = prefs.adapter === "http" && normalized === currentNormalized;
+    const probeApi = isActiveHttp ? api : new HttpApi(normalized);
+    return probeApi.ready(signal).then(
+      (info) => {
+        if (isActiveHttp && !signal.aborted) setActiveProbe({ api, ready: { data: info, error: null, loading: false } });
+        return info;
+      },
+      (error: unknown) => {
+        if (isActiveHttp && !signal.aborted && !isAbort(error)) {
+          setActiveProbe({ api, ready: { data: null, error, loading: false } });
+        }
+        throw error;
+      },
+    );
+  }, [api, prefs.adapter, prefs.baseUrl]);
 
   const update = (patch: Partial<Prefs>) => setPrefs((p) => {
     const next = { ...p, ...patch };
@@ -162,7 +175,7 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
       <main className="main">{main}</main>
       {connectionOpen && (
         <ConnectionDialog adapter={prefs.adapter} baseUrl={prefs.baseUrl} ready={ready} onCheckReady={checkReady}
-          onClose={() => setConnectionOpen(false)}
+          onClose={closeConnection}
           onApply={(adapter, baseUrl) => {
             setConnectionOpen(false);
             update({ adapter, baseUrl });

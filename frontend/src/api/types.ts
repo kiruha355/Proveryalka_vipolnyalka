@@ -379,6 +379,7 @@ export interface DocumentSource {
 export interface ReadyInfo {
   status: string;
   checker?: string;
+  llm_provider?: string | null;
   agent_configured?: boolean;
 }
 

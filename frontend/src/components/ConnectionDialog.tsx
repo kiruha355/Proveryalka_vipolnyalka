@@ -28,6 +28,16 @@ function readyEndpoint(normalizedUrl: string): string {
   return normalizedUrl ? `${normalizedUrl}/ready` : "/ready";
 }
 
+function briefReadyError(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.kind === "network") return "Не удалось подключиться к серверу";
+    if (error.kind === "malformed") return "Адрес не отвечает как сервер Проверялки";
+    if (error.status === 503) return "Сервер не готов к работе";
+    if (error.status !== null) return `Сервер вернул ошибку (${error.status})`;
+  }
+  return "Не удалось проверить подключение";
+}
+
 function technicalError(error: unknown): string {
   if (error instanceof ApiError) {
     const parts: string[] = [error.kind];
@@ -44,6 +54,8 @@ export function ConnectionDialog({ adapter, baseUrl, ready, onApply, onCheckRead
   const [url, setUrl] = useState(baseUrl);
   const [probe, setProbe] = useState<ProbeState | null>(null);
   const probeController = useRef<AbortController | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const urlId = useId();
@@ -59,7 +71,7 @@ export function ConnectionDialog({ adapter, baseUrl, ready, onApply, onCheckRead
     const previous = document.activeElement as HTMLElement | null;
     ref.current?.querySelector<HTMLElement>("input:checked")?.focus();
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
       if (event.key === "Tab" && ref.current) {
         const items = [...ref.current.querySelectorAll<HTMLElement>("button, input, summary, [href]")].filter((e) => !e.hasAttribute("disabled"));
         const first = items[0];
@@ -73,7 +85,7 @@ export function ConnectionDialog({ adapter, baseUrl, ready, onApply, onCheckRead
       document.removeEventListener("keydown", onKey);
       previous?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   const handleUrlChange = (nextUrl: string) => {
     abortProbe();
@@ -82,7 +94,10 @@ export function ConnectionDialog({ adapter, baseUrl, ready, onApply, onCheckRead
   };
 
   const handleModeChange = (nextMode: "http" | "demo") => {
-    if (nextMode !== "http") abortProbe();
+    if (nextMode !== "http") {
+      abortProbe();
+      setProbe((prev) => (prev?.kind === "loading" ? null : prev));
+    }
     setMode(nextMode);
   };
 
@@ -113,10 +128,10 @@ export function ConnectionDialog({ adapter, baseUrl, ready, onApply, onCheckRead
     adapter === "http"
       ? ready.loading
         ? { kind: "loading", target: savedTarget }
-        : ready.data && ready.data.status !== "demo"
-          ? { kind: "ok", target: savedTarget, info: ready.data }
-          : ready.error !== null
-            ? { kind: "error", target: savedTarget, error: ready.error }
+        : ready.error !== null
+          ? { kind: "error", target: savedTarget, error: ready.error }
+          : ready.data && ready.data.status !== "demo"
+            ? { kind: "ok", target: savedTarget, info: ready.data }
             : { kind: "idle", edited: false }
       : { kind: "idle", edited: false }
   );
@@ -156,7 +171,7 @@ export function ConnectionDialog({ adapter, baseUrl, ready, onApply, onCheckRead
                 )}
                 {status.kind === "error" && (
                   <span className="ready-line__error">
-                    {status.target ? `Ошибка для ${status.target}: ` : ""}{describeError(status.error)}
+                    {status.target ? `Ошибка для ${status.target}: ` : ""}{briefReadyError(status.error)}
                   </span>
                 )}
                 {status.kind === "idle" && status.edited && (
@@ -187,6 +202,12 @@ export function ConnectionDialog({ adapter, baseUrl, ready, onApply, onCheckRead
                           <dd><code>{status.info.checker}</code></dd>
                         </div>
                       )}
+                      {status.info.llm_provider && (
+                        <div>
+                          <dt>Провайдер агента</dt>
+                          <dd><code>{status.info.llm_provider}</code></dd>
+                        </div>
+                      )}
                       {status.info.agent_configured !== undefined && (
                         <div>
                           <dt>Агент настроен</dt>
@@ -196,10 +217,16 @@ export function ConnectionDialog({ adapter, baseUrl, ready, onApply, onCheckRead
                     </>
                   )}
                   {status.kind === "error" && (
-                    <div>
-                      <dt>Детали ошибки</dt>
-                      <dd><code>{technicalError(status.error)}</code></dd>
-                    </div>
+                    <>
+                      <div>
+                        <dt>Диагностика</dt>
+                        <dd>{describeError(status.error)}</dd>
+                      </div>
+                      <div>
+                        <dt>Детали ошибки</dt>
+                        <dd><code>{technicalError(status.error)}</code></dd>
+                      </div>
+                    </>
                   )}
                 </dl>
               </details>
