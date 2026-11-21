@@ -14,7 +14,7 @@ from PIL import Image, ImageDraw
 
 from image_helpers import analyze, upload
 from proveryalka.agent import dialogue, verification
-from proveryalka.agent.clarification import DialogueDraft, build_state
+from proveryalka.agent.clarification import DialogueDraft, QuestionDraft, build_state
 from proveryalka.api.app import create_app
 from proveryalka.checker import TLCChecker
 from proveryalka.config import Settings
@@ -173,6 +173,14 @@ def test_crop_provenance_survives_dialogue_model_check_and_reload(tmp_path, monk
                 candidate = model_draft(source_id, previous, resolutions=[{
                     "question_id": payload["answer_to_question_id"], "decision": "answered", "quote": ANSWER,
                 }])
+                if started:
+                    if payload["validation_feedback"] is None:
+                        old = previous["questions"][0]
+                        candidate.questions.append(QuestionDraft(**{
+                            key: old[key] for key in ("text", "reason", "kind", "assumption")
+                        }))
+                    else:
+                        assert "Вопрос уже был задан" in payload["validation_feedback"]["error"]
         return SimpleNamespace(final_output=candidate)
 
     monkeypatch.setattr(dialogue, "create_client", local_client)

@@ -90,15 +90,17 @@ def update_questions(questions, draft, answer, selected_id):
     return questions
 
 
-def new_questions(questions, proposals, analysis, source_id):
+def new_questions(questions, proposals, analysis, source_id, previous_image_sources=()):
     assumptions = {item.text for item in analysis.assumptions}
     for proposed in proposals:
         text = proposed.text.strip().casefold().rstrip("?. ")
         if not text:
             raise ValueError("Вопрос не должен быть пустым")
-        identifier = "q_" + uuid5(NAMESPACE_URL, f"{source_id}\0{text}").hex
-        if identifier in questions:
+        identifiers = ["q_" + uuid5(NAMESPACE_URL, f"{origin}\0{text}").hex
+                       for origin in (source_id, *previous_image_sources)]
+        if any(identifier in questions for identifier in identifiers):
             raise ValueError("Вопрос уже был задан")
+        identifier = identifiers[0]
         if (proposed.kind == "assumption") != (proposed.assumption is not None):
             raise ValueError("Для подтверждения нужно указать предположение")
         if proposed.assumption is not None and proposed.assumption not in assumptions:
@@ -202,7 +204,9 @@ def build_state(
         reference(answer, correction.quote)
     requirements = build_requirements(draft.analysis.requirements, old_requirements, sources, corrections, image_ranges or {})
     questions = update_questions(previous.questions if previous else [], draft, answer, question_id)
-    questions = new_questions(questions, draft.questions, draft.analysis, image_question_source or sources[0].id)
+    previous_image_sources = () if image_question_source else (image_ranges or {})
+    questions = new_questions(questions, draft.questions, draft.analysis, image_question_source or sources[0].id,
+                              previous_image_sources)
     pending = [question for question in questions if question.status == "open"]
     approvals, dismissed = resolve_properties(draft, previous, questions, answer)
     analysis = assemble_analysis(
