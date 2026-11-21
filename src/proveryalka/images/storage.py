@@ -7,6 +7,23 @@ from ..storage.sqlite import encode, identifier, now
 from .dto import ImageSource
 
 
+def image_projection(material):
+    parts = ["Image observation. Visible evidence, proposals and uncertainties are labelled separately.\n",
+             material["description"]]
+    visible_ranges = []
+    offset = sum(map(len, parts))
+    for item in material["requirements"]:
+        prefix = f"\n[{item['origin']}] "
+        text = item["text"]
+        start = offset + len(prefix)
+        offset = start + len(text)
+        parts.append(prefix + text)
+        if item["origin"] == "visible":
+            visible_ranges.append((start, offset))
+    parts.extend(f"\n[uncertainty] {item}" for item in material["uncertainties"])
+    return "".join(parts), visible_ranges
+
+
 class ImageStore:
     def __init__(self, store):
         self.store = store
@@ -63,11 +80,8 @@ class ImageStore:
             if row["source_id"]:
                 return dict(db.execute("SELECT id,session_id,kind,text FROM sources WHERE id=?", (row["source_id"],)).fetchone())
             material = json.loads(row["response_json"])
-            lines = ["Image observation. Visible evidence, proposals and uncertainties are labelled separately.",
-                     material["description"]]
-            lines.extend(f"[{item['origin']}] {item['text']}" for item in material["requirements"])
-            lines.extend(f"[uncertainty] {item}" for item in material["uncertainties"])
-            source = {"id": identifier("src"), "session_id": session_id, "kind": "text", "text": "\n".join(lines)}
+            text, _ = image_projection(material)
+            source = {"id": identifier("src"), "session_id": session_id, "kind": "text", "text": text}
             db.execute("INSERT INTO sources VALUES (:id,:session_id,:kind,:text,:created_at)", {**source, "created_at": now()})
             db.execute("INSERT INTO image_source_contexts VALUES (?,?,?)", (source["id"], analysis_id, session_id))
             return source

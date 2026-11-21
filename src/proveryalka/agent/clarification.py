@@ -107,7 +107,7 @@ def new_questions(questions, proposals, analysis, source_id):
     return list(questions.values())
 
 
-def build_requirements(facts, previous, sources, corrections):
+def build_requirements(facts, previous, sources, corrections, image_ranges):
     sources_by_id = {source.id: source for source in sources}
     answer = sources[-1]
     requirements = []
@@ -128,8 +128,11 @@ def build_requirements(facts, previous, sources, corrections):
         identifier = old.id if old and not correction else requirement_id(identity_source, fact.quote)
         if identifier in previous and fact.previous_id is None:
             raise ValueError("Для прежнего требования нужно указать previous_id")
+        ranges = image_ranges.get(fact.source_id)
         refs = list(old.source_refs) if old else []
-        refs.append(reference(sources_by_id[fact.source_id], fact.quote))
+        if ranges is not None:
+            refs = [ref for ref in refs if (ref.source_id, ref.quote) != (fact.source_id, fact.quote)]
+        refs.append(reference(sources_by_id[fact.source_id], fact.quote, ranges))
         if correction:
             refs.append(reference(answer, correction.quote))
         unique_refs = {(ref.source_id, ref.start, ref.end): ref for ref in refs}
@@ -181,6 +184,8 @@ def build_state(
     previous: DialogueState | None,
     question_id: str | None,
     max_rounds: int,
+    image_ranges: dict[str, list[tuple[int, int]]] | None = None,
+    image_question_source: str | None = None,
 ) -> DialogueState:
     validate_quotes(draft.analysis, sources)
     answer = sources[-1]
@@ -190,9 +195,9 @@ def build_state(
         raise ValueError("Исправляется неизвестное или повторное требование")
     for correction in corrections.values():
         reference(answer, correction.quote)
-    requirements = build_requirements(draft.analysis.requirements, old_requirements, sources, corrections)
+    requirements = build_requirements(draft.analysis.requirements, old_requirements, sources, corrections, image_ranges or {})
     questions = update_questions(previous.questions if previous else [], draft, answer, question_id)
-    questions = new_questions(questions, draft.questions, draft.analysis, sources[0].id)
+    questions = new_questions(questions, draft.questions, draft.analysis, image_question_source or sources[0].id)
     pending = [question for question in questions if question.status == "open"]
     approvals, dismissed = resolve_properties(draft, previous, questions, answer)
     analysis = assemble_analysis(

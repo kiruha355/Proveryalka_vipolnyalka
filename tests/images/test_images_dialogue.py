@@ -14,14 +14,14 @@ from PIL import Image, ImageDraw
 
 from image_helpers import analyze, upload
 from proveryalka.agent import dialogue, verification
-from proveryalka.agent.clarification import DialogueDraft
+from proveryalka.agent.clarification import DialogueDraft, build_state
 from proveryalka.api.app import create_app
 from proveryalka.checker import TLCChecker
 from proveryalka.config import Settings
 from proveryalka.contracts import Source
 from proveryalka.images.dto import ImageDraft, VisualRequirement
 from proveryalka.images.evidence import validate_observations
-from proveryalka.images.storage import ImageStore
+from proveryalka.images.storage import ImageStore, image_projection
 from test_analyst_http import APIChecker, CASE, NarrativeModel, TEXT, post, question, session, wait_explanation
 from test_check_api import wait_run
 
@@ -50,8 +50,10 @@ class DiagramProvider:
             assert image.getpixel((0, 0)) == (255, 255, 255)
             assert image.getpixel((48, 16)) == (0, 0, 0)
         visible = [VisualRequirement(text=item["quote"], origin="visible") for item in CASE["draft"]["requirements"]]
-        return ImageDraft(description="Схема согласования заявки",
-                          requirements=[*visible, VisualRequirement(text=PROPOSAL, origin="proposal")],
+        repeated = visible[-1].text
+        return ImageDraft(description=repeated,
+                          requirements=[VisualRequirement(text=repeated, origin="proposal"), *visible,
+                                        VisualRequirement(text=PROPOSAL, origin="proposal")],
                           uncertainties=[UNCERTAINTY])
 
 
@@ -77,11 +79,41 @@ def test_ambiguous_image_cannot_create_model_without_clarification():
     source = Source(id="src_image", session_id="session", text="\n".join(visible))
     observations = {source.id: {"visible": visible, "proposals": [], "uncertainties": [UNCERTAINTY]}}
     with pytest.raises(ValueError, match="уточняющий вопрос"):
-        validate_observations(model_draft(source.id), [source], None, observations)
+        validate_observations(model_draft(source.id), [source], observations)
     with pytest.raises(ValueError, match="Факт или элемент"):
         invalid = model_draft(source.id, questions=[question("Куда ведёт стрелка?")])
         invalid.analysis.events[0].quote = UNCERTAINTY
-        validate_observations(invalid, [source], None, observations)
+        validate_observations(invalid, [source], observations)
+
+
+def test_existing_question_does_not_resolve_new_image_ambiguity():
+    plain = Source(id="existing", session_id="session", text=TEXT)
+    previous = build_state([plain], model_draft(plain.id, questions=[question("Какой часовой пояс?")]), None, None, 5)
+    visible = [item["quote"] for item in CASE["draft"]["requirements"]]
+    text, ranges = image_projection({
+        "description": "Схема", "requirements": [{"origin": "visible", "text": item} for item in visible],
+        "uncertainties": [UNCERTAINTY],
+    })
+    image = Source(id="image", session_id="session", text=text)
+    sources = [plain, image]
+    observations = {image.id: {"visible": visible, "proposals": [], "uncertainties": [UNCERTAINTY]}}
+    unrelated = model_draft(image.id, previous.model_dump(), questions=[question("Какая дата?")])
+    with pytest.raises(ValueError, match="новый уточняющий вопрос"):
+        validate_observations(unrelated, sources, observations)
+
+    attached = model_draft(image.id, previous.model_dump(),
+                           questions=[{**question("Куда ведёт стрелка?"), "reason": UNCERTAINTY}])
+    scoped = validate_observations(attached, sources, observations)
+    assert scoped == image.id
+    state = build_state(sources, attached, previous, None, 5, {image.id: ranges}, scoped)
+    old, new = state.pending_questions
+    answer = Source(id="other-answer", session_id="session", text="Москва.")
+    turn = model_draft(image.id, state.model_dump(), resolutions=[{
+        "question_id": old.id, "decision": "answered", "quote": answer.text,
+    }])
+    updated = build_state([*sources, answer], turn, state, old.id, 5, {image.id: ranges})
+    assert updated.status == "needs_clarification"
+    assert [question.id for question in updated.pending_questions] == [new.id]
 
 
 @pytest.mark.skipif(not hasattr(ImageStore, "attach"), reason="Source attachment and provenance require develop f78ffa5")
@@ -104,9 +136,11 @@ def test_crop_provenance_survives_dialogue_model_check_and_reload(tmp_path, monk
             source_id = next(iter(observations))
             assert observations[source_id]["image_ref"]["region"] == CROP
             assert observations[source_id]["uncertainties"] == [UNCERTAINTY]
-            assert observations[source_id]["proposals"] == [PROPOSAL]
+            assert observations[source_id]["proposals"] == [CASE["draft"]["requirements"][-1]["quote"], PROPOSAL]
             if payload.get("turn_kind") == "attachment":
-                candidate = model_draft(source_id, previous, questions=[question("Куда ведёт стрелка из согласования?")])
+                candidate = model_draft(source_id, previous, questions=[
+                    {**question("Куда ведёт стрелка из согласования?"), "reason": UNCERTAINTY},
+                ])
                 if payload["validation_feedback"] is None:
                     candidate.analysis.requirements[-1].quote = PROPOSAL
                 else:
@@ -175,6 +209,11 @@ def test_crop_provenance_survives_dialogue_model_check_and_reload(tmp_path, monk
         rule = next(item for item in version["spec"]["requirements"] if item["id"] in property_["requirement_ids"])
         ref = next(item for item in rule["source_refs"] if item["source_id"] == source["id"])
         assert source["text"][ref["start"]:ref["end"]] == ref["quote"]
+        repeated = CASE["draft"]["requirements"][-1]["quote"]
+        repeated_rule = next(item for item in version["spec"]["requirements"]
+                             if any(ref["quote"] == repeated for ref in item["source_refs"]))
+        repeated_ref = next(ref for ref in repeated_rule["source_refs"] if ref["source_id"] == source["id"])
+        assert repeated_ref["start"] == source["text"].index(f"[visible] {repeated}") + len("[visible] ")
         provenance_url = f"{root}/sources/{ref['source_id']}/provenance?start={ref['start']}&end={ref['end']}"
         provenance = client.get(provenance_url).json()
         assert (provenance["kind"], provenance["image_source_id"], provenance["analysis_id"], provenance["region"]) == (

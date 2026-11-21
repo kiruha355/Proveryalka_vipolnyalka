@@ -10,6 +10,7 @@ import { resetExtensions } from "../../app/extensions";
 import { loadLocal } from "../../state/persist";
 import { NewChat } from "../NewChat";
 import { MAX_IMAGE_BYTES } from "./imageFile";
+import { SessionImages, useSessionImages } from "./SessionImages";
 
 const caps: ApiCapabilities = {
   adapter: "http", agent: true, questionId: true, customLimits: false, artifacts: false,
@@ -148,6 +149,53 @@ it("uploads in an existing chat, analyzes the full image and multiple rectangles
   await waitFor(() => expect(useImageAnalysisInDialogue).toHaveBeenCalledWith(image.session_id, image.id, "a2", expect.any(String), expect.any(AbortSignal)));
   expect(uploadImage).toHaveBeenCalledOnce();
   expect(analyzeImage).toHaveBeenCalledTimes(3);
+});
+
+it.each([
+  new ApiError("network", "lost response"),
+  new ApiError("http", "reauth", { status: 401, code: "AUTH_REQUIRED" }),
+])("retains the key for a crop across another analysis or retry ($kind)", async (error) => {
+  const api = new DemoApi();
+  const analyzeImage = vi.fn<NonNullable<ProveryalkaApi["analyzeImage"]>>()
+    .mockRejectedValueOnce(error)
+    .mockImplementation(async (_session, imageId, region) => ({
+      id: region ? "crop-accepted" : "whole-accepted", source_id: imageId,
+      description: region ? "Разобрана область" : "Разобрано всё изображение",
+      requirements: [], uncertainties: [], source_refs: [{ region }],
+    }));
+  const imageApi = Object.assign(api, { analyzeImage, listImages: async () => [image],
+    listImageAnalyses: async () => [], getImageContentUrl: () => content });
+  function Library() {
+    const library = useSessionImages(imageApi, image.session_id, true);
+    return <SessionImages api={imageApi} sessionId={image.session_id} library={library} blocked={false} onUse={vi.fn()} />;
+  }
+  render(<Library />);
+  const open = await screen.findByRole("button", { name: "Изображения (1)" });
+  if (!screen.queryByRole("dialog")) fireEvent.click(open);
+  const dialog = () => within(screen.getByRole("dialog", { name: image.filename }));
+  function draw() {
+    fireEvent.click(dialog().getByRole("button", { name: "Выделить область" }));
+    const surface = dialog().getByRole("group", { name: "Выбор прямоугольной области" });
+    vi.spyOn(surface, "getBoundingClientRect").mockReturnValue({ left: 10, top: 20, width: 200, height: 100 } as DOMRect);
+    Object.assign(surface, { setPointerCapture: vi.fn() });
+    fireEvent.pointerDown(surface, { pointerId: 1, pointerType: "mouse", button: 0, clientX: 30, clientY: 30 });
+    fireEvent.pointerUp(surface, { pointerId: 1, pointerType: "mouse", clientX: 130, clientY: 80 });
+    fireEvent.click(dialog().getByRole("button", { name: "Анализировать область" }));
+  }
+  draw();
+  const retry = await dialog().findByRole("button", { name: "Повторить разбор" });
+  if (error.status === 401) {
+    fireEvent.click(retry);
+  } else {
+    fireEvent.click(dialog().getByRole("button", { name: "Анализировать всё изображение" }));
+    await dialog().findByText("Разобрано всё изображение");
+    fireEvent.click(dialog().getByRole("button", { name: "Закрыть изображение" }));
+    fireEvent.click(open);
+    draw();
+  }
+  await dialog().findByText("Разобрана область");
+  expect(analyzeImage).toHaveBeenNthCalledWith(1, image.session_id, image.id, crop, expect.any(String));
+  expect(analyzeImage.mock.lastCall).toEqual(analyzeImage.mock.calls[0]);
 });
 
 it("opens the same image region from a requirement, a model element and a check explanation", async () => {

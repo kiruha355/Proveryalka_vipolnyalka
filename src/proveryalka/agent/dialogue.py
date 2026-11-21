@@ -104,10 +104,13 @@ async def generate_state(payload, sources, previous, question_id, max_rounds, ma
                         for old in previous.analysis.properties:
                             if properties.get(old.id) != semantics(old):
                                 raise ValueError(f"Сохраните действующее свойство {old.id} до согласования его изменения")
-                    state = build_state(sources, candidate, previous, question_id, max_rounds)
-                    if observations := payload.get("image_observations"):
+                    observations = payload.get("image_observations", {})
+                    image_question_source = None
+                    if observations:
                         from ..images.evidence import validate_observations
-                        validate_observations(candidate, sources, previous, observations)
+                        image_question_source = validate_observations(candidate, sources, observations)
+                    image_ranges = {key: observation["visible_ranges"] for key, observation in observations.items()}
+                    state = build_state(sources, candidate, previous, question_id, max_rounds, image_ranges, image_question_source)
                     await activity("validation", attempt=attempt, outcome="passed")
                     return state
                 except ValueError as error:

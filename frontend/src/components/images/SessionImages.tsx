@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { newKey, type ProveryalkaApi } from "../../api/api";
-import { ApiError, describeCode } from "../../api/errors";
+import { ApiError, describeCode, requiresSignIn } from "../../api/errors";
 import type { ImageAnalysisRecord, ImageRegion, ImageSource } from "../../api/images";
 import { loadLocal, updateLocal } from "../../state/persist";
 import { ErrorNotice, QuietStatus } from "../Notice";
@@ -12,6 +12,7 @@ export function useSessionImages(api: ProveryalkaApi, sessionId: string, enabled
   const [error, setError] = useState<unknown>(null);
   const [reload, setReload] = useState(0);
   const [selectedId, setSelectedId] = useState(() => loadLocal(api, sessionId).openImageId ?? null);
+  const analysisKeys = useRef(new Map<string, string>());
 
   useEffect(() => {
     if (!enabled || !api.listImages) return;
@@ -38,7 +39,7 @@ export function useSessionImages(api: ProveryalkaApi, sessionId: string, enabled
     select(image.id);
   } : undefined;
 
-  return { images, selectedId, select, upload, error, retry: () => setReload(current => current + 1) };
+  return { images, selectedId, select, upload, error, analysisKeys: analysisKeys.current, retry: () => setReload(current => current + 1) };
 }
 
 interface LibraryProps {
@@ -68,6 +69,7 @@ export function SessionImages({ api, sessionId, library, blocked, onUse }: Libra
             {library.images.map(image => <option key={image.id} value={image.id}>{image.filename}</option>)}
           </select>}
           <ImageAnalyses key={selected.id} api={api} sessionId={sessionId} image={selected} blocked={blocked}
+            analysisKeys={library.analysisKeys}
             onUse={id => { library.select(null); onUse(selected, id); }} />
         </ImageDialog>
       )}
@@ -75,8 +77,9 @@ export function SessionImages({ api, sessionId, library, blocked, onUse }: Libra
   );
 }
 
-function ImageAnalyses({ api, sessionId, image, blocked, onUse }: {
+function ImageAnalyses({ api, sessionId, image, blocked, analysisKeys, onUse }: {
   api: ProveryalkaApi; sessionId: string; image: ImageSource; blocked: boolean; onUse(id: string): void;
+  analysisKeys: Map<string, string>;
 }) {
   const [drawing, setDrawing] = useState(false);
   const [region, setRegion] = useState<ImageRegion | null>(null);
@@ -84,10 +87,9 @@ function ImageAnalyses({ api, sessionId, image, blocked, onUse }: {
   const [records, setRecords] = useState<ImageAnalysisRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [readError, setReadError] = useState<unknown>(null);
-  const [analysisError, setAnalysisError] = useState<unknown>(null);
+  const [analysisError, setAnalysisError] = useState<{ error: unknown; region: ImageRegion | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [reload, setReload] = useState(0);
-  const attempt = useRef<{ scope: string; key: string } | null>(null);
 
   useEffect(() => {
     if (!api.listImageAnalyses) return;
@@ -111,9 +113,9 @@ function ImageAnalyses({ api, sessionId, image, blocked, onUse }: {
 
   const analyze = async (area: ImageRegion | null) => {
     if (!api.analyzeImage || busy) return;
-    const scope = JSON.stringify(area);
-    const key = attempt.current?.scope === scope ? attempt.current.key : newKey();
-    attempt.current = { scope, key };
+    const scope = JSON.stringify([image.id, area && [area.x, area.y, area.width, area.height]]);
+    const key = analysisKeys.get(scope) ?? newKey();
+    analysisKeys.set(scope, key);
     setBusy(true);
     setAnalysisError(null);
     setMarked(area);
@@ -122,11 +124,12 @@ function ImageAnalyses({ api, sessionId, image, blocked, onUse }: {
       setRecords(current => [...current.filter(record => record.id !== result.id), {
         id: result.id, source_id: image.id, result, error_code: null, state: "completed",
       }]);
-      attempt.current = null;
+      if (analysisKeys.get(scope) === key) analysisKeys.delete(scope);
     } catch (error) {
-      setAnalysisError(error);
-      if (!(error instanceof ApiError && (error.kind === "network" || error.kind === "malformed" || error.code === "IMAGE_ANALYSIS_RUNNING"))) {
-        attempt.current = null;
+      setAnalysisError({ error, region: area });
+      if (!(error instanceof ApiError && (requiresSignIn(error) || error.kind === "network" || error.kind === "malformed"
+        || error.code === "IMAGE_ANALYSIS_RUNNING" || error.code === "IMAGE_ANALYSIS_BUSY"))) {
+        if (analysisKeys.get(scope) === key) analysisKeys.delete(scope);
       }
     } finally {
       setBusy(false);
@@ -148,7 +151,11 @@ function ImageAnalyses({ api, sessionId, image, blocked, onUse }: {
           onClick={() => { if (region) void analyze(region); }}>Анализировать область</button>}
       </div>
       {busy && <QuietStatus busy>Разбор изображения</QuietStatus>}
-      {analysisError !== null && <ErrorNotice error={analysisError} title="Не удалось разобрать изображение" />}
+      {analysisError !== null && <ErrorNotice error={analysisError.error} title="Не удалось разобрать изображение"
+        action={<button type="button" className="button button--small" disabled={busy} onClick={() => {
+          setDrawing(false);
+          void analyze(analysisError.region);
+        }}>Повторить разбор</button>} />}
       {readError !== null && <ErrorNotice error={readError} title="Разборы не загружены"
         action={<button type="button" className="button button--small" onClick={() => setReload(value => value + 1)}>Повторить</button>} />}
       {loading && records.length === 0 && !busy && <QuietStatus busy>Загрузка разборов</QuietStatus>}

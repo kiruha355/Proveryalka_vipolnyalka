@@ -1,7 +1,7 @@
 """Load the observations behind a text projection used in an analyst turn."""
 import json
 
-from .storage import ImageStore
+from .storage import ImageStore, image_projection
 
 
 def dialogue_observations(store, session_id, sources):
@@ -19,17 +19,19 @@ def dialogue_observations(store, session_id, sources):
     observations = {}
     for row in rows:
         result = json.loads(row["response_json"])
+        _, visible_ranges = image_projection(result)
         observations[row["source_id"]] = {
             "analysis_id": result["id"],
             "image_ref": result["source_refs"][0],
             "visible": [item["text"] for item in result["requirements"] if item["origin"] == "visible"],
+            "visible_ranges": visible_ranges,
             "proposals": [item["text"] for item in result["requirements"] if item["origin"] == "proposal"],
             "uncertainties": result["uncertainties"],
         }
     return observations
 
 
-def validate_observations(draft, sources, previous, observations):
+def validate_observations(draft, sources, observations):
     if not observations:
         return
     evidence = {
@@ -50,6 +52,8 @@ def validate_observations(draft, sources, previous, observations):
             raise ValueError("Факт или элемент модели требует видимого наблюдения или текстового источника")
 
     current = observations.get(sources[-1].id)
-    if current and (current["uncertainties"] or current["proposals"]):
-        if not draft.questions and not (previous and previous.pending_questions):
-            raise ValueError("По неоднозначному изображению нужен уточняющий вопрос")
+    ambiguities = [text for text in (*current["uncertainties"], *current["proposals"]) if text.strip()] if current else []
+    if ambiguities:
+        if not any(fragment in question.reason for fragment in ambiguities for question in draft.questions):
+            raise ValueError("По неоднозначному изображению нужен новый уточняющий вопрос с цитатой из uncertainties или proposals в reason")
+        return sources[-1].id

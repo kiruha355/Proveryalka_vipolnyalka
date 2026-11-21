@@ -78,11 +78,13 @@ def requirement_id(source_id: str, quote: str) -> str:
     return "req_" + uuid5(NAMESPACE_URL, f"{source_id}\0{quote}").hex
 
 
-def reference(source: Source, quote: str) -> SourceRef:
-    if not quote.strip() or quote not in source.text:
-        raise ValueError("Цитата отсутствует в исходном тексте")
-    start = source.text.index(quote)
-    return SourceRef(source_id=source.id, quote=quote, start=start, end=start + len(quote))
+def reference(source: Source, quote: str, ranges: list[tuple[int, int]] | None = None) -> SourceRef:
+    if quote.strip():
+        for left, right in ranges if ranges is not None else [(0, len(source.text))]:
+            start = source.text.find(quote, left, right)
+            if start != -1:
+                return SourceRef(source_id=source.id, quote=quote, start=start, end=start + len(quote))
+    raise ValueError("Цитата отсутствует в исходном тексте")
 
 
 def validate_quotes(draft: ExtractionDraft, sources: list[Source]) -> None:
