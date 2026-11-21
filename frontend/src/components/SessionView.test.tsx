@@ -54,6 +54,8 @@ it.each(["loaded", "retry", "missing"])("keeps a chat file link while versions l
   }
   if (outcome === "missing") {
     expect(screen.getByText("Версия модели из ссылки не найдена")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
+    expect(screen.queryByText("Версия модели из ссылки не найдена")).not.toBeInTheDocument();
     expect(navigate).not.toHaveBeenCalled();
     expect(focusGeneratedFile).not.toHaveBeenCalled();
     return;

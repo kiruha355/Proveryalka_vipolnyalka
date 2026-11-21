@@ -247,6 +247,7 @@ function GenerationFiles({
   const [highlight, setHighlight] = useState<LineRange | null>(
     activeFocus?.lines ?? null,
   );
+  const [dismissedFocus, setDismissedFocus] = useState<ProjectFocus | null>(null);
   const [file, setFile] = useState<{
     path: string;
     text: string | null;
@@ -274,7 +275,9 @@ function GenerationFiles({
   const blockers = archiveBlockers(generation),
     valid = blockers.length === 0;
   const entry = review.files.find((f) => f.path === path) ?? null;
-  const linkedHash = activeFocus?.path === path ? activeFocus?.sha256 : undefined;
+  const linkedHash = activeFocus !== dismissedFocus && activeFocus?.path === path
+    ? activeFocus?.sha256
+    : undefined;
   const linkHashMismatch = !!entry && linkedHash !== undefined && entry.sha256 !== linkedHash;
   useEffect(() => {
     if (valid) loadedCallback.current?.(generation);
@@ -460,6 +463,7 @@ function GenerationFiles({
                   expanded={opened}
                   selectedPath={path}
                   onOpen={(p) => {
+                    setDismissedFocus(activeFocus ?? null);
                     setPath(p);
                     setHighlight(null);
                     setSourceView("code");

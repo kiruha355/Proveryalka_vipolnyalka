@@ -394,6 +394,20 @@ it("переключает сохранённую генерацию по ссы
   expect(await screen.findByLabelText("Содержимое app/rules.py")).toBeVisible();
 });
 
+it("открывает файл из дерева после несовпадения хеша в ссылке", async () => {
+  const provider = createRecordedCodegenProvider();
+  provider.readFile = vi.fn(provider.readFile);
+  const focus = { generationId: g.generation_id, path: "app/rules.py", sha256: "0".repeat(64) };
+  render(<ProjectFilesView provider={provider} currentVersion={version} focus={focus} />);
+  expect(await screen.findByRole("alert")).toHaveTextContent(/хешем в ссылке из чата/);
+  expect(provider.readFile).not.toHaveBeenCalled();
+
+  await userEvent.click(screen.getByRole("treeitem", { name: "rules.py" }));
+  expect(await screen.findByLabelText("Содержимое app/rules.py")).toBeVisible();
+  expect(provider.readFile).toHaveBeenCalledExactlyOnceWith(g.generation_id, focus.path, expect.any(AbortSignal));
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 it("на 640px открывает код с клавиатуры и позволяет вернуться к дереву", async () => {
   vi.stubGlobal("matchMedia", vi.fn((media: string) => ({
     matches: media === "(max-width: 640px)",

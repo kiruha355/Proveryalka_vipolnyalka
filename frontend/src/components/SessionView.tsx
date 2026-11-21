@@ -310,7 +310,8 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
           action={<button type="button" className="button button--small" onClick={workspace.reloadModels}>Повторить загрузку версий</button>} />
       ) : (
         <ErrorNotice title="Версия модели из ссылки не найдена"
-          detail={`${requestedFile.path} · версия ${requestedFile.version_number ?? requestedFile.version_id}`} />
+          detail={`${requestedFile.path} · версия ${requestedFile.version_number ?? requestedFile.version_id}`}
+          action={<button type="button" className="button button--small" onClick={() => setRequestedFile(null)}>Закрыть</button>} />
       )
   );
 
