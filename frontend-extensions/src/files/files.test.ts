@@ -228,6 +228,43 @@ describe("ZIP реального проекта", () => {
   });
 });
 describe("real HTTP adapter", () => {
+  it("передаёт технические условия и запускает сравнение с закреплёнными хешами", async () => {
+    const fetcher = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => Response.json([]));
+    const p = createCodegenProvider({ fetch: fetcher });
+    const conditions = { language: "python", platform: "fastapi", api_prefix: "", storage: "sqlite", integrations: [] };
+    await p.createGeneration(version, {
+      allowUnverified: false,
+      technicalConditions: conditions,
+      target: "python-fastapi",
+      applicationMode: "agent",
+    }, "gen-key");
+    const request = {
+      snapshot_id: "snapshot_1",
+      manifest_sha256: "a".repeat(64),
+      reference_code_hash: "b".repeat(64),
+      adapter: { kind: "fastapi-evaluate-v1" as const, module: "app.api", api_prefix: "" },
+    };
+    await p.comparisons!.listSnapshots("session#one");
+    await p.comparisons!.list("gen#one");
+    await p.comparisons!.start("gen#one", request, "compare-key");
+    expect(fetcher).toHaveBeenNthCalledWith(1,
+      `/api/models/${version.model_id}/versions/${version.number}/generations`,
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ target: "python-fastapi", technical_conditions: conditions, application_mode: "agent" }),
+        headers: expect.objectContaining({ "Idempotency-Key": "gen-key" }),
+      }),
+    );
+    expect(fetcher).toHaveBeenNthCalledWith(2, "/api/sessions/session%23one/repositories?limit=100&offset=0", expect.anything());
+    expect(fetcher).toHaveBeenNthCalledWith(3, "/api/generations/gen%23one/comparisons", expect.anything());
+    expect(fetcher).toHaveBeenNthCalledWith(4, "/api/generations/gen%23one/comparisons",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify(request),
+        headers: expect.objectContaining({ "Idempotency-Key": "compare-key" }),
+      }),
+    );
+  });
   it("кодирует path/id, передаёт ключи, сохраняет структурную ошибку 409", async () => {
     const calls: Array<[string, RequestInit | undefined]> = [];
     const mock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {

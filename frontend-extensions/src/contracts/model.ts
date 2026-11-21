@@ -174,7 +174,7 @@ export type VerificationResult = {
 export type CheckRun = { run: Run; results: VerificationResult[] };
 
 export type ApiErrorDetail = {
-  path?: Array<string | number>;
+  path?: string | Array<string | number>;
   type?: string;
   message?: string;
 } & Record<string, unknown>;
