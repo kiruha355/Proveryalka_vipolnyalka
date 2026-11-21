@@ -15,7 +15,7 @@ import {
   RECORDED_GENERATION as g,
   RECORDED_TEST_RUN as run,
 } from "../../fixtures/codegen";
-import { ProjectFilesView } from "./ProjectFilesView";
+import { ProjectFilesView, type ProjectFilesViewProps } from "./ProjectFilesView";
 import type { CandidateComparison, TestRun } from "../contract";
 import { SplitPane } from "../../ui/SplitPane";
 
@@ -398,7 +398,8 @@ it("открывает файл из дерева после несовпаде�
   const provider = createRecordedCodegenProvider();
   provider.readFile = vi.fn(provider.readFile);
   const focus = { generationId: g.generation_id, path: "app/rules.py", sha256: "0".repeat(64) };
-  render(<ProjectFilesView provider={provider} currentVersion={version} focus={focus} />);
+  const onFocusChange = vi.fn<NonNullable<ProjectFilesViewProps["onFocusChange"]>>();
+  const first = render(<ProjectFilesView provider={provider} currentVersion={version} focus={focus} onFocusChange={onFocusChange} />);
   expect(await screen.findByRole("alert")).toHaveTextContent(/хешем в ссылке из чата/);
   expect(provider.readFile).not.toHaveBeenCalled();
 
@@ -406,6 +407,14 @@ it("открывает файл из дерева после несовпаде�
   expect(await screen.findByLabelText("Содержимое app/rules.py")).toBeVisible();
   expect(provider.readFile).toHaveBeenCalledExactlyOnceWith(g.generation_id, focus.path, expect.any(AbortSignal));
   expect(screen.queryByRole("alert")).toBeNull();
+  const manualFocus = onFocusChange.mock.lastCall?.[0];
+  expect(manualFocus).toEqual({ generationId: g.generation_id, versionId: version.id, path: focus.path });
+
+  first.unmount();
+  const next = render(<ProjectFilesView provider={provider} currentVersion={version} focus={manualFocus} />);
+  expect(await screen.findByLabelText("Содержимое app/rules.py")).toBeVisible();
+  next.rerender(<ProjectFilesView provider={provider} currentVersion={version} focus={{ ...focus }} />);
+  expect(await screen.findByRole("alert")).toHaveTextContent(/хешем в ссылке из чата/);
 });
 
 it("на 640px открывает код с клавиатуры и позволяет вернуться к дереву", async () => {

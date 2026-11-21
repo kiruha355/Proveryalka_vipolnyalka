@@ -44,6 +44,7 @@ export type ProjectFilesViewProps = {
   provider: CodegenProvider;
   currentVersion: VersionRef | null;
   focus?: ProjectFocus | null;
+  onFocusChange?: (focus: ProjectFocus | null) => void;
   onRuleSelect?: (ref: ModelElementRef) => void;
   onManifestLoaded?: (generation: Generation) => void;
   className?: string;
@@ -64,6 +65,7 @@ function VersionProjects({
   provider,
   currentVersion,
   focus,
+  onFocusChange,
   onRuleSelect,
   onManifestLoaded, onAskFile,
   className,
@@ -136,6 +138,7 @@ function VersionProjects({
               title={generation ? generationLabel(generation) : undefined}
               onChange={(event) => {
                 setDismissedFocus(focus ?? null);
+                if (activeFocus) onFocusChange?.(null);
                 setSelected(event.target.value);
               }}
             >
@@ -172,7 +175,10 @@ function VersionProjects({
         <p role="alert">
           Генерация {requestedId} из ссылки не найдена у версии {currentVersion.number}.
           {projects.length === 0 && (
-            <> <button type="button" className="pv-button" onClick={() => setDismissedFocus(focus ?? null)}>Закрыть ссылку</button></>
+            <> <button type="button" className="pv-button" onClick={() => {
+              setDismissedFocus(focus ?? null);
+              onFocusChange?.(null);
+            }}>Закрыть ссылку</button></>
           )}
         </p>
       )}
@@ -193,6 +199,7 @@ function VersionProjects({
         onCreated={(created) => {
           setProjects((old) => [...old.filter((project) => project.generation_id !== created.generation_id), created]);
           setDismissedFocus(focus ?? null);
+          if (activeFocus) onFocusChange?.(null);
           setSelected(created.generation_id);
           setShowForm(false);
         }}
@@ -205,6 +212,7 @@ function VersionProjects({
           generation={generation}
           currentVersion={currentVersion}
           focus={activeFocus}
+          onFocusChange={onFocusChange}
           onRuleSelect={onRuleSelect}
           onManifestLoaded={onManifestLoaded} onAskFile={onAskFile}
         />
@@ -218,6 +226,7 @@ function GenerationFiles({
   generation,
   currentVersion,
   focus,
+  onFocusChange,
   onRuleSelect,
   onManifestLoaded, onAskFile,
 }: {
@@ -226,6 +235,7 @@ function GenerationFiles({
   generation: Generation;
   currentVersion: VersionRef;
   focus: ProjectFocus | null | undefined;
+  onFocusChange: ProjectFilesViewProps["onFocusChange"];
   onRuleSelect: ProjectFilesViewProps["onRuleSelect"];
   onManifestLoaded: ProjectFilesViewProps["onManifestLoaded"];
   onAskFile?: ProjectFilesViewProps["onAskFile"];
@@ -464,6 +474,9 @@ function GenerationFiles({
                   selectedPath={path}
                   onOpen={(p) => {
                     setDismissedFocus(activeFocus ?? null);
+                    if (activeFocus) {
+                      onFocusChange?.({ path: p, generationId: generation.generation_id, versionId: currentVersion.id });
+                    }
                     setPath(p);
                     setHighlight(null);
                     setSourceView("code");
