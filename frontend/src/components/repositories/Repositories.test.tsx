@@ -136,19 +136,23 @@ it("uses the server selection, shows context coverage and refreshes to a new sel
   expect(await screen.findByText("Сохранённый контекст · 157 Б")).toBeInTheDocument();
   expect(screen.getByLabelText(`Начало диапазона ${PATH}`)).toHaveValue(2);
   expect(screen.getByText("Исключено · 2")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Подобрать файлы по всему проекту" }));
+  api.plan.mockResolvedValueOnce({
+    selection: { ...selection, query: "Резервирование заказа" }, indexed_file_count: 1, selected_line_count: 1, coverage: "partial",
+  });
+  fireEvent.change(screen.getByLabelText("Область анализа"), { target: { value: "Резервирование" } });
+  fireEvent.click(screen.getByRole("button", { name: "Подобрать файлы по запросу" }));
   await waitFor(() => expect(screen.queryByText("Отбор файлов")).toBeNull());
-  expect(api.plan).toHaveBeenCalledWith(session.id, snapshot.id, { query: "" });
+  expect(api.plan).toHaveBeenCalledWith(session.id, snapshot.id, { query: "Резервирование" });
   expect(api.analyze).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Анализировать выбранные файлы" }));
   await waitFor(() => expect(onRun).toHaveBeenCalledWith(accepted, expect.stringContaining(COMMIT.slice(0, 12))));
-  expect(api.analyze).toHaveBeenCalledWith(session.id, snapshot.id, selection, expect.any(String));
+  expect(api.analyze).toHaveBeenCalledWith(session.id, snapshot.id, { ...selection, query: "Резервирование заказа" }, expect.any(String));
   expect(await screen.findByText("Идёт анализ снимка")).toBeInTheDocument();
   rerender(<RepositorySnapshots {...props} runs={new Map([[accepted.run_id, { ...accepted, state: "completed" }]])} snapshotId={snapshot.id} />);
   fireEvent.change(screen.getByLabelText(`Конец диапазона ${PATH}`), { target: { value: "3" } });
   fireEvent.click(screen.getByRole("button", { name: "Анализировать выбранные файлы" }));
   await waitFor(() => expect(api.analyze).toHaveBeenLastCalledWith(session.id, snapshot.id, {
-    manifest_sha256: SHA, files: [{ ...range, end_line: 3 }],
+    manifest_sha256: SHA, files: [{ ...range, end_line: 3 }], query: "Резервирование заказа",
   }, expect.any(String)));
   fireEvent.click(screen.getByRole("button", { name: "Обновить репозиторий" }));
   fireEvent.click(screen.getByRole("button", { name: "Создать новый снимок" }));

@@ -66,6 +66,7 @@ function SnapshotDetails({ snapshot, api, capabilities, sessionId, blocked, runs
       const proposed = await api.plan(sessionId, snapshot.id, { query: query.trim() });
       setPlan(proposed);
       setDraft(proposed.selection.files);
+      setQuery(proposed.selection.query ?? query);
     } catch (failure) {
       setError({ error: failure, mode: "plan" });
     } finally {
@@ -76,13 +77,17 @@ function SnapshotDetails({ snapshot, api, capabilities, sessionId, blocked, runs
 
   async function analyze() {
     if (submissionsBlocked || !ranges.length || invalid) return;
-    const intent = JSON.stringify(ranges);
+    const focus = query.trim();
+    const payload: RepositorySelection = {
+      manifest_sha256: snapshot.manifest_sha256, files: ranges, ...(focus ? { query: focus } : {}),
+    };
+    const intent = JSON.stringify(payload);
     setError(null);
     setBusy("send");
     onBusy(true);
     try {
       if (attempt.current?.intent !== intent) {
-        attempt.current = { intent, payload: { manifest_sha256: snapshot.manifest_sha256, files: ranges }, key: newKey() };
+        attempt.current = { intent, payload, key: newKey() };
       }
       const accepted = await api.analyze(sessionId, snapshot.id, attempt.current.payload, attempt.current.key);
       const label = `Репозиторий ${snapshot.remote_url} · ${snapshot.commit_sha.slice(0, 12)}`;
