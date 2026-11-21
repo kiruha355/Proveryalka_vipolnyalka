@@ -37,6 +37,7 @@ export type ProjectFocus = {
   lines?: LineRange | null;
   generationId?: string;
   versionId?: string;
+  sha256?: string;
 };
 export type ProjectFilesViewProps = {
   onAskFile?: (generation: Generation, entry: Generation["files"][number])=>void;
@@ -112,10 +113,12 @@ function VersionProjects({
 
   const activeFocus = focus !== dismissedFocus && (!focus?.versionId || focus.versionId === currentVersion.id)
     ? focus : null;
-  const focused = activeFocus?.generationId
-    ? projects.find((project) => project.generation_id === activeFocus.generationId)
-    : undefined;
-  const generation = focused ?? projects.find((project) => project.generation_id === selected) ?? projects.at(-1);
+  const requestedId = activeFocus?.generationId;
+  const focused = projects.find((project) => project.generation_id === requestedId);
+  const unresolvedFocus = !!requestedId && !focused;
+  const generation = requestedId
+    ? focused
+    : projects.find((project) => project.generation_id === selected) ?? projects.at(-1);
   useEffect(() => {
     if (focused) setSelected(focused.generation_id);
   }, [focused]);
@@ -136,6 +139,7 @@ function VersionProjects({
                 setSelected(event.target.value);
               }}
             >
+              {unresolvedFocus && <option value="" disabled>Выберите другую генерацию</option>}
               {projects.map((project) => (
                 <option key={project.generation_id} value={project.generation_id}>
                   {generationLabel(project)}
@@ -145,7 +149,7 @@ function VersionProjects({
           </label>
         )}
         {provider.label && <span className="pv-muted">{provider.label}</span>}
-        {projects.length > 0 && phase === "ready" && !unavailable && (
+        {projects.length > 0 && phase === "ready" && !unavailable && !unresolvedFocus && (
           <button
             type="button"
             className="pv-button"
@@ -164,10 +168,15 @@ function VersionProjects({
       {phase === "loading" && <p role="status">Загрузка проектов…</p>}
       {unavailable && <p role="status">{unavailable}</p>}
       {error && <p role="alert">{error}</p>}
-      {phase === "ready" && !unavailable && activeFocus?.generationId && !focused && (
-        <p role="alert">Генерация {activeFocus.generationId} из ссылки не найдена у версии {currentVersion.number}.</p>
+      {phase === "ready" && !unavailable && unresolvedFocus && (
+        <p role="alert">
+          Генерация {requestedId} из ссылки не найдена у версии {currentVersion.number}.
+          {projects.length === 0 && (
+            <> <button type="button" className="pv-button" onClick={() => setDismissedFocus(focus ?? null)}>Закрыть ссылку</button></>
+          )}
+        </p>
       )}
-      {phase === "ready" && !unavailable && projects.length === 0 && (
+      {phase === "ready" && !unavailable && projects.length === 0 && !unresolvedFocus && (
         <p className="pv-note">Для этой версии ещё нет сгенерированного проекта.</p>
       )}
       <GenerationForm
@@ -175,8 +184,9 @@ function VersionProjects({
         version={currentVersion}
         status={status}
         verificationState={verificationState}
-        hidden={projects.length > 0 && !showForm}
-        disabled={phase !== "ready" || !!unavailable}
+        hidden={unresolvedFocus || (projects.length > 0 && !showForm)}
+        disabled={phase !== "ready" || !!unavailable || unresolvedFocus}
+        verificationAttempt={attempt}
         busy={busy}
         onBusy={setBusy}
         onVerificationState={setVerificationState}
@@ -245,8 +255,8 @@ function GenerationFiles({
   const [test, setTest] = useState<TestRun | null>(null),
     [testError, setTestError] = useState<string | null>(null),
     [testBusy, setTestBusy] = useState(false);
-  const [log, setLog] = useState<string | null>(null),
-    [download, setDownload] = useState(false),
+  const [log, setLog] = useState<{ runId: string; text: string | null; error: string | null } | null>(null);
+  const [download, setDownload] = useState(false),
     [downloadError, setDownloadError] = useState<string | null>(null);
   const alive = useRef(true),
     testKey = useRef<string | null>(null),
@@ -264,6 +274,8 @@ function GenerationFiles({
   const blockers = archiveBlockers(generation),
     valid = blockers.length === 0;
   const entry = review.files.find((f) => f.path === path) ?? null;
+  const linkedHash = activeFocus?.path === path ? activeFocus?.sha256 : undefined;
+  const linkHashMismatch = !!entry && linkedHash !== undefined && entry.sha256 !== linkedHash;
   useEffect(() => {
     if (valid) loadedCallback.current?.(generation);
   }, [generation, valid]);
@@ -280,8 +292,9 @@ function GenerationFiles({
     });
   }, [activeFocus]);
   useEffect(() => {
-    if (!entry || !valid) return;
+    if (!entry || !valid || linkHashMismatch) return;
     const ac = new AbortController();
+    const expectedHash = linkedHash ?? entry.sha256;
     setFile(null);
     provider
       .readFile(generation.generation_id, entry.path, ac.signal)
@@ -289,8 +302,8 @@ function GenerationFiles({
         if (ac.signal.aborted) return;
         if (
           bytes.length !== entry.size ||
-          sha256Hex(bytes) !== entry.sha256 ||
-          (sha256Header !== null && sha256Header !== entry.sha256)
+          sha256Hex(bytes) !== expectedHash ||
+          (sha256Header !== null && sha256Header !== expectedHash)
         )
           throw new Error("Содержимое не совпадает с manifest (size/sha256)");
         setFile({ path: entry.path, text: decodeText(bytes), error: null });
@@ -309,7 +322,7 @@ function GenerationFiles({
           });
       });
     return () => ac.abort();
-  }, [provider, generation, entry, valid]);
+  }, [provider, generation, entry, valid, linkHashMismatch, linkedHash]);
   useEffect(() => {
     const ac = new AbortController();
     provider
@@ -323,6 +336,22 @@ function GenerationFiles({
     return () => ac.abort();
   }, [provider, generation.generation_id]);
   const pollError = useRunPolling(provider, test, setTest, testBusy);
+  const visibleLog = log && log.runId === test?.test_run_id ? log : null;
+  const loadingLogId = visibleLog?.text === null && visibleLog.error === null ? visibleLog.runId : null;
+  useEffect(() => {
+    if (!loadingLogId) return;
+    const controller = new AbortController();
+    const { signal } = controller;
+    provider.getTestLog(loadingLogId, signal).then(
+      (text) => {
+        if (!signal.aborted) setLog({ runId: loadingLogId, text, error: null });
+      },
+      (cause) => {
+        if (!signal.aborted) setLog({ runId: loadingLogId, text: null, error: codegenErrorMessage(cause) });
+      },
+    );
+    return () => controller.abort();
+  }, [provider, loadingLogId]);
   const action = async (fn: () => Promise<TestRun>) => {
     setTestBusy(true);
     setTestError(null);
@@ -440,9 +469,11 @@ function GenerationFiles({
                 <div key="code" className="pv-viewer">
                   <header className="pv-viewer__head">
                     {entry?.path ?? "Выберите файл"}
-                    {onAskFile && valid && entry && file?.path === entry.path && !file.error && file.text != null && <button type="button" className="pv-button" disabled={entry.size>65536} title={entry.size>65536 ? "Объяснение доступно для файлов до 64 КиБ" : undefined} onClick={()=>onAskFile(generation,entry)}>Спросить агента о файле</button>}
+                    {onAskFile && valid && !linkHashMismatch && entry && file?.path === entry.path && !file.error && file.text != null && <button type="button" className="pv-button" disabled={entry.size>65536} title={entry.size>65536 ? "Объяснение доступно для файлов до 64 КиБ" : undefined} onClick={()=>onAskFile(generation,entry)}>Спросить агента о файле</button>}
                   </header>
-                  {!valid ? null : path && !entry ? (
+                  {!valid ? null : linkHashMismatch ? (
+                    <p role="alert">SHA-256 файла {path} не совпадает с хешем в ссылке из чата.</p>
+                  ) : path && !entry ? (
                     <p role="alert">Файл {path} отсутствует в выбранной генерации.</p>
                   ) : entry && file?.path !== entry.path ? (
                     <p role="status">Загрузка файла…</p>
@@ -515,17 +546,10 @@ function GenerationFiles({
                 {test?.log_available && (
                   <button
                     className="pv-button"
-                    onClick={async () => {
-                      try {
-                        const s = await provider.getTestLog(test.test_run_id);
-                        if (alive.current) setLog(s);
-                      } catch (e) {
-                        if (alive.current)
-                          setTestError(codegenErrorMessage(e));
-                      }
-                    }}
+                    disabled={testBusy || !!loadingLogId}
+                    onClick={() => setLog({ runId: test.test_run_id, text: null, error: null })}
                   >
-                    Журнал pytest
+                    {loadingLogId ? "Загрузка журнала…" : "Журнал pytest"}
                   </button>
                 )}
               </div>
@@ -544,9 +568,10 @@ function GenerationFiles({
                 tests={test}
                 provenance={testsProvenance(test, generation)}
               />
-              {log !== null && (
+              {visibleLog?.error && <p role="alert">Журнал pytest. {visibleLog.error}</p>}
+              {visibleLog?.text != null && (
                 <pre className="pv-test-log">
-                  {log}
+                  {visibleLog.text}
                   {test?.log_truncated ? "\n[журнал сокращён сервером]" : ""}
                 </pre>
               )}

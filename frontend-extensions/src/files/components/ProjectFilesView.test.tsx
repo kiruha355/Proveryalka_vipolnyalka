@@ -319,6 +319,42 @@ it("блокирует комбинацию, исключённую из ста�
   expect(p.createGeneration).not.toHaveBeenCalled();
 });
 
+it("сбрасывает согласие с прежней проверкой TLC при обновлении и сохраняет условия", async () => {
+  const p = await currentProvider();
+  let state: "not_checked" | "violated" = "not_checked";
+  p.listGenerations = async (_version, _signal, onVerification) => {
+    onVerification?.(state);
+    return [];
+  };
+  const gate = (property_id: string, status: string | null) =>
+    new ApiError(409, "VERIFICATION_REQUIRED", "Нужно подтверждение", [{ property_id, status, check_run_id: null }]);
+  p.createGeneration = vi.fn()
+    .mockRejectedValueOnce(gate("OldRule", null))
+    .mockRejectedValueOnce(gate("NewRule", "PROPERTY_VIOLATED"));
+  render(<ProjectFilesView provider={p} currentVersion={version} />);
+
+  const conditions = within(screen.getByRole("form", { name: "Технические условия" }));
+  await conditions.findByText(/TLC: not_checked/);
+  await userEvent.selectOptions(conditions.getByRole("combobox", { name: "Хранилище" }), "sqlite");
+  await userEvent.selectOptions(conditions.getByRole("combobox", { name: "Префикс API" }), "/api/v1");
+  await userEvent.click(conditions.getByRole("radio", { name: "Прикладной проект с агентом" }));
+  await userEvent.click(conditions.getByRole("button", { name: "Создать проект" }));
+  expect(await conditions.findByText(/OldRule/)).toBeVisible();
+  state = "violated";
+  await userEvent.click(screen.getByRole("button", { name: "Обновить" }));
+
+  expect(await conditions.findByText(/TLC: violated/)).toBeVisible();
+  expect(conditions.queryByText(/OldRule/)).toBeNull();
+  expect(conditions.queryByRole("button", { name: "Создать с текущими результатами TLC" })).toBeNull();
+  await userEvent.click(conditions.getByRole("button", { name: "Создать проект" }));
+  expect(await conditions.findByText(/NewRule.*PROPERTY_VIOLATED/)).toBeVisible();
+  expect(p.createGeneration).toHaveBeenLastCalledWith(version, expect.objectContaining({
+    allowUnverified: false,
+    applicationMode: "agent",
+    technicalConditions: expect.objectContaining({ storage: "sqlite", api_prefix: "/api/v1" }),
+  }), expect.any(String), expect.any(AbortSignal));
+});
+
 it("переключает сохранённую генерацию по ссылке и сообщает об отсутствующей", async () => {
   const p = createRecordedCodegenProvider();
   const newer = { ...g, generation_id: "gen_newer" };
@@ -340,6 +376,15 @@ it("переключает сохранённую генерацию по ссы
   expect(picker).toHaveValue(newer.generation_id);
   view.rerender(<ProjectFilesView provider={p} currentVersion={version} focus={{ ...focus, generationId: "missing" }} />);
   expect(await screen.findByRole("alert")).toHaveTextContent(/missing.*не найдена/);
+  expect(picker).toHaveValue("");
+  expect(screen.queryByRole("tree")).toBeNull();
+  expect(screen.queryByLabelText(/Содержимое/)).toBeNull();
+  expect(screen.queryByRole("button", { name: "Скачать проект" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Запустить тесты" })).toBeNull();
+  await userEvent.selectOptions(picker, newer.generation_id);
+  expect(picker).toHaveValue(newer.generation_id);
+  expect(screen.getByRole("button", { name: "Скачать проект" })).toBeEnabled();
+  expect(screen.queryByRole("alert")).toBeNull();
 
   view.rerender(<ProjectFilesView provider={p} currentVersion={{ ...version, id: "new_version", number: version.number + 1 }} focus={focus} />);
   expect(await screen.findByText(/ещё нет сгенерированного/)).toBeVisible();
@@ -412,6 +457,31 @@ it("повторяет опрос по ID локального запуска п
   }
 });
 
+it.each(["ответ", "ошибка"])("оставляет запоздавший журнал за исходным ID запуска (%s)", async (outcome) => {
+  const p = createRecordedCodegenProvider();
+  let finishOld!: (text: string) => void;
+  let failOld!: (cause: ApiError) => void;
+  const oldLog = new Promise<string>((resolve, reject) => {
+    finishOld = resolve;
+    failOld = reject;
+  });
+  p.getTestLog = vi.fn().mockReturnValueOnce(oldLog).mockResolvedValueOnce("Журнал нового запуска");
+  p.startTestRun = vi.fn().mockResolvedValue({ ...run, test_run_id: "new_run" });
+  render(<ProjectFilesView provider={p} currentVersion={version} />);
+  await userEvent.click(await screen.findByRole("button", { name: "Журнал pytest" }));
+  expect(p.getTestLog).toHaveBeenCalledWith(run.test_run_id, expect.any(AbortSignal));
+  await userEvent.click(screen.getByRole("button", { name: "Запустить тесты" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Журнал pytest" }));
+  expect(p.getTestLog).toHaveBeenLastCalledWith("new_run", expect.any(AbortSignal));
+  expect(await screen.findByText("Журнал нового запуска")).toBeVisible();
+  await act(async () => {
+    if (outcome === "ответ") finishOld("Старый журнал");
+    else failOld(new ApiError(503, "LOG_UNAVAILABLE", "Старый журнал недоступен"));
+  });
+  expect(screen.queryByText(/Старый журнал/)).toBeNull();
+  expect(screen.getByText("Журнал нового запуска")).toBeVisible();
+});
+
 it("сравнивает выбранный снимок с выбранной генерацией и открывает расхождения и журнал", async () => {
   const p = createRecordedCodegenProvider();
   const snapshot = { id: "snapshot_2", manifest_sha256: "a".repeat(64), commit_sha: "b".repeat(40), remote_url: "https://example.test/project" };
@@ -464,6 +534,21 @@ it("сравнивает выбранный снимок с выбранной �
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Журнал сравнения" })); });
     expect(p.getTestLog).toHaveBeenCalledWith("cmp_new", expect.any(AbortSignal));
     expect(screen.getByText("Код кандидата вернул 200")).toBeVisible();
+
+    const imported = { ...snapshot, id: "snapshot_imported", commit_sha: "e".repeat(40) };
+    comparisons.listSnapshots.mockResolvedValueOnce([snapshot, imported]);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Обновить данные сравнения" })); });
+    expect(comparisons.listSnapshots).toHaveBeenCalledTimes(2);
+    expect(within(picker).getByRole("option", { name: /snapshot_imported/ })).toBeInTheDocument();
+    fireEvent.change(picker, { target: { value: imported.id } });
+    expect(picker).toHaveValue(imported.id);
+    const displayed = within(screen.getByRole("region", { name: "Результат сравнения" }));
+    expect(displayed.getByText("Есть расхождения с моделью")).toBeVisible();
+    expect(displayed.getByText(snapshot.id)).toBeVisible();
+    expect(displayed.getByText(snapshot.commit_sha.slice(0, 12))).toBeVisible();
+    expect(displayed.queryByText(imported.id)).toBeNull();
+    expect(displayed.getByText("Код кандидата вернул 200")).toBeVisible();
+
     fireEvent.change(screen.getByRole("combobox", { name: "Сохранённое сравнение" }), { target: { value: "cmp_saved" } });
     expect(screen.queryByText("Код кандидата вернул 200")).toBeNull();
     expect(screen.getByText("Совпадает на проверенных сценариях")).toBeVisible();
