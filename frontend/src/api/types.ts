@@ -35,11 +35,11 @@ export interface SessionRequirement {
 }
 
 export interface SessionDetail extends Session {
-  linked_source_ids?: string[];
   messages: Message[];
   sources: Source[];
   requirements: SessionRequirement[];
   documents?: DocumentInfo[];
+  linked_source_ids?: string[];
 }
 
 export type RunState = "queued" | "running" | "cancelling" | "cancelled" | "completed" | "failed";

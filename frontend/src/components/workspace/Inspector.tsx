@@ -9,6 +9,7 @@ import { RequirementChips } from "../RequirementChips";
 import { StatusBadge } from "../StatusBadge";
 import { Close } from "../icons";
 import { ImageQuote } from "../images/ImageCitation";
+import { RepositoryQuote, repositoryCommit } from "../repositories/RepositoryCitation";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -24,8 +25,9 @@ function Quotes({ requirement, model }: { requirement: ExtractedRequirement; mod
     <ul className="quotes">
       {requirement.source_refs.map((ref) => {
         const index = model.sources.findIndex((s) => s.id === ref.source_id);
-        const origin = index === 0 ? "из описания пользователя" : ref.source_id.startsWith("answer_") ? "из ответа на уточнение" : "из источника";
-        return <li key={`${ref.source_id}:${ref.start}`}><ImageQuote citation={ref} fallback={<><q>{ref.quote}</q> <span className="muted small">{origin}</span></>} /></li>;
+        const source = model.sources[index];
+        const origin = source && repositoryCommit(source.text) ? "из репозитория" : index === 0 ? "из описания пользователя" : ref.source_id.startsWith("answer_") ? "из ответа на уточнение" : "из источника";
+        return <li key={`${ref.source_id}:${ref.start}`}><ImageQuote citation={ref} fallback={<><RepositoryQuote citation={ref} source={source} /> <span className="muted small">{origin}</span></>} /></li>;
       })}
     </ul>
   );

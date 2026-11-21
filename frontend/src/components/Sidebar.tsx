@@ -19,6 +19,7 @@ interface Props {
   connectionTone: "ok" | "demo" | "error" | "pending";
   onConnection(): void;
   account?: WorkspaceAccount;
+  onGitConnections?(): void;
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -101,6 +102,10 @@ export function Sidebar(props: Props) {
 
       <div className="sidebar__bottom">
         <InterfaceUpdate compact={!open} />
+        {props.onGitConnections && <button type="button" className={`connection${open ? "" : " connection--rail"}`}
+          onClick={props.onGitConnections} aria-label="Приватные подключения" title="Приватные подключения">
+          <Plug size={16} />{open && <span>Приватные подключения</span>}
+        </button>}
         {props.account && <AccountMenu email={props.account.user.email} compact={!open} onAction={props.account.onAction} />}
         <button type="button" className={`connection connection--${props.connectionTone}${open ? "" : " connection--rail"}`}
           onClick={props.onConnection} aria-label={`Подключение: ${props.connectionLabel}`} title={props.connectionLabel}>

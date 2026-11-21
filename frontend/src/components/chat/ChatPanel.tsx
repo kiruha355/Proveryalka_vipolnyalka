@@ -23,9 +23,10 @@ interface Props {
   replyQuestionId: string | null;
   onReply(questionId: string | null): void;
   composerRef: React.RefObject<ComposerHandle | null>;
+  repositoryAction?: ReactNode;
 }
 
-export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, onReply, composerRef }: Props) {
+export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, onReply, composerRef, repositoryAction }: Props) {
   const core = useCore();
   const { workspace, history } = core;
   const { api, capabilities, session } = context;
@@ -40,6 +41,8 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   const active = workspace.activeAgentRun;
   const pending = history?.pending ?? null;
   const last = workspace.lastAgentRun;
+  const allowDocuments = capabilities.documents && (capabilities.sourceAttachments || workspace.dialogue?.status === "not_started");
+  const analyzedDocuments = new Set(workspace.dialogue?.entries?.filter(entry => entry.status === "processed").map(entry => entry.source_id));
 
   const setDraftPersist = (value: string) => {
     draftRevRef.current += 1;
@@ -265,7 +268,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
         </div>}
         {workspace.upload.documents.map(document => <div key={document.id} className="document-line">
           <span>{document.filename}</span>
-          {workspace.dialogue?.status === "not_started" && <button type="button" className="button button--small" disabled={Boolean(blocked) || workspace.send.sending} onClick={() => void workspace.analyzeDocument(document)}>Разобрать документ</button>}
+          {allowDocuments && !analyzedDocuments.has(document.id) && <button type="button" className="button button--small" disabled={Boolean(blocked) || workspace.send.sending} onClick={() => void workspace.analyzeDocument(document)}>Разобрать документ</button>}
         </div>)}
         {workspace.upload.uploading && <QuietStatus busy>Загрузка {workspace.upload.uploading}</QuietStatus>}
         {fileContext && <div className="document-line"><span>Вопрос о {fileContext.path} · версия {fileContext.version_number ?? fileContext.version_id}</span><button type="button" className="button button--small" onClick={onClearFile}>Убрать контекст файла</button></div>}
@@ -280,11 +283,11 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
           label="Сообщение агенту" placeholder={replyQuestion ? "Ваш ответ на выбранный вопрос…" : openQuestions.length > 0 ? "Ответьте на уточнение или добавьте правило…" : "Добавить правило или уточнение…"}
           blockedReason={blocked} busy={workspace.send.sending}
           reply={replyQuestion && capabilities.questionId ? { text: replyQuestion.text, onClear: () => onReply(null) } : null}
-          attach={capabilities.documents && workspace.dialogue?.status === "not_started" ? { busy: workspace.upload.uploading !== null, onFile: (file) => void workspace.uploadDocument(file) } : null}
+          attach={allowDocuments ? { busy: workspace.upload.uploading !== null, onFile: (file) => void workspace.uploadDocument(file) } : null}
           attachImage={images.upload}
-          footer={capabilities.images && <SessionImages api={api} sessionId={session.id} library={images}
+          footer={<>{repositoryAction}{capabilities.images && <SessionImages api={api} sessionId={session.id} library={images}
             blocked={Boolean(blocked) || workspace.send.sending || Boolean(fileContext) || history?.dialogue?.status === "limit_reached"}
-            onUse={(image, id) => void workspace.useImageAnalysis(image.id, id, `Изображение ${image.filename}`)} />} />
+            onUse={(image, id) => void workspace.useImageAnalysis(image.id, id, `Изображение ${image.filename}`)} />}</>} />
         {new URLSearchParams(window.location.search).get("scenario") === "order" && (
           <DemoAnswers onChoose={(text) => composerRef.current?.prefill(text)} />
         )}

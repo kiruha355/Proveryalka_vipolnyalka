@@ -76,6 +76,12 @@ const CODE_TEXT: Record<string, string> = {
   CHECK_FAILED: "Проверка завершилась сбоем сервера. Результата нет.",
   PENDING_MESSAGE: "Предыдущее сообщение не обработано. Повторите его, прежде чем писать новое.",
   CONTEXT_LIMIT: "Контекст диалога слишком велик для одного запуска агента.",
+  REPOSITORY_ACCESS_REQUIRED: "Проверьте адрес и ветку. Для приватного репозитория выберите подключение.",
+  REPOSITORY_ACCESS_DENIED: "Хостинг отказал в чтении репозитория. Проверьте права подключения.",
+  CREDENTIAL_INACTIVE: "Подключение отозвано или срок действия токена истёк.",
+  CONNECTION_KEY_REQUIRED: "Сервер ещё не настроен для хранения токенов.",
+  REPOSITORY_CONTEXT_LIMIT: "Сократите диапазоны или количество выбранных файлов.",
+  REPOSITORY_NO_CONTEXT: "В снимке нет подходящих фрагментов. Выберите диапазоны файлов вручную.",
   PROVIDER_TIMEOUT: "LLM-провайдер не ответил вовремя.",
   PROVIDER_RATE_LIMIT: "LLM-провайдер ограничил запросы: проверьте квоту.",
   PROVIDER_UNAVAILABLE: "LLM-провайдер недоступен.",
@@ -114,8 +120,8 @@ export function describeError(error: unknown): string {
     if (error.kind === "malformed") return `Сервер вернул ответ в неожиданном формате: ${error.message}`;
     if (error.kind === "unsupported") return error.message;
     if (requiresSignIn(error)) return CODE_TEXT[error.code ?? "AUTH_REQUIRED"] ?? CODE_TEXT.AUTH_REQUIRED!;
-    if (error.status === 403) return "Доступ отклонён сервером.";
     const known = describeCode(error.code);
+    if (error.status === 403) return known ?? "Доступ отклонён сервером.";
     const status = error.status ? `HTTP ${error.status}` : "HTTP";
     return known ? known : `${status}${error.code ? ` · ${error.code}` : ""}: ${error.message}`;
   }

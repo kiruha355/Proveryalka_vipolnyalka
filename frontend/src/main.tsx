@@ -6,6 +6,7 @@ import "@fontsource/golos-text/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "./styles/app.css";
+import "./styles/repositories.css";
 import { App } from "./App";
 import { registerCoreViews } from "./app/coreViews";
 import { loadExtensions } from "./extensions/load";

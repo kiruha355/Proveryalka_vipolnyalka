@@ -58,6 +58,32 @@ class RepositoryStore:
 
             return self.store._idempotent(connection, f"repository:import:{session_id}", key, request, action)
 
+    def read_file(self, session_id, snapshot_id, path):
+        with self.store.transaction() as connection:
+            self.store._session(connection, session_id)
+            snapshot = self._get(connection, session_id, snapshot_id)
+            item = next((file for file in snapshot["files"] if file["path"] == path), None)
+            row = connection.execute(
+                "SELECT content FROM repository_files WHERE snapshot_id=? AND path=?", (snapshot_id, path),
+            ).fetchone()
+            if item is None or row is None:
+                raise ServiceError(404, "NOT_FOUND", "Repository file not found in snapshot")
+            return snapshot, item, row["content"]
+
+    def latest_context(self, session_id, snapshot_id):
+        with self.store.transaction() as connection:
+            self.store._session(connection, session_id)
+            self._get(connection, session_id, snapshot_id)
+            row = connection.execute("""
+                SELECT c.source_id, c.selection_json, length(CAST(s.text AS BLOB)) AS size_bytes
+                FROM repository_source_contexts c JOIN sources s ON s.id=c.source_id AND s.session_id=c.session_id
+                WHERE c.session_id=? AND c.snapshot_id=? ORDER BY c.rowid DESC LIMIT 1
+            """, (session_id, snapshot_id)).fetchone()
+            if row is None:
+                return None
+            return {"source_id": row["source_id"], "size_bytes": row["size_bytes"],
+                    "ranges": json.loads(row["selection_json"])["files"]}
+
     def read_contents(self, session_id, snapshot_id):
         with self.store.transaction() as connection:
             snapshot = self._get(connection, session_id, snapshot_id)

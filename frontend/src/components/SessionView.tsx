@@ -19,6 +19,8 @@ import { ErrorNotice, QuietStatus } from "./Notice";
 import { PaneSeparator, usePaneWidth } from "./PaneSeparator";
 import { WorkspacePanel } from "./workspace/WorkspacePanel";
 import { ImageCitationProvider } from "./images/ImageCitation";
+import { RepositoryCitations } from "./repositories/RepositoryCitation";
+import { SessionRepositoryAction } from "./repositories/SessionRepositoryAction";
 
 interface Props {
   api: ProveryalkaApi;
@@ -319,6 +321,8 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
     <CoreContext.Provider value={core}>
       <WorkspaceContext.Provider value={context}>
         <ImageCitationProvider api={api} sessionId={sessionId} linkedIds={capabilities.images ? workspace.detail.data?.linked_source_ids : undefined}>
+        <RepositoryCitations api={capabilities.repositoryContent && capabilities.sourceProvenance ? api.repositories : undefined}
+          sessionId={sessionId} linkedSourceIds={workspace.detail.data?.linked_source_ids}>
         <div ref={chatPane.container} style={chatPane.style} className={`session session--${pane}`}>
           <div className="pane-switch" role="group" aria-label="Панель">
             <button type="button" aria-pressed={pane === "chat"} onClick={() => setPane("chat")}>Чат</button>
@@ -333,7 +337,9 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
               }
             }}>Модель и проверка</button>
           </div>
-          <ChatPanel fileContext={fileContext} onClearFile={()=>fileReply(null)} context={context} replyQuestionId={reply} onReply={setReply} composerRef={composer} />
+          <ChatPanel fileContext={fileContext} onClearFile={()=>fileReply(null)} context={context} replyQuestionId={reply} onReply={setReply} composerRef={composer}
+            repositoryAction={<SessionRepositoryAction api={api} capabilities={capabilities} sessionId={sessionId} snapshotId={route.snapshotId}
+              onSelect={snapshotId => go({ snapshotId })} workspace={workspace} />} />
           <PaneSeparator pane={chatPane} label="Ширина чата"/>
           <WorkspacePanel
             context={context}
@@ -345,6 +351,7 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
             fileOpenNotice={fileOpenNotice}
           />
         </div>
+        </RepositoryCitations>
         </ImageCitationProvider>
       </WorkspaceContext.Provider>
     </CoreContext.Provider>

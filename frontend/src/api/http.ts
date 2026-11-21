@@ -4,6 +4,7 @@ import {
   expect, expectList, isAgentRunTracePage, isDialogueView, isDocumentUpload, isArtifactEntry, isCheckRun, isModel, isModelVersion, isRun, isRunEvent, isSession, isSessionDetail,
 } from "./guards";
 import { readSse } from "./sse";
+import { gitConnectionsHttp, repositoryHttp } from "./repositories";
 import { isImageAnalysis, isImageAnalysisRecord, isImageProvenance, isImageSource, type ImageRegion } from "./images";
 import type { CheckRequest, ReadyInfo, RunEvent, SourceRef } from "./types";
 
@@ -54,6 +55,15 @@ export class HttpApi implements ProveryalkaApi {
   private csrfToken: string | null;
   private authEpoch = 0;
   private capabilitiesPromise: Promise<ApiCapabilities> | null = null;
+
+  readonly repositories = repositoryHttp((method, path, options) => this.request(method, path, options));
+  readonly gitConnections = gitConnectionsHttp(
+    (method, path, options) => this.request(method, path, options),
+    async (path, signal) => {
+      const response = await this.send("DELETE", path, { signal });
+      if (!response.ok) throw await errorFrom(response);
+    },
+  );
 
   constructor(baseUrl = "", fetcher?: FetchLike, account?: AccountTransport) {
     this.base = baseUrl.replace(/\/+$/, "");
@@ -399,6 +409,12 @@ export function detectCapabilities(doc: unknown): ApiCapabilities {
     dialogue: "/api/sessions/{session_id}/dialogue" in paths,
     explanations: "/api/checks/{run_id}/explanation" in paths,
     agentTrace: "/api/sessions/{session_id}/agent-runs" in paths,
+    repositories: "/api/sessions/{session_id}/repositories" in paths,
+    repositoryPlan: "/api/sessions/{session_id}/repositories/{snapshot_id}/selection" in paths,
+    repositoryContent: "/api/sessions/{session_id}/repositories/{snapshot_id}/files/content" in paths,
+    sourceProvenance: "/api/sessions/{session_id}/sources/{source_id}/provenance" in paths,
+    sourceAttachments: Boolean(schemas.MessageCreate?.properties && "base_version_id" in schemas.MessageCreate.properties),
+    gitConnections: "/api/connections" in paths,
     images: "/api/sessions/{session_id}/images/{source_id}/analyses/{analysis_id}/source" in paths &&
       "/api/sessions/{session_id}/sources/{source_id}/provenance" in paths,
   };

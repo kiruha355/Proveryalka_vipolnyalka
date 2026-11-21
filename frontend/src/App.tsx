@@ -13,6 +13,8 @@ import { ErrorNotice, QuietStatus } from "./components/Notice";
 import { SessionView } from "./components/SessionView";
 import { PaneSeparator, usePaneWidth } from "./components/PaneSeparator";
 import { Sidebar } from "./components/Sidebar";
+import { GitConnections } from "./components/repositories/GitConnections";
+import { RepositoryDialog } from "./components/repositories/RepositoryDialog";
 import { loadLastSession, loadPrefs, saveLastSession, savePrefs, type Prefs } from "./state/persist";
 import type { Loadable } from "./state/types";
 
@@ -172,6 +174,8 @@ function Workspace({ api, prefs, baseUrl, account, resume, ready, onConnection, 
     return () => query.removeEventListener("change", onChange);
   }, []);
   const sidebarOpen = narrow ? overlayOpen : prefs.sidebarOpen;
+  const [gitConnectionsOpen, setGitConnectionsOpen] = useState(false);
+  const [gitConnectionsBusy, setGitConnectionsBusy] = useState(false);
   const [capabilities, retryCapabilities] = useLoad<ApiCapabilities>((signal) => api.capabilities(signal), [api]);
   const [sessions, reloadSessions] = useLoad<Session[]>((signal) => api.listSessions(signal), [api, resume]);
 
@@ -242,7 +246,7 @@ function Workspace({ api, prefs, baseUrl, account, resume, ready, onConnection, 
   } else {
     main = (
       <NewChat key={api.id} api={api} capabilities={{...caps, agent: caps.agent && ready.data?.agent_configured !== false}}
-        onCreated={(session) => { saveLastSession(api, session.id); reloadSessions(); navigate({ sessionId: session.id }); }} />
+        onCreated={(session, snapshotId) => { saveLastSession(api, session.id); reloadSessions(); navigate({ sessionId: session.id, snapshotId }); }} />
     );
   }
 
@@ -252,9 +256,15 @@ function Workspace({ api, prefs, baseUrl, account, resume, ready, onConnection, 
         sessions={sessions} currentId={route.error ? null : route.sessionId} onRetry={reloadSessions}
         onSelect={(id) => { setOverlayOpen(false); navigate({ sessionId: id }); }}
         onNew={() => { setOverlayOpen(false); navigate({ sessionId: null }); }}
+        onGitConnections={caps?.gitConnections && api.gitConnections ? () => setGitConnectionsOpen(true) : undefined}
         connectionLabel={connectionLabel} connectionTone={tone} onConnection={onConnection} account={account} />
       {sidebarOpen && <PaneSeparator pane={sidebarPane} label="Ширина списка сессий"/>}
       <main className="main">{main}</main>
+      {gitConnectionsOpen && caps?.gitConnections && api.gitConnections && (
+        <RepositoryDialog title="Приватные подключения" busy={gitConnectionsBusy} onClose={() => setGitConnectionsOpen(false)}>
+          <GitConnections api={api.gitConnections} onBusy={setGitConnectionsBusy} />
+        </RepositoryDialog>
+      )}
     </div>
   );
 }

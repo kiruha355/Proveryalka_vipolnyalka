@@ -5,9 +5,13 @@ import { highlightSpans, indexRequirements, refMatches } from "../../domain/requ
 import { describeError } from "../../api/errors";
 import { ImageQuote, ImageSourceLink } from "../images/ImageCitation";
 
+import { RepositoryQuote, repositoryCommit } from "../repositories/RepositoryCitation";
+
 export function sourceLabel(source: Source, index: number, documents: { id: string; filename: string }[]): string {
   const document = documents.find((d) => d.id === source.id);
   if (document) return `Документ ${document.filename}`;
+  const commit = repositoryCommit(source.text);
+  if (commit) return `Репозиторий · ${commit.slice(0, 12)}`;
   if (source.id.startsWith("answer_")) return "Ответ на уточнение";
   return index === 0 ? "Описание пользователя" : "Сообщение пользователя";
 }
@@ -111,7 +115,7 @@ export function RequirementsView({ context }: WorkspaceViewProps) {
                       const ok = source ? refMatches(source, ref) : false;
                       return (
                         <li key={`${ref.source_id}:${ref.start}`}>
-                          <ImageQuote citation={ref} />
+                          <ImageQuote citation={ref} fallback={<RepositoryQuote citation={ref} source={source} />} />
                           {!ok && <span className="warn-text small"> цитата не совпадает с источником</span>}
                         </li>
                       );

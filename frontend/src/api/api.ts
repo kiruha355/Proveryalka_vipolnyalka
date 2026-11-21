@@ -3,6 +3,8 @@ import type {
 } from "./types";
 import type { ImageAnalysis, ImageAnalysisRecord, ImageProvenance, ImageRegion, ImageSource } from "./images";
 
+import type { GitConnectionsApi, RepositoryApi } from "./repositories";
+
 export interface ApiCapabilities {
   /** "demo" data comes from recorded fixtures; never a live LLM or TLC. */
   adapter: "http" | "demo";
@@ -23,6 +25,12 @@ export interface ApiCapabilities {
   fileDialogue?: boolean;
   agentTrace?: boolean;
   images?: boolean;
+  repositories?: boolean;
+  repositoryPlan?: boolean;
+  repositoryContent?: boolean;
+  sourceProvenance?: boolean;
+  sourceAttachments?: boolean;
+  gitConnections?: boolean;
 }
 
 export const DOCUMENT_TYPES = [".txt", ".md", ".markdown", ".docx"] as const;
@@ -45,6 +53,8 @@ export interface ProveryalkaApi {
   readonly id: string;
   /** Server account owning the workspace. Local and demo clients are anonymous. */
   readonly ownerId?: string;
+  readonly repositories?: RepositoryApi;
+  readonly gitConnections?: GitConnectionsApi;
   capabilities(signal?: AbortSignal): Promise<ApiCapabilities>;
   ready(signal?: AbortSignal): Promise<ReadyInfo>;
 

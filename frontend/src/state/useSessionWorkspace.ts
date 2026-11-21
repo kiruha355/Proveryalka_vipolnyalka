@@ -225,6 +225,7 @@ export interface SessionWorkspace {
   dialogue: DialogueView | null;
   discardPending(): Promise<void>;
   analyzeDocument(document: DocumentSource): Promise<boolean>;
+  registerAgentRun(run: Run, text: string): void;
   useImageAnalysis(sourceId: string, analysisId: string, label: string): Promise<boolean>;
   retryExplanation(runId: string): Promise<void>;
   history: ParsedHistory | null;
@@ -557,6 +558,19 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
 
   // ---- sending
 
+  const registerAgentRun = useCallback((run: Run, text: string, questionId: string | null = null, clearOutbox = false) => {
+    if (root.current.signal.aborted) return;
+    const record: AgentRunRecord = { runId: run.run_id, text, questionId, startedAt: new Date().toISOString() };
+    updateLocal(api, sessionId, (local) => ({
+      ...local,
+      outbox: clearOutbox ? null : local.outbox,
+      agentRuns: local.agentRuns.some(r => r.runId === run.run_id) ? local.agentRuns : [...local.agentRuns, record],
+    }));
+    dispatch({ type: "agent/add", view: { ...agentView(record, sessionId), run } });
+    if (isTerminal(run.state)) void refreshRun(run.run_id, "agent");
+    track("agent", run.run_id);
+  }, [api, refreshRun, sessionId, track]);
+
   const dispatchSend = useCallback(async (outbox: Outbox): Promise<boolean> => {
     if (sendingRef.current) return false;
     sendingRef.current = true;
@@ -576,18 +590,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
           : await api.sendMessage(sessionId, body, outbox.key, signal);
       }
       if (root.current.signal.aborted) return false;
-      const record: AgentRunRecord = { runId: run.run_id, text: outbox.text, questionId: outbox.questionId, startedAt: new Date().toISOString() };
-      updateLocal(api, sessionId, (local) => ({
-        ...local,
-        outbox: null,
-        agentRuns: local.agentRuns.some((r) => r.runId === run.run_id) ? local.agentRuns : [...local.agentRuns, record],
-      }));
-      dispatch({ type: "agent/add", view: { ...agentView(record, sessionId), run } });
-      if (isTerminal(run.state)) {
-        // A replayed key can return a run that already finished; read its events once.
-        void refreshRun(run.run_id, "agent");
-      }
-      track("agent", run.run_id);
+      registerAgentRun(run, outbox.text, outbox.questionId, true);
       setSend({ sending: false, outbox: null, error: null });
       return true;
     } catch (error) {
@@ -600,7 +603,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
     } finally {
       sendingRef.current = false;
     }
-  }, [api, refreshRun, sessionId, track]);
+  }, [api, registerAgentRun, sessionId]);
 
   const sendMessage = useCallback((text: string, questionId: string | null, fileContext: FileContextRef | null = null) => {
     const current = send.outbox;
@@ -783,7 +786,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
 
   return {
     detail, dialogue, discardPending, analyzeDocument, useImageAnalysis, retryExplanation, history, models, versions, agentRuns, agentTraceHistory, loadOlderAgentRuns, reloadAgentRuns, activeAgentRun, lastAgentRun, checks,
-    send, sendMessage, retryOutbox, discardOutbox, retryPending, cancelAgent,
+    send, sendMessage, retryOutbox, discardOutbox, retryPending, cancelAgent, registerAgentRun,
     checkStart, startCheck, cancelCheck, fetchCheck, ensureCheck, reconnect, approve, approveError,
     reloadDetail, reloadModels, loadArtifacts, upload, uploadDocument,
   };
