@@ -78,3 +78,31 @@ it("shared OpenAPI discovery survives the first StrictMode consumer abort",async
  expect((await two).agent).toBe(true);expect(await one).toEqual(await two);
  expect(fetcher.mock.calls[0]![1]?.signal).toBeUndefined();
 });
+
+it.each([
+  ["REST", 401, "AUTH_REQUIRED"],
+  ["SSE", 401, "AUTH_REQUIRED"],
+  ["download", 403, "CSRF_INVALID"],
+] as const)("reports %s authentication failures through the same transport", async (route, status, code) => {
+  const missing = vi.fn();
+  const fetcher = vi.fn<typeof fetch>(async () => json({ error: { code, message: code } }, status));
+  const api = new HttpApi("", fetcher, { ownerId: "u", csrfToken: "secret", onAuthError: missing });
+  const signal = new AbortController().signal;
+  const operation = route === "REST" ? api.cancelRun("r") : route === "SSE" ? api.streamEvents("r", 1, signal)[Symbol.asyncIterator]().next()
+    : api.downloadArtifact("r", "folder/file.log");
+  await expect(operation).rejects.toMatchObject({ status, code });
+  expect(missing).toHaveBeenCalledOnce();
+  const init = fetcher.mock.calls[0]![1]!;
+  expect(init.credentials).toBe("include");
+  expect(new Headers(init.headers).get("X-CSRF-Token")).toBe(route === "REST" ? "secret" : null);
+  await expect(api.listSessions()).rejects.toMatchObject({ code: "AUTH_REQUIRED" });
+  expect(fetcher).toHaveBeenCalledOnce();
+});
+
+it("keeps a resource-level 403 distinct from an invalid CSRF token", async () => {
+  const missing = vi.fn();
+  const fetcher = vi.fn<typeof fetch>(async () => json({ error: { code: "FORBIDDEN", message: "Forbidden" } }, 403));
+  const api = new HttpApi("", fetcher, { ownerId: "u", csrfToken: "secret", onAuthError: missing });
+  await expect(api.listSessions()).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
+  expect(missing).not.toHaveBeenCalled();
+});

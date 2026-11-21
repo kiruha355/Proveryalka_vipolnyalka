@@ -28,8 +28,17 @@ export function isAbort(error: unknown): boolean {
     || (error instanceof DOMException && error.name === "AbortError");
 }
 
+export function requiresSignIn(error: unknown): boolean {
+  return error instanceof ApiError && (
+    (error.status === 401 && error.code !== "INVALID_CREDENTIALS")
+    || (error.status === 403 && error.code === "CSRF_INVALID")
+  );
+}
+
 // User-facing text for backend error codes. Messages name the next action.
 const CODE_TEXT: Record<string, string> = {
+  AUTH_REQUIRED: "Сессия истекла. Повторите действие после входа.",
+  CSRF_INVALID: "Не удалось подтвердить запрос. Повторите действие после входа.",
   NOT_FOUND: "Объект не найден на сервере.",
   SOURCE_NOT_FOUND: "Источник модели не найден в этой сессии.",
   INVALID_CHECK: "Выберите существующие свойства и допустимые лимиты.",
@@ -75,6 +84,8 @@ export function describeError(error: unknown): string {
     if (error.kind === "network") return "Нет связи с сервером. Проверьте, что API запущен, и повторите.";
     if (error.kind === "malformed") return `Сервер вернул ответ в неожиданном формате: ${error.message}`;
     if (error.kind === "unsupported") return error.message;
+    if (requiresSignIn(error)) return CODE_TEXT[error.code ?? "AUTH_REQUIRED"] ?? CODE_TEXT.AUTH_REQUIRED!;
+    if (error.status === 403) return "Доступ отклонён сервером.";
     const known = describeCode(error.code);
     const status = error.status ? `HTTP ${error.status}` : "HTTP";
     return known ? known : `${status}${error.code ? ` · ${error.code}` : ""}: ${error.message}`;

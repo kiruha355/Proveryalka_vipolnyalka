@@ -81,7 +81,7 @@ export {
   ApiError,
   describeApiError,
 } from "./api/http";
-export type { ModelVersionsPort } from "./api/http";
+export type { HttpOptions, ModelVersionsPort } from "./api/http";
 
 // #49 файлы проекта
 export type * from "./files/contract";

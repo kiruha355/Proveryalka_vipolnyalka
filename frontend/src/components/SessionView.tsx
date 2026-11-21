@@ -22,6 +22,7 @@ interface Props {
   api: ProveryalkaApi;
   capabilities: ApiCapabilities;
   sessionId: string;
+  resume?: number;
   listed: Session | undefined;
   route: Route;
   navigate(route: Route, options?: { replace?: boolean }): void;
@@ -47,7 +48,7 @@ export function resolveTrace(version: ModelVersion | null, checks: WorkspaceCont
   return { check, result, property, role, steps, step, focus };
 }
 
-export function SessionView({ api, capabilities, sessionId, listed, route, navigate }: Props) {
+export function SessionView({ api, capabilities, sessionId, resume, listed, route, navigate }: Props) {
   const chatPane = usePaneWidth("proveryalka:chat-width", .36, 250, 390, .65);
   const lifetime = useRef(new AbortController());
   useEffect(() => {const controller = new AbortController(); lifetime.current = controller; return () => controller.abort();}, []);
@@ -55,12 +56,12 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   routeRef.current = route;
   const [pane, setPane] = useState<"chat" | "workspace">("chat");
   const [element, setElement] = useState<ElementRef | null>(null);
-  const [fileContext, setFileContext] = useState<FileContextRef | null>(()=>loadLocal(api.id,sessionId).draftFileContext ?? null);
-  const fileReply = (ref: FileContextRef | null) => {setFileContext(ref); updateLocal(api.id, sessionId, local=>({...local,draftFileContext:ref}));};
-  const [reply, setReplyState] = useState<string | null>(()=>loadLocal(api.id,sessionId).draftQuestionId ?? null);
+  const [fileContext, setFileContext] = useState<FileContextRef | null>(()=>loadLocal(api,sessionId).draftFileContext ?? null);
+  const fileReply = (ref: FileContextRef | null) => {setFileContext(ref); updateLocal(api, sessionId, local=>({...local,draftFileContext:ref}));};
+  const [reply, setReplyState] = useState<string | null>(()=>loadLocal(api,sessionId).draftQuestionId ?? null);
   const setReply = (questionId: string | null) => {
     setReplyState(questionId);
-    updateLocal(api.id,sessionId,local=>({...local,draftQuestionId:questionId}));
+    updateLocal(api,sessionId,local=>({...local,draftQuestionId:questionId}));
     if (questionId) fileReply(null);
   };
   const [selectedByVersion, setSelectedByVersion] = useState<Record<string, string[]>>({});
@@ -72,7 +73,7 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   }, [navigate, sessionId]);
 
   const workspace = useSessionWorkspace({
-    api, capabilities, sessionId,
+    api, capabilities, sessionId, resume,
     onModelProposed: (proposal) => { setElement(null); go({ modelId: proposal.model_id, version: proposal.number, check: undefined, property: undefined, step: undefined }); },
   });
 

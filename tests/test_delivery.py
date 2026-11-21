@@ -35,10 +35,11 @@ def test_static_build_api_and_readiness_are_one_origin(tmp_path, built_ui):
     app = create_deployment(settings, built_ui, checker=ReadyChecker())
     with TestClient(app) as client:
         assert client.get("/").text.startswith("<html>")
+        assert client.get("/reset-password").text == client.get("/").text
         assert client.get("/assets/app.js").status_code == 200
         assert client.get("/api/sessions").json() == []
         assert client.get("/ready").status_code == 200
-        for path in ("/.env", "/data/db", "/%2e%2e/db", "/api/unknown"):
+        for path in ("/.env", "/data/db", "/%2e%2e/db", "/api/unknown", "/reset-password/unknown"):
             assert client.get(path).status_code == 404
         (built_ui / "assets/app.js").unlink()
         assert client.get("/ready").status_code == 503

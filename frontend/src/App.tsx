@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import type { ApiCapabilities, ProveryalkaApi } from "./api/api";
 import { DemoApi } from "./api/demo";
 import { isAbort } from "./api/errors";
 import { HttpApi } from "./api/http";
 import type { ReadyInfo, Session } from "./api/types";
 import { configureFilesForAdapter } from "./extensions/load";
+import { AuthGate, type WorkspaceAccount } from "./app/AuthGate";
 import { useRoute } from "./app/route";
 import { ConnectionDialog } from "./components/ConnectionDialog";
 import { NewChat } from "./components/NewChat";
@@ -12,13 +13,12 @@ import { ErrorNotice, QuietStatus } from "./components/Notice";
 import { SessionView } from "./components/SessionView";
 import { PaneSeparator, usePaneWidth } from "./components/PaneSeparator";
 import { Sidebar } from "./components/Sidebar";
-import { loadPrefs, savePrefs, type Prefs } from "./state/persist";
+import { loadLastSession, loadPrefs, saveLastSession, savePrefs, type Prefs } from "./state/persist";
 import type { Loadable } from "./state/types";
 
 const DEFAULT_PREFS: Prefs = {
   adapter: import.meta.env.VITE_PROVERYALKA_ADAPTER === "demo" ? "demo" : "http",
   baseUrl: import.meta.env.VITE_API_BASE_URL ?? "",
-  lastSession: {},
   sidebarOpen: true,
 };
 
@@ -37,14 +37,84 @@ function useLoad<T>(load: (signal: AbortSignal) => Promise<T>, deps: unknown[]):
   return [state, useCallback(() => setTick((t) => t + 1), [])];
 }
 
+function readRecovery() {
+  const { hash, pathname } = window.location;
+  if (pathname !== "/reset-password" && !hash.startsWith("#token=")) return null;
+  const token = new URLSearchParams(hash.slice(1)).get("token");
+  return { token: token && token.length >= 32 && token.length <= 128 ? token : null };
+}
+
 export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
-  const sidebarPane = usePaneWidth("proveryalka:sidebar-width", .18, 170, 660, .32);
-  const [prefs, setPrefs] = useState<Prefs>(() => loadPrefs(DEFAULT_PREFS));
-  const api = useMemo<ProveryalkaApi>(
-    () => initialApi ?? (prefs.adapter === "demo" ? new DemoApi() : new HttpApi(prefs.baseUrl)),
-    [initialApi, prefs.adapter, prefs.baseUrl],
+  const [recovery, setRecovery] = useState(readRecovery);
+  const [prefs, setPrefs] = useState<Prefs>(() => {
+    const saved = loadPrefs(DEFAULT_PREFS);
+    return recovery ? { ...saved, adapter: "http", baseUrl: "" } : saved;
+  });
+  const transport = useMemo(
+    () => prefs.adapter === "http" ? new HttpApi(prefs.baseUrl) : new DemoApi(),
+    [prefs.adapter, prefs.baseUrl],
   );
-  useEffect(() => { configureFilesForAdapter(api.id === "demo" ? "demo" : "http", prefs.baseUrl); }, [api, prefs.baseUrl]);
+  const api = initialApi ?? transport;
+  const [connectionOpen, setConnectionOpen] = useState(false);
+  const [ready, recheckReady] = useLoad<ReadyInfo>((signal) => api.ready(signal), [api]);
+
+  useLayoutEffect(() => {
+    if (recovery) {
+      window.history.replaceState(null, "", "/" + window.location.search);
+      savePrefs(prefs);
+      setRecovery(null);
+    }
+  }, [recovery, prefs]);
+
+  const update = (patch: Partial<Prefs>) => setPrefs((p) => {
+    const next = { ...p, ...patch };
+    savePrefs(next);
+    return next;
+  });
+  const openConnection = useCallback(() => setConnectionOpen(true), []);
+  const closeConnection = useCallback(() => setConnectionOpen(false), []);
+  const applyConnection = (adapter: Prefs["adapter"], baseUrl: string) => {
+    setConnectionOpen(false);
+    if (adapter === prefs.adapter && baseUrl === prefs.baseUrl) return;
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    update({ adapter, baseUrl });
+  };
+  const renderWorkspace = (workspace: ProveryalkaApi, account?: WorkspaceAccount, resume = 0) => (
+    <Workspace key={JSON.stringify([workspace.ownerId, workspace.id])} api={workspace} prefs={prefs}
+      account={account} resume={resume} ready={ready} onConnection={openConnection}
+      onToggleSidebar={() => update({ sidebarOpen: !prefs.sidebarOpen })} />
+  );
+
+  return <>
+    {!initialApi && transport instanceof HttpApi ? (
+      <AuthGate key={prefs.baseUrl} transport={transport} baseUrl={prefs.baseUrl} recovery={recovery}
+        onDemo={() => applyConnection("demo", prefs.baseUrl)} onConnection={openConnection}>
+        {renderWorkspace}
+      </AuthGate>
+    ) : renderWorkspace(api)}
+    {connectionOpen && (
+      <ConnectionDialog adapter={prefs.adapter} baseUrl={prefs.baseUrl} ready={ready} onCheckReady={recheckReady}
+        onClose={closeConnection} onApply={applyConnection} />
+    )}
+  </>;
+}
+
+interface WorkspaceProps {
+  api: ProveryalkaApi;
+  prefs: Prefs;
+  account?: WorkspaceAccount;
+  resume: number;
+  ready: Loadable<ReadyInfo>;
+  onConnection(): void;
+  onToggleSidebar(): void;
+}
+
+function Workspace({ api, prefs, account, resume, ready, onConnection, onToggleSidebar }: WorkspaceProps) {
+  const sidebarPane = usePaneWidth("proveryalka:sidebar-width", .18, 170, 660, .32);
+  useLayoutEffect(() => {
+    configureFilesForAdapter(api.id === "demo" ? "demo" : "http", prefs.baseUrl, api instanceof HttpApi ? api.fetchWithSession : undefined);
+    return () => configureFilesForAdapter("demo");
+  }, [api, prefs.baseUrl]);
   const [route, navigate] = useRoute();
   // On narrow screens the session list is an overlay: closed by default, closed after a choice.
   const [narrow, setNarrow] = useState(() => window.matchMedia?.("(max-width: 900px)").matches ?? false);
@@ -57,30 +127,19 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
     return () => query.removeEventListener("change", onChange);
   }, []);
   const sidebarOpen = narrow ? overlayOpen : prefs.sidebarOpen;
-  const [connectionOpen, setConnectionOpen] = useState(false);
   const [capabilities, retryCapabilities] = useLoad<ApiCapabilities>((signal) => api.capabilities(signal), [api]);
-  const [sessions, reloadSessions] = useLoad<Session[]>((signal) => api.listSessions(signal), [api]);
-  const [ready, recheckReady] = useLoad<ReadyInfo>((signal) => api.ready(signal), [api]);
+  const [sessions, reloadSessions] = useLoad<Session[]>((signal) => api.listSessions(signal), [api, resume]);
 
-  const update = (patch: Partial<Prefs>) => setPrefs((p) => {
-    const next = { ...p, ...patch };
-    savePrefs(next);
-    return next;
-  });
-
-  // Reopen the last session of this adapter when the URL names none.
+  // Reopen only this owner's last session when there is no explicit route.
   useEffect(() => {
     if (window.location.hash) return;
-    const last = prefs.lastSession[api.id];
-    if (last) navigate({ sessionId: last }, { replace: true });
-    else navigate({ sessionId: null }, { replace: true });
-  }, [api.id]);
+    navigate({ sessionId: loadLastSession(api) }, { replace: true });
+  }, [api, navigate]);
 
+  const knownSession = sessions.data?.some((session) => session.id === route.sessionId);
   useEffect(() => {
-    if (route.sessionId && prefs.lastSession[api.id] !== route.sessionId) {
-      update({ lastSession: { ...prefs.lastSession, [api.id]: route.sessionId } });
-    }
-  }, [route.sessionId, api.id]);
+    if (route.sessionId && (knownSession || !api.ownerId)) saveLastSession(api, route.sessionId);
+  }, [route.sessionId, api, knownSession]);
 
   const caps = capabilities.data;
   const tone = prefs.adapter === "demo" ? "demo" : capabilities.error !== null ? "error" : caps ? "ok" : "pending";
@@ -97,7 +156,7 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
             action={
               <>
                 <button type="button" className="button button--small" onClick={() => { retryCapabilities(); reloadSessions(); }}>Повторить</button>
-                <button type="button" className="button button--small button--ghost" onClick={() => setConnectionOpen(true)}>Подключение</button>
+                <button type="button" className="button button--small button--ghost" onClick={onConnection}>Подключение</button>
               </>
             } />
         ) : <QuietStatus busy>Подключение к серверу</QuietStatus>}
@@ -105,34 +164,25 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
     );
   } else if (route.sessionId) {
     main = (
-      <SessionView key={`${api.id}:${route.sessionId}`} api={api} capabilities={{...caps, agent: caps.agent && ready.data?.agent_configured !== false}} sessionId={route.sessionId}
+      <SessionView key={`${api.id}:${route.sessionId}`} api={api} capabilities={{...caps, agent: caps.agent && ready.data?.agent_configured !== false}} sessionId={route.sessionId} resume={resume}
         listed={sessions.data?.find((s) => s.id === route.sessionId)} route={route} navigate={navigate} />
     );
   } else {
     main = (
       <NewChat key={api.id} api={api} capabilities={{...caps, agent: caps.agent && ready.data?.agent_configured !== false}}
-        onCreated={(session) => { reloadSessions(); navigate({ sessionId: session.id }); }} />
+        onCreated={(session) => { saveLastSession(api, session.id); reloadSessions(); navigate({ sessionId: session.id }); }} />
     );
   }
 
   return (
     <div ref={sidebarPane.container} style={sidebarPane.style} className={`app${sidebarOpen ? " app--sidebar" : ""}${prefs.adapter === "demo" ? " app--demo" : ""}`}>
-      <Sidebar open={sidebarOpen} onToggle={() => (narrow ? setOverlayOpen((v) => !v) : update({ sidebarOpen: !prefs.sidebarOpen }))}
+      <Sidebar open={sidebarOpen} onToggle={() => (narrow ? setOverlayOpen((v) => !v) : onToggleSidebar())}
         sessions={sessions} currentId={route.sessionId} onRetry={reloadSessions}
         onSelect={(id) => { setOverlayOpen(false); navigate({ sessionId: id }); }}
         onNew={() => { setOverlayOpen(false); navigate({ sessionId: null }); }}
-        connectionLabel={connectionLabel} connectionTone={tone} onConnection={() => setConnectionOpen(true)} />
+        connectionLabel={connectionLabel} connectionTone={tone} onConnection={onConnection} account={account} />
       {sidebarOpen && <PaneSeparator pane={sidebarPane} label="Ширина списка сессий"/>}
       <main className="main">{main}</main>
-      {connectionOpen && (
-        <ConnectionDialog adapter={prefs.adapter} baseUrl={prefs.baseUrl} ready={ready} onCheckReady={recheckReady}
-          onClose={() => setConnectionOpen(false)}
-          onApply={(adapter, baseUrl) => {
-            setConnectionOpen(false);
-            update({ adapter, baseUrl });
-            navigate({ sessionId: prefs.lastSession[adapter === "demo" ? "demo" : `http:${baseUrl.replace(/\/+$/, "") || "same-origin"}`] ?? null }, { replace: true });
-          }} />
-      )}
     </div>
   );
 }
