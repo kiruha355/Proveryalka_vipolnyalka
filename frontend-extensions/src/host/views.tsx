@@ -166,6 +166,9 @@ export function DiagramView({ context }: HostViewProps) {
   );
 
   const port = useMemo(() => hostVersionsPort(context), [context]);
+  const draftStorageKey = version
+    ? JSON.stringify([context.api.id, context.session?.id ?? version.session_id, version.id, version.spec_hash])
+    : null;
   if (!version) return null;
   return (
     <StateGraphWorkspace
@@ -178,6 +181,7 @@ export function DiagramView({ context }: HostViewProps) {
         latest && context.focusTrace({ checkRunId: latest.runId, propertyId })
       }
       versionsPort={port}
+      draftStorageKey={draftStorageKey}
       readOnlyReason="Создание версий не подключено в этом клиенте"
       onVersionCreated={(created) => {
         // context.createVersion обновляет список и выбирает версию сам; api.createVersion — нет.

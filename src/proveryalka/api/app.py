@@ -233,6 +233,10 @@ def create_app(
     def approve_version(model_id: str, number: int):
         return adapter.call("approve_version", model_id=model_id, number=number)
 
+    @app.get("/api/models/{model_id}/versions/{number}/checks", response_model=list[Run], responses=errors)
+    def list_checks(model_id: str, number: int):
+        return adapter.call("list_checks", model_id=model_id, number=number)
+
     @app.post("/api/models/{model_id}/versions/{number}/checks", response_model=Run, status_code=202, responses=errors)
     def create_check(model_id: str, number: int, body: CheckRequest,
                      idempotency_key: str = Header(min_length=1, max_length=128)):

@@ -93,3 +93,34 @@ def test_restart_marks_unfinished_work_failed(prepared):
     with TestClient(create_app(settings,checker=FakeChecker())) as client:
         assert client.get(f'/api/runs/{run["run_id"]}').json()["state"] == "failed"
         assert client.get(f'/api/checks/{run["run_id"]}').json()["results"] == []
+
+
+def test_list_version_checks_chronological_and_404(prepared):
+    settings, store, model, first = prepared
+    second = store.create_version(model["id"], {"spec": {**first["spec"], "name": "Second"}}, "second")
+    with TestClient(create_app(settings, checker=FakeChecker())) as client:
+        assert client.get(f'/api/models/{model["id"]}/versions/1/checks').json() == []
+        assert client.get(f'/api/models/{model["id"]}/versions/99/checks').status_code == 404
+        assert client.get('/api/models/missing/versions/1/checks').status_code == 404
+
+        first_run = client.post(
+            f'/api/models/{model["id"]}/versions/1/checks', json={}, headers={"Idempotency-Key": "c1"},
+        ).json()["run_id"]
+        second_run = client.post(
+            f'/api/models/{model["id"]}/versions/1/checks', json={}, headers={"Idempotency-Key": "c2"},
+        ).json()["run_id"]
+        other_run = client.post(
+            f'/api/models/{model["id"]}/versions/2/checks', json={}, headers={"Idempotency-Key": "c3"},
+        ).json()["run_id"]
+        for run_id in (first_run, second_run, other_run):
+            wait_run(client, run_id)
+
+        v1_checks = client.get(f'/api/models/{model["id"]}/versions/1/checks')
+        assert v1_checks.status_code == 200
+        assert [item["run_id"] for item in v1_checks.json()] == [first_run, second_run]
+        assert all(item["version_id"] == first["id"] and item["state"] == "completed" for item in v1_checks.json())
+
+        v2_checks = client.get(f'/api/models/{model["id"]}/versions/2/checks')
+        assert v2_checks.status_code == 200
+        assert [item["run_id"] for item in v2_checks.json()] == [other_run]
+        assert v2_checks.json()[0]["version_id"] == second["id"]

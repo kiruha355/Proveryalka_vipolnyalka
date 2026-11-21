@@ -36,7 +36,7 @@ export interface HostTraceTarget {
 
 export interface HostCheckRunView {
   runId: string;
-  versionId: string;
+  versionId: string | null;
   results: VerificationResult[] | null;
 }
 
@@ -66,6 +66,7 @@ export interface HostApi {
 export interface HostWorkspaceContext {
   api: HostApi;
   capabilities: HostCapabilities;
+  session?: { id: string };
   versions: HostModelVersion[];
   version: HostModelVersion | null;
   checks: HostCheckRunView[];

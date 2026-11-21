@@ -1116,6 +1116,38 @@ span.pv-req-code {
   }
 }
 
+@media (max-width: 640px) {
+  .pv-workspace.is-editing-transition .pv-stage-area {
+    display: none;
+  }
+
+  .pv-workspace.is-editing-transition .pv-inspector.is-editor {
+    flex: 1 1 auto;
+    max-height: none;
+  }
+
+  .pv-effect-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  .pv-assign {
+    display: none;
+  }
+
+  .pv-editor .pv-toggle-list {
+    max-height: 5rem;
+    overflow-y: auto;
+  }
+
+  .pv-editor .pv-form__actions {
+    position: sticky;
+    bottom: 0;
+    padding-block: 6px;
+    background: var(--pv-surface);
+    flex-wrap: wrap;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pv-root * {
     transition: none !important;

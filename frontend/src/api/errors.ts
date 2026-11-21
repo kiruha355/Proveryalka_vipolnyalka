@@ -1,3 +1,5 @@
+import { DOCUMENT_TYPES } from "./api";
+
 export type ApiErrorKind = "network" | "http" | "malformed" | "aborted" | "unsupported";
 
 export class ApiError extends Error {
@@ -63,7 +65,23 @@ const CODE_TEXT: Record<string, string> = {
   TURN_LIMIT: "Агент превысил лимит шагов.",
   INVALID_CHECKER_RESULT: "Результат проверки не совпал с моделью.",
   DEMO_NOT_RECORDED: "Для этих лимитов нет записанного результата: демо-режим не запускает TLC.",
+  UNSUPPORTED_DOCUMENT: "Этот формат файла не поддерживается. Выберите файл TXT, MD или DOCX.",
+  DOCUMENT_TOO_LARGE: "Файл слишком большой для загрузки.",
+  DOCUMENT_EMPTY: "Файл пустой или не содержит текста.",
+  DOCUMENT_ENCODING: "Текстовый файл должен быть в кодировке UTF-8.",
+  DOCUMENT_INVALID: "Не удалось прочитать содержимое файла. Проверьте, что файл не повреждён.",
 };
+
+export function validateDocumentFile(file: File): ApiError | null {
+  const name = file.name.trim();
+  const dot = name.lastIndexOf(".");
+  const suffix = dot > 0 ? name.slice(dot).toLowerCase() : "";
+  if (DOCUMENT_TYPES.some((type) => type === suffix)) return null;
+  const message = /^\.[a-z0-9]+$/.test(suffix)
+    ? `Формат ${suffix.slice(1).toUpperCase()} не поддерживается. Выберите файл TXT, MD или DOCX.`
+    : CODE_TEXT.UNSUPPORTED_DOCUMENT!;
+  return new ApiError("unsupported", message, { status: 415, code: "UNSUPPORTED_DOCUMENT" });
+}
 
 export function describeCode(code: string | null | undefined): string | null {
   if (!code) return null;

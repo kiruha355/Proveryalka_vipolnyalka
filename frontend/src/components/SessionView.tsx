@@ -5,6 +5,7 @@ import { DEFAULT_LIMITS } from "../api/types";
 import {loadLocal, updateLocal} from "../state/persist";
 import {focusGeneratedFile} from "../extensions/load";
 import { CoreContext, type CoreActions } from "../app/core";
+import { workspaceViews } from "../app/extensions";
 import type { Route } from "../app/route";
 import { WorkspaceContext, type ElementRef, type TraceFocus, type WorkspaceContextValue } from "../app/workspace";
 import { indexRequirements } from "../domain/requirements";
@@ -53,7 +54,7 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   useEffect(() => {const controller = new AbortController(); lifetime.current = controller; return () => controller.abort();}, []);
   const routeRef = useRef(route);
   routeRef.current = route;
-  const [pane, setPane] = useState<"chat" | "workspace">("chat");
+  const [pane, setPane] = useState<"chat" | "workspace">(() => route.view || route.check ? "workspace" : "chat");
   const [element, setElement] = useState<ElementRef | null>(null);
   const [fileContext, setFileContext] = useState<FileContextRef | null>(()=>loadLocal(api.id,sessionId).draftFileContext ?? null);
   const fileReply = (ref: FileContextRef | null) => {setFileContext(ref); updateLocal(api.id, sessionId, local=>({...local,draftFileContext:ref}));};
@@ -77,10 +78,17 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   });
 
   const groups = workspace.models.data ?? [];
-  const routed = route.modelId && route.version !== undefined
+  const explicitVersion = route.modelId && route.version !== undefined;
+  const routed = explicitVersion
     ? workspace.versions.find((v) => v.model_id === route.modelId && v.number === route.version)
     : undefined;
-  const version = routed ?? defaultVersion(groups);
+  const linkedCheck = workspace.checks.find((check) => check.runId === route.check);
+  const version = route.check && explicitVersion
+    ? routed ?? null
+    : routed ?? workspace.versions.find((v) => v.id === linkedCheck?.versionId) ?? defaultVersion(groups);
+  useEffect(() => {
+    if (route.check) workspace.ensureCheck(route.check);
+  }, [route.check, workspace.ensureCheck]);
   const session: Session | undefined = workspace.detail.data ?? listed;
   const checks = useMemo(() => (version ? workspace.checks.filter((c) => c.versionId === version.id) : []), [version, workspace.checks]);
   const trace = resolveTrace(version, checks, route);
@@ -100,14 +108,17 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
       selection: {
         versionId: version?.id ?? null,
         element,
-        trace: trace ? { checkRunId: trace.check.runId, propertyId: trace.result.property_id, step: trace.step } : (route.check && route.property ? { checkRunId: route.check, propertyId: route.property, step: route.step ?? 0 } : null),
+        trace: trace ? { checkRunId: trace.check.runId, propertyId: trace.result.property_id, step: trace.step } : (route.check ? { checkRunId: route.check, propertyId: route.property ?? "", step: route.step ?? 0 } : null),
       },
       select: (next) => {
         setElement(next);
         if (next) setPane("workspace");
       },
       focusTrace: (target) => {
-        if (!target) go({ check: undefined, property: undefined, step: undefined });
+        if (!target) go({
+          view: routeRef.current.view ?? (routeRef.current.check ? "check" : undefined),
+          check: undefined, property: undefined, step: undefined,
+        });
         else go({ check: target.checkRunId, property: target.propertyId || undefined, step: target.step });
       },
       setTraceStep: (step) => {
@@ -189,11 +200,20 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
         <div ref={chatPane.container} style={chatPane.style} className={`session session--${pane}`}>
           <div className="pane-switch" role="group" aria-label="Панель">
             <button type="button" aria-pressed={pane === "chat"} onClick={() => setPane("chat")}>Чат</button>
-            <button type="button" aria-pressed={pane === "workspace"} onClick={() => setPane("workspace")}>Модель и проверка</button>
+            <button type="button" aria-pressed={pane === "workspace"} onClick={() => {
+              setPane("workspace");
+              if (!route.view && !route.check) {
+                const views = workspaceViews().filter((v) => (v.available ? v.available(context) : true));
+                const fallback = (version ? views.find((v) => v.id === "diagram") : undefined)
+                  ?? views.find((v) => v.id === (version ? "model" : "requirements"))
+                  ?? views[0];
+                if (fallback) go({ view: fallback.id });
+              }
+            }}>Модель и проверка</button>
           </div>
           <ChatPanel fileContext={fileContext} onClearFile={()=>fileReply(null)} context={context} replyQuestionId={reply} onReply={setReply} composerRef={composer} />
           <PaneSeparator pane={chatPane} label="Ширина чата"/>
-          <WorkspacePanel context={context} viewId={route.view} />
+          <WorkspacePanel context={context} viewId={route.view ?? (route.check ? "check" : undefined)} />
         </div>
       </WorkspaceContext.Provider>
     </CoreContext.Provider>

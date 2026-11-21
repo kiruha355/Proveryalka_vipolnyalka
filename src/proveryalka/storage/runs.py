@@ -27,6 +27,16 @@ class RunStore:
                     "results": json.loads(row["result_json"])["results"] if row["result_json"] else [],
                     "explanation": self._explanation(connection, run_id)}
 
+    def list_checks(self, model_id, number):
+        with self.transaction() as connection:
+            version = self._version(connection, model_id, number)
+            rows = connection.execute(
+                "SELECT run_id,session_id,version_id,state,error_code FROM runs "
+                "WHERE version_id=? AND kind='check' ORDER BY rowid ASC",
+                (version["id"],),
+            ).fetchall()
+            return [dict(row) for row in rows]
+
     @staticmethod
     def _explanation(connection, check_run_id):
         row = connection.execute(

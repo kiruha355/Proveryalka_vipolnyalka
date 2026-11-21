@@ -55,7 +55,8 @@ interface QuestionProps {
 export function QuestionCard({ question, active, canAnswer, onAnswer }: QuestionProps) {
   const open = question.status === "open";
   return (
-    <div className={`question question--${question.kind}${active ? " is-active" : ""}`}>
+    <div className={`question question--${question.kind}${active ? " is-active" : ""}`}
+      data-question-open={open ? "true" : undefined}>
       <p className="question__text">{question.text}</p>
       <p className="question__reason">{question.reason}</p>
       {question.kind === "assumption" && question.assumption && (

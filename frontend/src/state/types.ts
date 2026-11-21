@@ -38,20 +38,19 @@ export interface CheckRunView {
   afterEntryId?: string;
   explanation?: ExplanationView;
   runId: string;
-  versionId: string;
-  modelId: string;
-  number: number;
-  propertyIds: string[] | null;
+  versionId: string | null;
   /** Client time the check was requested; null for runs discovered on the server. */
   startedAt: string | null;
   run: Run | null;
   /** null until GET /api/checks/{id} answered; [] means the server has no report yet. */
   results: VerificationResult[] | null;
+  resultsLoading: boolean;
   resultsError: unknown | null;
   stream: StreamStatus;
   failure: RunFailure | null;
   artifacts: Loadable<ArtifactEntry[]>;
   cancelRequested: boolean;
+  cancelError: unknown | null;
 }
 
 export interface ModelGroup {

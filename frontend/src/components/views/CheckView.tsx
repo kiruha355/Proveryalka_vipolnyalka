@@ -35,7 +35,11 @@ export function CheckView({ context }: WorkspaceViewProps) {
   const core = useCore();
   const { version, checks, selection, trace } = context;
   const demo = context.capabilities.adapter === "demo";
-  const selected = checks.find((c) => c.runId === selection.trace?.checkRunId) ?? checks[0] ?? null;
+  const requestedId = selection.trace?.checkRunId;
+  const selected = requestedId
+    ? core.workspace.checks.find((c) => c.runId === requestedId)
+    : checks[0];
+  const matchesVersion = selected?.versionId === version?.id;
   const bound = selected && version ? boundResults(selected, version.id, version.spec_hash) : null;
   const ordered = bound ? sortForReading(bound.own) : [];
   const propertyId = selection.trace?.checkRunId === selected?.runId ? selection.trace?.propertyId : undefined;
@@ -43,12 +47,31 @@ export function CheckView({ context }: WorkspaceViewProps) {
 
   // Open the most informative result once a run has results and nothing is chosen yet.
   useEffect(() => {
-    if (selected && !result && ordered[0]) {
+    if (selected && matchesVersion && !result && ordered[0]) {
       context.focusTrace({ checkRunId: selected.runId, propertyId: ordered[0].property_id });
     }
-  }, [selected, result, ordered, context]);
+  }, [selected, matchesVersion, result, ordered, context]);
 
-  if (!version) return null;
+  if (requestedId && (!selected || selected.versionId === null)) {
+    return (
+      <div className="view check-view">
+        {selected?.resultsError != null
+          ? <ErrorNotice error={selected.resultsError} title="Результат проверки не загружен"
+              action={<>
+                <button type="button" className="button button--small" onClick={() => core.workspace.fetchCheck(requestedId)}>Повторить</button>
+                <button type="button" className="button button--small button--ghost" onClick={() => context.focusTrace(null)}>Закрыть отчёт</button>
+              </>} />
+          : <QuietStatus busy>Загрузка результата проверки</QuietStatus>}
+      </div>
+    );
+  }
+
+  if (requestedId && !matchesVersion && !core.workspace.models.loading) {
+    return <div className="view check-view"><ErrorNotice title="Отчёт недоступен для выбранной версии"
+      action={<button type="button" className="button button--small" onClick={() => context.focusTrace(null)}>Закрыть отчёт</button>} /></div>;
+  }
+
+  if (!version || (requestedId && !matchesVersion)) return null;
 
   if (checks.length === 0) {
     return (
@@ -65,7 +88,7 @@ export function CheckView({ context }: WorkspaceViewProps) {
   }
 
   const run = selected?.run ?? null;
-  const active = run ? !isTerminal(run.state) : selected !== null && selected.results === null && selected.resultsError === null;
+  const active = run ? !isTerminal(run.state) : Boolean(selected && selected.results === null && selected.resultsError === null);
 
   return (
     <div className="view check-view">
@@ -92,7 +115,6 @@ export function CheckView({ context }: WorkspaceViewProps) {
           <div className="run-panel__line">
             <span className="muted">{when(selected, demo)}</span>
             {run && <span className={`run-state run-state--${run.state}`}>{RUN_STATE[run.state]}</span>}
-            {active && <span className="spinner" aria-hidden="true" />}
             {active && run && (run.state === "queued" || run.state === "running") && (
               <button type="button" className="button button--small button--ghost" onClick={() => void core.workspace.cancelCheck(selected.runId)}
                 disabled={selected.cancelRequested}>
@@ -109,18 +131,22 @@ export function CheckView({ context }: WorkspaceViewProps) {
               action={<button type="button" className="button button--small" onClick={() => core.workspace.reconnect(selected.runId)}>Переподключиться</button>} />
           )}
           {selected.failure?.code === "CANCELLED" && <QuietStatus>Проверка остановлена, результата нет.</QuietStatus>}
+          {active && selected.cancelError !== null && <ErrorNotice error={selected.cancelError} title="Не удалось остановить проверку" />}
           {selected.failure && selected.failure.code !== "CANCELLED" && (
             <ErrorNotice title="Проверка не выполнена" detail={describeCode(selected.failure.code) ?? selected.failure.code}
               action={<button type="button" className="button button--small" onClick={core.runCheck}>Проверить заново</button>} />
           )}
           {selected.resultsError !== null && (
             <ErrorNotice error={selected.resultsError} title="Результат проверки не загружен"
-              action={<button type="button" className="button button--small" onClick={() => core.workspace.reconnect(selected.runId)}>Повторить</button>} />
+              action={<button type="button" className="button button--small" onClick={() => core.workspace.fetchCheck(selected.runId)}>Повторить</button>} />
+          )}
+          {((!run && active) || (!active && selected.resultsLoading && ordered.length === 0)) && (
+            <QuietStatus busy>Загрузка результата проверки</QuietStatus>
           )}
           {active && selected.results !== null && selected.results.length === 0 && (
             <QuietStatus busy>TLC проверяет версию {version.number}</QuietStatus>
           )}
-          {!active && run?.state === "completed" && selected.results?.length === 0 && (
+          {!active && run?.state === "completed" && !selected.resultsLoading && selected.resultsError === null && selected.results?.length === 0 && (
             <ErrorNotice error={new Error("Сервер завершил проверку без отчёта")} title="Нет результатов" />
           )}
           {bound && bound.foreign > 0 && (

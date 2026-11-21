@@ -4,6 +4,7 @@ import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BehavioralModel } from "../contracts/model";
 import { computeSpecHash } from "../dsl/spec-hash";
+import { clearGraphDrafts } from "../graph/draft-store";
 import {
   ORDER_VERSIONS,
   TLC_ORDER_BUG_RESULT,
@@ -115,7 +116,10 @@ function Host({
   );
 }
 
-afterEach(() => configureProjectFiles(null));
+afterEach(() => {
+  configureProjectFiles(null);
+  clearGraphDrafts();
+});
 
 describe("подключение к рабочей области ядра", () => {
   it("регистрирует вкладки и секции по контракту ядра", () => {
@@ -288,6 +292,80 @@ describe("подключение к рабочей области ядра", () 
           property.origin === "requirement" && property.approved_by === null,
       ),
     ).toBe(true);
+  });
+
+  it("сохраняет несохранённый черновик при смене вкладок и сбрасывает по «Отменить правки» (F03, UX [7])", async () => {
+    const createVersion = vi.fn(async () => ORDER_VERSIONS[0]!);
+    const { context } = makeContext({
+      session: { id: "s_draft" },
+      createVersion,
+    });
+    const user = userEvent.setup();
+    const firstRender = render(<Host initial={context} />);
+
+    await user.click(await screen.findByRole("button", { name: /Изменить/ }));
+    await user.click(screen.getByRole("button", { name: /Таблица/ }));
+    await user.click(screen.getByRole("button", { name: "Исполнить" }));
+    await user.click(
+      screen.getByRole("button", { name: /Изменить guard и effects/ }),
+    );
+    const workspace = firstRender.container.querySelector(".pv-workspace");
+    expect(workspace).toHaveClass("is-editing-transition");
+
+    const editor = screen.getByRole("region", {
+      name: "Правка перехода Execute",
+    });
+    const guard = within(editor).getByRole("textbox", {
+      name: "Условие (guard)",
+    });
+    await user.clear(guard);
+    await user.type(guard, 'approved == true and status == "Approved"');
+    await user.click(
+      within(editor).getByRole("button", { name: "Применить к черновику" }),
+    );
+    expect(workspace).not.toHaveClass("is-editing-transition");
+    expect(
+      screen.getByText("Черновик от версии 1 · изменений: 1"),
+    ).toBeInTheDocument();
+
+    const otherVersion = looseVersion(1);
+    firstRender.rerender(<Host initial={{ ...context, version: otherVersion }} />);
+    expect(screen.queryByText(/Черновик от версии/)).not.toBeInTheDocument();
+    firstRender.rerender(<Host initial={context} />);
+    expect(screen.getByText("Черновик от версии 1 · изменений: 1")).toBeInTheDocument();
+
+    // Симулируем переход на другую вкладку (размонтирование DiagramView) и возврат.
+    firstRender.unmount();
+    const secondRender = render(<Host initial={context} />);
+    expect(
+      await screen.findByText("Черновик от версии 1 · изменений: 1"),
+    ).toBeInTheDocument();
+    await user.click(screen.getByText("Что изменится"));
+    expect(
+      screen.getByText(/Execute: условие .*approved == true and status == "Approved"/),
+    ).toBeInTheDocument();
+
+    // Для другого sessionId черновик не подмешивается.
+    secondRender.unmount();
+    const otherSession = makeContext({
+      session: { id: "s_other" },
+      createVersion,
+    });
+    const thirdRender = render(<Host initial={otherSession.context} />);
+    expect(screen.queryByText(/Черновик от версии/)).not.toBeInTheDocument();
+    thirdRender.unmount();
+
+    // Возврат в исходную сессию и явная отмена правок очищает сохранённый черновик.
+    const fourthRender = render(<Host initial={context} />);
+    expect(
+      await screen.findByText("Черновик от версии 1 · изменений: 1"),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Отменить правки" }));
+    expect(screen.queryByText(/Черновик от версии/)).not.toBeInTheDocument();
+
+    fourthRender.unmount();
+    render(<Host initial={context} />);
+    expect(screen.queryByText(/Черновик от версии/)).not.toBeInTheDocument();
   });
 });
 

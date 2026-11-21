@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
 import { newKey } from "../api/api";
-import { ApiError } from "../api/errors";
+import { ApiError, validateDocumentFile } from "../api/errors";
 import type { Session } from "../api/types";
 import { loadLocal, updateLocal } from "../state/persist";
 import { Composer, type ComposerHandle } from "./chat/Composer";
@@ -32,10 +32,19 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
   const inFlight = useRef(false);
   const documentSession = useRef<{session: Session | null; sessionKey: string; uploadKey: string; file: File} | null>(null);
   const [documentError, setDocumentError] = useState(false);
-  const [draft, setDraft] = useState(() => loadLocal(api.id, NEW).outbox?.text ?? loadLocal(api.id, NEW).draft);
+  const [draft, setDraft] = useState(() => loadLocal(api.id, NEW).draft);
+  const draftRevRef = useRef(0);
+  const draftRef = useRef(draft);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const composer = useRef<ComposerHandle>(null);
+
+  const updateDraft = (value: string) => {
+    draftRevRef.current += 1;
+    draftRef.current = value;
+    setDraft(value);
+    updateLocal(api.id, NEW, (local) => ({ ...local, draft: value }));
+  };
 
   const blocked = !capabilities
     ? "Нет подключения к серверу"
@@ -47,6 +56,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     const text = draft.trim();
     if (!text || inFlight.current) return;
     inFlight.current = true;
+    const rev = draftRevRef.current;
     setDocumentError(false);
     const saved = loadLocal(api.id, NEW).outbox;
     const outbox = saved && saved.text === text && saved.sessionKey
@@ -57,12 +67,27 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     setError(null);
     try {
       const session = await api.createSession({ title: outbox.sessionTitle ?? titleFrom(text) }, outbox.sessionKey!);
+      const unchanged = draftRevRef.current === rev;
+      const remainingDraft = unchanged ? "" : draftRef.current;
       // The session view sends the message with the key reserved here.
-      updateLocal(api.id, session.id, (local) => ({ ...local, outbox: { text, questionId: null, key: outbox.key, autoSend: true } }));
+      updateLocal(api.id, session.id, (local) => ({
+        ...local,
+        draft: remainingDraft,
+        outbox: { text, questionId: null, key: outbox.key, autoSend: true },
+      }));
       updateLocal(api.id, NEW, () => ({ agentRuns: [], checkRuns: [], draft: "", outbox: null }));
+      if (unchanged) {
+        draftRef.current = "";
+        setDraft("");
+      }
       onCreated(session);
     } catch (failure) {
-      if (!(failure instanceof ApiError && failure.retryable)) updateLocal(api.id, NEW, (local) => ({ ...local, outbox: null, draft: text }));
+      if (!(failure instanceof ApiError && failure.retryable)) {
+        updateLocal(api.id, NEW, (local) => ({
+          ...local,
+          outbox: null,
+        }));
+      }
       setError(failure);
     } finally {
       inFlight.current = false;
@@ -72,17 +97,32 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
 
   const attach = async (file: File) => {
     if (inFlight.current || !api.uploadDocument) return;
+    const validationError = validateDocumentFile(file);
+    if (validationError) {
+      setDocumentError(true);
+      setError(validationError);
+      return;
+    }
     inFlight.current = true; setBusy(true); setError(null); setDocumentError(true);
     const saved = documentSession.current;
-    const attempt = saved && saved.file === file ? saved : {session: saved?.session ?? null, sessionKey: newKey(), uploadKey: newKey(), file};
+    const attempt = saved && saved.file === file
+      ? saved
+      : { session: null, sessionKey: newKey(), uploadKey: newKey(), file };
     documentSession.current = attempt;
     try {
       if (!attempt.session) attempt.session = await api.createSession({title: titleFrom(file.name)}, attempt.sessionKey);
       await api.uploadDocument(attempt.session.id, file, attempt.uploadKey);
-      updateLocal(api.id, attempt.session.id, local => ({...local, draft}));
+      const currentDraft = draftRef.current;
+      updateLocal(api.id, attempt.session.id, local => ({...local, draft: currentDraft}));
       updateLocal(api.id, NEW, local => ({...local, draft: "", outbox: null}));
+      documentSession.current = null;
       onCreated(attempt.session);
-    } catch (failure) { setError(failure); }
+    } catch (failure) {
+      if (!(failure instanceof ApiError && failure.retryable)) {
+        documentSession.current = null;
+      }
+      setError(failure);
+    }
     finally {inFlight.current = false; setBusy(false);}
   };
 
@@ -97,8 +137,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
           <h2 className="empty__title">С чего начнём?</h2>
           <p className="empty__text">Опишите поведение процесса: состояния, действия и что запрещено.</p>
           <button type="button" className="button button--ghost" onClick={() => {
-            setDraft(EXAMPLE);
-            updateLocal(api.id, NEW, (local) => ({ ...local, draft: EXAMPLE }));
+            updateDraft(EXAMPLE);
             composer.current?.focus();
           }}>
             Вставить пример из ТЗ
@@ -111,7 +150,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
             action={documentError ? undefined : <button type="button" className="button button--small" onClick={() => void start()}>Повторить</button>} />
         )}
         <Composer ref={composer} value={draft} label="Описание поведения"
-          onChange={(value) => { setDraft(value); updateLocal(api.id, NEW, (local) => ({ ...local, draft: value })); }}
+          onChange={updateDraft}
           onSubmit={() => void start()} busy={busy} blockedReason={blocked}
           attach={capabilities?.documents ? {busy, onFile: file => void attach(file)} : null}
           placeholder="Например: заявку можно согласовать, отменить или исполнить…" />

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
 import { newKey } from "../api/api";
-import { ApiError, isAbort } from "../api/errors";
+import { ApiError, isAbort, validateDocumentFile } from "../api/errors";
 import type {
   AgentRunTrace, CheckLimits, FileContextRef, DialogueView, ExplanationView, DocumentSource, ModelVersion, Question, Run, RunEvent, SessionDetail, VerificationResult,
 } from "../api/types";
@@ -26,15 +26,17 @@ type Action =
   | { type: "agent/events"; runId: string; events: RunEvent[] }
   | { type: "agent/stream"; runId: string; stream: StreamStatus }
   | { type: "agent/run"; run: Run }
-  | { type: "agent/cancel"; runId: string }
+  | { type: "agent/cancel"; runId: string; requested: boolean }
   | { type: "check/add"; view: CheckRunView }
+  | { type: "check/order"; runIds: string[] }
   | { type: "check/events"; runId: string; events: RunEvent[] }
   | { type: "check/stream"; runId: string; stream: StreamStatus }
   | { type: "check/run"; run: Run }
+  | { type: "check/loading"; runId: string }
   | { type: "check/results"; runId: string; results: VerificationResult[] | null; error: unknown | null; run?: Run; afterEntryId?: string }
   | { type: "check/explanation"; runId: string; explanation: ExplanationView }
   | { type: "check/artifacts"; runId: string; artifacts: CheckRunView["artifacts"] }
-  | { type: "check/cancel"; runId: string };
+  | { type: "check/cancel"; runId: string; requested: boolean; error?: unknown };
 
 const INITIAL: RunsState = { agent: {}, agentOrder: [], checks: {}, checkOrder: [] };
 
@@ -42,6 +44,10 @@ function failureOf(events: RunEvent[]): RunFailure | null {
   const error = [...events].reverse().find((e) => e.type === "error");
   if (!error) return null;
   return { code: String(error.data.code ?? "ERROR"), message: String(error.data.message ?? "") };
+}
+
+function mergeRun(current: Run | null, incoming: Run): Run {
+  return current && isTerminal(current.state) && !isTerminal(incoming.state) ? current : incoming;
 }
 
 function applyAgentEvents(view: AgentRunView, events: RunEvent[]): AgentRunView {
@@ -81,7 +87,7 @@ function reducer(state: RunsState, action: Action): RunsState {
         const runId = trace.run.run_id;
         const existing = agent[runId] ?? agentView({runId, text: "", questionId: null, startedAt: trace.created_at ?? ""}, trace.run.session_id);
         // An older HTTP snapshot must not undo a terminal SSE event.
-        const run = existing.run && isTerminal(existing.run.state) && !isTerminal(trace.run.state) ? existing.run : trace.run;
+        const run = mergeRun(existing.run, trace.run);
         agent[runId] = applyAgentEvents({...existing, trace, run,
           stream: isTerminal(run.state) ? {kind: "closed"} : existing.stream,
           failure: run.error_code ? existing.failure ?? {code: run.error_code, message: ""} : existing.failure}, trace.events);
@@ -102,21 +108,31 @@ function reducer(state: RunsState, action: Action): RunsState {
     case "agent/run": {
       const view = state.agent[action.run.run_id];
       if (!view) return state;
-      const failure = action.run.error_code ? (view.failure ?? { code: action.run.error_code, message: "" }) : view.failure;
-      return { ...state, agent: { ...state.agent, [action.run.run_id]: { ...view, run: action.run, failure } } };
+      const run = mergeRun(view.run, action.run);
+      const failure = run.error_code ? (view.failure ?? { code: run.error_code, message: "" }) : view.failure;
+      return { ...state, agent: { ...state.agent, [action.run.run_id]: { ...view, run, failure } } };
     }
     case "agent/cancel": {
       const view = state.agent[action.runId];
-      return view ? { ...state, agent: { ...state.agent, [action.runId]: { ...view, cancelRequested: true } } } : state;
+      return view ? { ...state, agent: { ...state.agent, [action.runId]: { ...view, cancelRequested: action.requested } } } : state;
     }
     case "check/add":
       if (state.checks[action.view.runId]) return state;
       return { ...state, checks: { ...state.checks, [action.view.runId]: action.view }, checkOrder: [...state.checkOrder, action.view.runId] };
+    case "check/order": {
+      const listed = new Set(action.runIds);
+      const checkOrder = [...listed, ...state.checkOrder.filter((id) => !listed.has(id))];
+      return checkOrder.every((id, index) => id === state.checkOrder[index]) ? state : { ...state, checkOrder };
+    }
     case "check/events": {
       const view = state.checks[action.runId];
       if (!view) return state;
       const failure = failureOf(action.events);
-      return { ...state, checks: { ...state.checks, [action.runId]: { ...view, failure: failure ?? view.failure } } };
+      const final = action.events.find((event) => event.type === "run_finished");
+      const run = view.run && final && typeof final.data.state === "string"
+        ? { ...view.run, state: final.data.state as Run["state"] }
+        : view.run;
+      return { ...state, checks: { ...state.checks, [action.runId]: { ...view, run, failure: failure ?? view.failure } } };
     }
     case "check/stream": {
       const view = state.checks[action.runId];
@@ -125,20 +141,28 @@ function reducer(state: RunsState, action: Action): RunsState {
     case "check/run": {
       const view = state.checks[action.run.run_id];
       if (!view) return state;
-      const failure = action.run.error_code && !view.failure ? { code: action.run.error_code, message: "" } : view.failure;
-      return { ...state, checks: { ...state.checks, [action.run.run_id]: { ...view, run: action.run, failure } } };
+      const run = mergeRun(view.run, action.run);
+      const failure = run.error_code && !view.failure ? { code: run.error_code, message: "" } : view.failure;
+      return { ...state, checks: { ...state.checks, [action.run.run_id]: { ...view, run, failure } } };
+    }
+    case "check/loading": {
+      const view = state.checks[action.runId];
+      return view ? { ...state, checks: { ...state.checks, [action.runId]: { ...view, resultsLoading: true, resultsError: null } } } : state;
     }
     case "check/results": {
       const view = state.checks[action.runId];
       if (!view) return state;
+      const run = action.run ? mergeRun(view.run, action.run) : view.run;
       const next: CheckRunView = {
         ...view,
+        versionId: action.run?.version_id ?? view.versionId,
         results: action.results ?? view.results,
+        resultsLoading: false,
         resultsError: action.error,
-        run: action.run ?? view.run,
+        run,
         afterEntryId: action.afterEntryId ?? view.afterEntryId,
       };
-      if (action.run?.error_code && !next.failure) next.failure = { code: action.run.error_code, message: "" };
+      if (run?.error_code && !next.failure) next.failure = { code: run.error_code, message: "" };
       return { ...state, checks: { ...state.checks, [action.runId]: next } };
     }
     case "check/explanation": {
@@ -151,7 +175,7 @@ function reducer(state: RunsState, action: Action): RunsState {
     }
     case "check/cancel": {
       const view = state.checks[action.runId];
-      return view ? { ...state, checks: { ...state.checks, [action.runId]: { ...view, cancelRequested: true } } } : state;
+      return view ? { ...state, checks: { ...state.checks, [action.runId]: { ...view, cancelRequested: action.requested, cancelError: action.error ?? null } } } : state;
     }
   }
 }
@@ -167,10 +191,10 @@ function agentView(record: AgentRunRecord, sessionId: string): AgentRunView {
   };
 }
 
-function checkView(record: CheckRunRecord | Omit<CheckRunRecord, "startedAt"> & { startedAt: string | null }): CheckRunView {
+function checkView(record: Pick<CheckRunView, "runId" | "versionId" | "startedAt">): CheckRunView {
   return {
-    ...record, run: null, results: null, resultsError: null, stream: { kind: "connecting" }, failure: null,
-    artifacts: { data: null, error: null, loading: false }, cancelRequested: false,
+    ...record, run: null, results: null, resultsLoading: false, resultsError: null, stream: { kind: "connecting" }, failure: null,
+    artifacts: { data: null, error: null, loading: false }, cancelRequested: false, cancelError: null,
   };
 }
 
@@ -222,6 +246,8 @@ export interface SessionWorkspace {
   checkStart: CheckStartState;
   startCheck(version: ModelVersion, propertyIds: string[] | null, limits: CheckLimits): Promise<string | null>;
   cancelCheck(runId: string): Promise<void>;
+  fetchCheck(runId: string): void;
+  ensureCheck(runId: string): void;
   reconnect(runId: string): void;
   approve(version: ModelVersion): Promise<void>;
   approveError: unknown | null;
@@ -254,6 +280,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
 
   const root = useRef<AbortController>(new AbortController());
   const trackers = useRef(new Map<string, RunTracker>());
+  const knownChecksRef = useRef(new Set<string>());
   const sendingRef = useRef(false);
   const startingRef = useRef(false);
   const uploadingRef = useRef(false);
@@ -264,6 +291,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const proposedRef = useRef(onModelProposed);
   proposedRef.current = onModelProposed;
   const addCheckRef = useRef<(record: Parameters<typeof checkView>[0]) => void>(() => undefined);
+  const trackRef = useRef<(kind: "agent" | "check", runId: string) => void>(() => undefined);
 
   // ---- loading
 
@@ -303,11 +331,14 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
 
   const discoverChecks = useCallback(async (groups: ModelGroup[]) => {
     if (!capabilities.checkDiscovery || !api.listCheckRuns) return;
+    const signal = root.current.signal;
     for (const group of groups) {
       for (const version of group.versions) {
         try {
-          const ids = await api.listCheckRuns(version.id, root.current.signal);
-          for (const runId of ids) addCheckRef.current({ runId, versionId: version.id, modelId: group.model.id, number: version.number, propertyIds: null, startedAt: null });
+          const ids = await api.listCheckRuns(version, signal);
+          if (signal.aborted) return;
+          for (const runId of ids) addCheckRef.current({ runId, versionId: version.id, startedAt: null });
+          if (ids.length > 1) dispatch({ type: "check/order", runIds: ids });
         } catch (error) {
           if (isAbort(error)) return;
         }
@@ -351,21 +382,6 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     trackers.current.set(id, tracker); tracker.start();
   }, [api]);
 
-  const fetchCheck = useCallback((runId: string) => {
-    const sequence = (checkRequestSeq.current.get(runId) ?? 0) + 1;
-    checkRequestSeq.current.set(runId, sequence);
-    const signal = root.current.signal;
-    api.getCheck(runId, signal).then(
-      (check) => {
-        if (signal.aborted || checkRequestSeq.current.get(runId) !== sequence) return;
-        dispatch({ type: "check/results", runId, results: check.results, error: null, run: check.run, afterEntryId: check.after_entry_id });
-        followExplanation(runId, check.explanation);
-      },
-      (error: unknown) => { if (!isAbort(error)) dispatch({ type: "check/results", runId, results: null, error }); },
-    );
-  }, [api, followExplanation]);
-  fetchCheckRef.current = fetchCheck;
-
   const loadArtifacts = useCallback((runId: string) => {
     if (!capabilities.artifacts) return;
     dispatch({ type: "check/artifacts", runId, artifacts: { data: null, error: null, loading: true } });
@@ -374,6 +390,36 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
       (error: unknown) => { if (!isAbort(error)) dispatch({ type: "check/artifacts", runId, artifacts: { data: null, error, loading: false } }); },
     );
   }, [api, capabilities.artifacts]);
+
+  const fetchCheck = useCallback((runId: string) => {
+    const sequence = (checkRequestSeq.current.get(runId) ?? 0) + 1;
+    checkRequestSeq.current.set(runId, sequence);
+    const signal = root.current.signal;
+    dispatch({ type: "check/loading", runId });
+    api.getCheck(runId, signal)
+      .then((check) => {
+        if (signal.aborted || checkRequestSeq.current.get(runId) !== sequence) return;
+        if (check.run.session_id !== sessionId || check.run.run_id !== runId) {
+          throw new Error("Отчёт относится к другой сессии или проверке.");
+        }
+        if (!check.run.version_id) throw new Error("Сервер вернул проверку без версии модели.");
+        dispatch({ type: "check/results", runId, results: check.results, error: null, run: check.run, afterEntryId: check.after_entry_id });
+        followExplanation(runId, check.explanation);
+        if (!isTerminal(check.run.state)) trackRef.current("check", runId);
+        else {
+          dispatch({ type: "check/stream", runId, stream: { kind: "closed" } });
+          const existing = runsRef.current.checks[runId];
+          if (check.run.state === "completed" && (!existing || (existing.artifacts.data === null && !existing.artifacts.loading))) {
+            loadArtifacts(runId);
+          }
+        }
+      })
+      .catch((error: unknown) => {
+        if (isAbort(error) || signal.aborted || checkRequestSeq.current.get(runId) !== sequence) return;
+        dispatch({ type: "check/results", runId, results: null, error });
+      });
+  }, [api, followExplanation, loadArtifacts, sessionId]);
+  fetchCheckRef.current = fetchCheck;
 
   const refreshRun = useCallback(async (runId: string, kind: "agent" | "check") => {
     try {
@@ -417,37 +463,27 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
           if (event.type === "check_finished") fetchCheck(runId);
           if (event.type === "run_finished") {
             fetchCheck(runId);
-            void refreshRun(runId, "check").then((run) => { if (run?.state === "completed") loadArtifacts(runId); });
+            void refreshRun(runId, "check");
           }
         }
       },
     });
     trackers.current.set(runId, tracker);
     tracker.start();
-  }, [api, fetchCheck, loadArtifacts, persistAgentOutcome, refreshRun, reloadDetail, reloadModels, reloadAgentRuns]);
+  }, [api, fetchCheck, persistAgentOutcome, refreshRun, reloadDetail, reloadModels, reloadAgentRuns]);
+  trackRef.current = track;
 
   const addCheck = useCallback((record: Parameters<typeof checkView>[0]) => {
-    if (runsRef.current.checks[record.runId]) return;
+    if (knownChecksRef.current.has(record.runId) || runsRef.current.checks[record.runId]) return;
+    knownChecksRef.current.add(record.runId);
     dispatch({ type: "check/add", view: checkView(record) });
-    api.getCheck(record.runId, root.current.signal).then(
-      (check) => {
-        if (root.current.signal.aborted) return;
-        dispatch({ type: "check/results", runId: record.runId, results: check.results, error: null, run: check.run, afterEntryId: check.after_entry_id });
-        followExplanation(record.runId, check.explanation);
-        if (!isTerminal(check.run.state)) track("check", record.runId);
-        else {
-          dispatch({ type: "check/stream", runId: record.runId, stream: { kind: "closed" } });
-          if (check.run.state === "completed") loadArtifacts(record.runId);
-        }
-      },
-      (error: unknown) => {
-        if (isAbort(error)) return;
-        dispatch({ type: "check/results", runId: record.runId, results: null, error });
-        dispatch({ type: "check/stream", runId: record.runId, stream: { kind: "lost", error } });
-      },
-    );
-  }, [api, loadArtifacts, track, followExplanation]);
+    fetchCheck(record.runId);
+  }, [fetchCheck]);
   addCheckRef.current = addCheck;
+
+  const ensureCheck = useCallback((runId: string) => {
+    addCheck({ runId, versionId: null, startedAt: null });
+  }, [addCheck]);
 
   // ---- mount / unmount
 
@@ -482,6 +518,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
       root.current.abort();
       for (const tracker of map.values()) tracker.stop();
       map.clear();
+      knownChecksRef.current.clear();
     };
     // Mount-only: the owning component is keyed by session id.
   }, []);
@@ -516,7 +553,8 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
       if (root.current.signal.aborted) return false;
       const record: AgentRunRecord = { runId: run.run_id, text: outbox.text, questionId: outbox.questionId, startedAt: new Date().toISOString() };
       updateLocal(api.id, sessionId, (local) => ({
-        ...local, outbox: null, draft: "",
+        ...local,
+        outbox: null,
         agentRuns: local.agentRuns.some((r) => r.runId === run.run_id) ? local.agentRuns : [...local.agentRuns, record],
       }));
       dispatch({ type: "agent/add", view: { ...agentView(record, sessionId), run } });
@@ -604,12 +642,15 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const cancelAgent = useCallback(async () => {
     const view = activeAgentRun;
     if (!view) return;
-    dispatch({ type: "agent/cancel", runId: view.runId });
+    dispatch({ type: "agent/cancel", runId: view.runId, requested: true });
     try {
       const run = await api.cancelRun(view.runId, root.current.signal);
       dispatch({ type: "agent/run", run });
     } catch (error) {
-      if (!isAbort(error)) setSend((s) => ({ ...s, error }));
+      if (!isAbort(error)) {
+        dispatch({ type: "agent/cancel", runId: view.runId, requested: false });
+        setSend((s) => ({ ...s, error }));
+      }
     }
   }, [activeAgentRun, api]);
 
@@ -638,6 +679,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
         updateLocal(api.id, sessionId, (local) => ({
           ...local, checkRuns: local.checkRuns.some((r) => r.runId === run.run_id) ? local.checkRuns : [...local.checkRuns, record],
         }));
+        knownChecksRef.current.add(run.run_id);
         dispatch({ type: "check/add", view: { ...checkView(record), run, results: [] } });
         track("check", run.run_id);
         setCheckStart({ starting: false, error: null, retry: null });
@@ -656,12 +698,14 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   }, [api, sessionId, track, capabilities.explanations]);
 
   const cancelCheck = useCallback(async (runId: string) => {
-    dispatch({ type: "check/cancel", runId });
+    dispatch({ type: "check/cancel", runId, requested: true });
     try {
       const run = await api.cancelRun(runId, root.current.signal);
       dispatch({ type: "check/run", run });
     } catch (error) {
-      if (!isAbort(error)) dispatch({ type: "check/results", runId, results: null, error });
+      if (!isAbort(error)) {
+        dispatch({ type: "check/cancel", runId, requested: false, error });
+      }
     }
   }, [api]);
 
@@ -686,6 +730,11 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
 
   const uploadDocument = useCallback(async (file: File) => {
     if (!capabilities.documents || !api.uploadDocument || uploadingRef.current) return null;
+    const validationError = validateDocumentFile(file);
+    if (validationError) {
+      setUpload((u) => ({ ...u, uploading: null, error: validationError }));
+      return null;
+    }
     uploadingRef.current = true;
     setUpload((u) => ({ ...u, uploading: file.name, error: null }));
     try {
@@ -706,7 +755,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   return {
     detail, dialogue, discardPending, analyzeDocument, retryExplanation, history, models, versions, agentRuns, agentTraceHistory, loadOlderAgentRuns, reloadAgentRuns, activeAgentRun, lastAgentRun, checks,
     send, sendMessage, retryOutbox, discardOutbox, retryPending, cancelAgent,
-    checkStart, startCheck, cancelCheck, reconnect, approve, approveError,
+    checkStart, startCheck, cancelCheck, fetchCheck, ensureCheck, reconnect, approve, approveError,
     reloadDetail, reloadModels, loadArtifacts, upload, uploadDocument,
   };
 }

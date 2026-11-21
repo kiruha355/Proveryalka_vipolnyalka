@@ -28,14 +28,28 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   const { workspace, history } = core;
   const { api, capabilities, session } = context;
   const [draft, setDraft] = useState(() => loadLocal(api.id, session.id).draft);
+  const draftRevRef = useRef(0);
+  const fileContextRef = useRef(fileContext);
+  fileContextRef.current = fileContext;
+  const replyQuestionIdRef = useRef(replyQuestionId);
+  replyQuestionIdRef.current = replyQuestionId;
   const list = useRef<HTMLOListElement>(null);
   const active = workspace.activeAgentRun;
   const pending = history?.pending ?? null;
   const last = workspace.lastAgentRun;
 
   const setDraftPersist = (value: string) => {
+    draftRevRef.current += 1;
     setDraft(value);
     updateLocal(api.id, session.id, (local) => ({ ...local, draft: value }));
+  };
+
+  const openQuestions = (workspace.dialogue?.questions ?? history?.dialogue?.questions ?? []).filter((q) => q.status === "open");
+  const replyQuestion = openQuestions.find((q) => q.id === replyQuestionId) ?? null;
+
+  const scrollToOpenQuestion = () => {
+    const target = list.current?.querySelector<HTMLElement>('[data-question-open="true"]');
+    target?.scrollIntoView({ block: "start" });
   };
 
   // Keep the newest entry in view while the reader is at the bottom.
@@ -46,24 +60,36 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 160) el.scrollTop = el.scrollHeight;
   }, [count]);
 
-  const openQuestions = history?.dialogue?.questions.filter((q) => q.status === "open") ?? [];
-  const replyQuestion = openQuestions.find((q) => q.id === replyQuestionId) ?? null;
-
   const answer = (question: Question, prefill: string | null) => {
     onReply(capabilities.questionId ? question.id : null);
     if (prefill !== null) composerRef.current?.prefill(prefill);
     else composerRef.current?.focus();
   };
 
-  const submit = async () => {
-    const text = draft.trim();
-    if (!text) return;
-    const ok = await workspace.sendMessage(text, fileContext ? null : replyQuestion?.id ?? null, fileContext);
-    if (ok) {
+  const sendDraft = async (send: () => Promise<boolean>, fromComposer: boolean) => {
+    const rev = draftRevRef.current;
+    const sentFile = fileContext;
+    const sentReplyId = replyQuestionId;
+    if (await send() && fromComposer && draftRevRef.current === rev
+      && fileContextRef.current === sentFile && replyQuestionIdRef.current === sentReplyId) {
       setDraftPersist("");
       onClearFile();
       onReply(null);
     }
+  };
+
+  const submit = () => {
+    const text = draft.trim();
+    if (text) void sendDraft(() => workspace.sendMessage(text, fileContext ? null : replyQuestion?.id ?? null, fileContext), true);
+  };
+
+  const retryOutbox = () => {
+    const outbox = workspace.send.outbox;
+    const fromComposer = !!outbox && !outbox.autoSend && !outbox.sourceId && !outbox.pendingRetry
+      && outbox.text === draft.trim()
+      && outbox.questionId === replyQuestionId
+      && JSON.stringify(outbox.fileContext ?? null) === JSON.stringify(fileContext);
+    void sendDraft(workspace.retryOutbox, fromComposer);
   };
 
   let blocked: string | null = null;
@@ -79,7 +105,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
     createdAt: view.trace?.created_at, finishedAt: view.trace?.finished_at,
     eventsTruncated: view.trace?.events_truncated, stream: view.stream, cancelRequested: view.cancelRequested,
   }} action={action}/>;
-  // Chronological timeline: stored history, then checks started from this browser.
+  // Chronological timeline of dialogue entries and checks.
   const items: { at: string; node: ReactNode; key: string; after?: string }[] = [];
   for (const entry of history?.entries ?? []) {
     if (entry.kind === "user") {
@@ -143,10 +169,11 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   }
   for (const check of [...workspace.checks].reverse()) {
     const version = context.versions.find((v) => v.id === check.versionId);
+    if (!version) continue;
     items.push({
       at: check.startedAt ?? "", key: check.runId, after: check.afterEntryId,
       node: <CheckCard key={check.runId} check={check} version={version} context={context}
-        modelName={(workspace.models.data?.length ?? 0) > 1 ? workspace.models.data?.find((g) => g.model.id === check.modelId)?.model.name : undefined}
+        modelName={(workspace.models.data?.length ?? 0) > 1 ? workspace.models.data?.find((g) => g.model.id === version.model_id)?.model.name : undefined}
         onCancel={() => void workspace.cancelCheck(check.runId)} />,
     });
   }
@@ -219,7 +246,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
           <ErrorNotice error={workspace.send.error} title={workspace.send.outbox ? "Сообщение не отправлено" : "Сервер не принял сообщение"}
             action={workspace.send.outbox ? (
               <>
-                <button type="button" className="button button--small" onClick={() => void workspace.retryOutbox()} disabled={workspace.send.sending}>Повторить отправку</button>
+                <button type="button" className="button button--small" onClick={retryOutbox} disabled={workspace.send.sending}>Повторить отправку</button>
                 <button type="button" className="button button--small button--ghost" onClick={workspace.discardOutbox}>Не отправлять</button>
               </>
             ) : undefined} />
@@ -235,7 +262,14 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
         </div>)}
         {workspace.upload.uploading && <QuietStatus busy>Загрузка {workspace.upload.uploading}</QuietStatus>}
         {fileContext && <div className="document-line"><span>Вопрос о {fileContext.path} · версия {fileContext.version_number ?? fileContext.version_id}</span><button type="button" className="button button--small" onClick={onClearFile}>Убрать контекст файла</button></div>}
-        <Composer ref={composerRef} value={draft} onChange={setDraftPersist} onSubmit={() => void submit()}
+        {openQuestions.length > 0 && !active && !replyQuestion && (
+          <div className="chat__jump">
+            <button type="button" className="button button--small button--ghost" onClick={scrollToOpenQuestion}>
+              К открытому вопросу{openQuestions.length > 1 ? ` (${openQuestions.length})` : ""}
+            </button>
+          </div>
+        )}
+        <Composer ref={composerRef} value={draft} onChange={setDraftPersist} onSubmit={submit}
           label="Сообщение агенту" placeholder={replyQuestion ? "Ваш ответ на выбранный вопрос…" : openQuestions.length > 0 ? "Ответьте на уточнение или добавьте правило…" : "Добавить правило или уточнение…"}
           blockedReason={blocked} busy={workspace.send.sending}
           reply={replyQuestion && capabilities.questionId ? { text: replyQuestion.text, onClear: () => onReply(null) } : null}

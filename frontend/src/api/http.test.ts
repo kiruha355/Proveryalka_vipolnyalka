@@ -6,9 +6,30 @@ const run = {run_id:"r",session_id:"s",state:"queued",version_id:null,error_code
 const json = (body:unknown, status=200) => new Response(JSON.stringify(body), {status, headers:{"Content-Type":"application/json"}});
 
 describe("public HTTP contract", () => {
-  it("detects dialogue/documents/explanation from OpenAPI", () => {
-    const caps = detectCapabilities({paths:{"/api/sessions":{},"/api/sessions/{session_id}/dialogue":{},"/api/sessions/{session_id}/documents":{},"/api/checks/{run_id}/explanation":{}}});
-    expect(caps).toMatchObject({dialogue:true,documents:true,explanations:true});
+  it("detects dialogue/documents/explanation/checkDiscovery from OpenAPI and lists version checks", async () => {
+    const caps = detectCapabilities({
+      paths: {
+        "/api/sessions": {},
+        "/api/sessions/{session_id}/dialogue": {},
+        "/api/sessions/{session_id}/documents": {},
+        "/api/checks/{run_id}/explanation": {},
+        "/api/models/{model_id}/versions/{number}/checks": { get: {}, post: {} },
+      },
+    });
+    expect(caps).toMatchObject({ dialogue: true, documents: true, explanations: true, checkDiscovery: true });
+    const postOnlyCaps = detectCapabilities({
+      paths: { "/api/sessions": {}, "/api/models/{model_id}/versions/{number}/checks": { post: {} } },
+    });
+    expect(postOnlyCaps.checkDiscovery).toBe(false);
+
+    const fetcher = vi.fn<typeof fetch>(async () => json([
+      { ...run, run_id: "chk_1", version_id: "v1", state: "completed" },
+      { ...run, run_id: "chk_2", version_id: "v1", state: "completed" },
+    ]));
+    const api = new HttpApi("", fetcher);
+    const ids = await api.listCheckRuns({ id: "v1", model_id: "m/1", number: 2 });
+    expect(ids).toEqual(["chk_1", "chk_2"]);
+    expect(fetcher.mock.calls[0]![0]).toBe("/api/models/m%2F1/versions/2/checks");
   });
   it("detects and reads paginated safe agent trace history with stable entry links", async () => {
     const caps = detectCapabilities({paths:{"/api/sessions":{}, "/api/sessions/{session_id}/agent-runs":{}}});

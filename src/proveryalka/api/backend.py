@@ -424,6 +424,6 @@ class ApplicationBackend(SQLiteBackend):
             run = getattr(self.store, operation)(**arguments)
             self.loop.call_soon_threadsafe(self.schedule, run["run_id"])
             return run
-        if operation in ("get_run", "get_check"):
+        if operation in ("get_run", "get_check", "list_checks"):
             return getattr(self.store, operation)(**arguments)
         return super().call(operation, **arguments)

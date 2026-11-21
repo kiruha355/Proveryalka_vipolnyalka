@@ -29,6 +29,11 @@ import {
   versionCreateBody,
 } from "../draft";
 import type { DraftAction, ModelChange } from "../draft";
+import {
+  deleteGraphDraft,
+  loadGraphDraft,
+  saveGraphDraft,
+} from "../draft-store";
 import type { GraphSelection, TraceView } from "../flow-elements";
 import { layoutProjection } from "../layout";
 import {
@@ -63,6 +68,8 @@ export type StateGraphWorkspaceProps = {
   onPropertyChange?: (propertyId: string) => void;
   /** Порт создания версий. Без него правка недоступна, причина — в readOnlyReason. */
   versionsPort?: ModelVersionsPort | null;
+  /** Ключ для сохранения несохранённого черновика при размонтировании (api/session/version/hash). */
+  draftStorageKey?: string | null;
   readOnlyReason?: string;
   onVersionCreated?: (version: ModelVersion) => void;
   onRequirementSelect?: (requirementId: string) => void;
@@ -154,6 +161,7 @@ export function StateGraphWorkspace({
   propertyId = null,
   onPropertyChange,
   versionsPort = null,
+  draftStorageKey = null,
   readOnlyReason = "Создание версий не подключено",
   onVersionCreated,
   onRequirementSelect,
@@ -171,7 +179,16 @@ export function StateGraphWorkspace({
 }: StateGraphWorkspaceProps) {
   const version =
     versions.find((item) => item.id === selectedVersionId) ?? null;
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const hasPort = Boolean(versionsPort);
+  const hashMismatch = useMemo(
+    () => version ? computeSpecHash(version.spec) !== version.spec_hash : false,
+    [version],
+  );
+  const [draft, setDraft] = useState<Draft | null>(() =>
+    hasPort && !hashMismatch
+      ? loadGraphDraft(draftStorageKey, version)
+      : null,
+  );
   const [save, setSave] = useState<SaveState>({ phase: "idle" });
   const [draftError, setDraftError] = useState<string | null>(null);
   const [localSelection, setLocalSelection] = useState<GraphSelection | null>(
@@ -223,7 +240,11 @@ export function StateGraphWorkspace({
 
   useEffect(() => {
     saveController.current?.abort();
-    setDraft(null);
+    const restored =
+      hasPort && !hashMismatch
+        ? loadGraphDraft(draftStorageKey, version)
+        : null;
+    setDraft(restored);
     setSave({ phase: "idle" });
     setDraftError(null);
     setLocalSelection(focus);
@@ -231,7 +252,7 @@ export function StateGraphWorkspace({
     setLocalTraceIndex(0);
     // focus применяется при смене версии и при его собственном изменении (эффект ниже).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVersionId]);
+  }, [selectedVersionId, draftStorageKey, hasPort, hashMismatch]);
 
   useEffect(() => {
     if (focus) setLocalSelection(focus);
@@ -243,11 +264,6 @@ export function StateGraphWorkspace({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectionKey]);
 
-  const hashMismatch = useMemo(
-    () =>
-      version ? computeSpecHash(version.spec) !== version.spec_hash : false,
-    [version],
-  );
 
   const projectionResult = useMemo(
     () => (spec ? projectModel(spec, projectionIds, maxNodes) : null),
@@ -321,12 +337,15 @@ export function StateGraphWorkspace({
 
   const startDraft = () => {
     if (!version) return;
-    setDraft({ base: version, spec: version.spec, revision: 0 });
+    const nextDraft = { base: version, spec: version.spec, revision: 0 };
+    saveGraphDraft(draftStorageKey, nextDraft);
+    setDraft(nextDraft);
     setSave({ phase: "idle" });
     setDraftError(null);
   };
   const discardDraft = () => {
     saveController.current?.abort();
+    deleteGraphDraft(draftStorageKey);
     setDraft(null);
     setEditingTransition(null);
     setSave({ phase: "idle" });
@@ -336,7 +355,9 @@ export function StateGraphWorkspace({
     if (!draft) return;
     try {
       const next = actions.reduce(applyDraftAction, draft.spec);
-      setDraft({ ...draft, spec: next, revision: draft.revision + 1 });
+      const nextDraft = { ...draft, spec: next, revision: draft.revision + 1 };
+      saveGraphDraft(draftStorageKey, nextDraft);
+      setDraft(nextDraft);
       setDraftError(null);
       return true;
     } catch (error) {
@@ -373,6 +394,7 @@ export function StateGraphWorkspace({
           `Сервер создал версию ${created.number} от другой родительской версии`,
         );
       }
+      deleteGraphDraft(draftStorageKey);
       setDraft(null);
       setEditingTransition(null);
       setSave({ phase: "idle" });
@@ -685,6 +707,10 @@ export function StateGraphWorkspace({
     return null;
   })();
 
+  const isEditingTransition = Boolean(
+    draft && selectedTransition && editingTransition === selectedTransition.id,
+  );
+
   const stepCard =
     inspector === "full" && trace && trace.analysis.steps[traceIndex] ? (
       <StepState
@@ -696,7 +722,14 @@ export function StateGraphWorkspace({
     ) : null;
 
   return (
-    <div className={cx("pv-root", "pv-workspace", className)}>
+    <div
+      className={cx(
+        "pv-root",
+        "pv-workspace",
+        isEditingTransition && "is-editing-transition",
+        className,
+      )}
+    >
       <div className="pv-toolbar" role="toolbar" aria-label="Диаграмма">
         {showVersionPicker && (
           <label className="pv-select">
@@ -1058,6 +1091,7 @@ export function StateGraphWorkspace({
           className={cx(
             "pv-inspector",
             inspectorContent && stepCard && "has-two",
+            isEditingTransition && "is-editor",
           )}
         >
           {inspectorContent}
