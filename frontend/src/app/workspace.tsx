@@ -42,6 +42,15 @@ export interface TraceFocus {
   focus: number | null;
 }
 
+export interface WorkspaceLocation {
+  modelId?: string;
+  version?: number;
+  view?: string;
+  check?: string;
+  property?: string;
+  step?: number;
+}
+
 export interface WorkspaceContextValue {
   api: ProveryalkaApi;
   capabilities: ApiCapabilities;
@@ -63,6 +72,7 @@ export interface WorkspaceContextValue {
   discussFile?(ref: FileContextRef): void;
   openGeneratedFile?(ref: FileContextRef): void;
   openView(viewId: string): void;
+  openLocation(target: WorkspaceLocation): void;
 }
 
 export const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);

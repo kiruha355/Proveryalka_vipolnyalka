@@ -11,7 +11,7 @@ import { indexRequirements } from "../domain/requirements";
 import { traceRole } from "../domain/status";
 import { buildSteps, focusIndex } from "../domain/trace";
 import { useSessionWorkspace } from "../state/useSessionWorkspace";
-import type { ModelGroup } from "../state/types";
+import type { Loadable, ModelGroup } from "../state/types";
 import { ChatPanel } from "./chat/ChatPanel";
 import type { ComposerHandle } from "./chat/Composer";
 import { ErrorNotice, QuietStatus } from "./Notice";
@@ -25,11 +25,54 @@ interface Props {
   listed: Session | undefined;
   route: Route;
   navigate(route: Route, options?: { replace?: boolean }): void;
+  onReturnToChats?: () => void;
 }
+
+export type VersionResolution =
+  | { status: "loading"; version: null }
+  | { status: "error"; version: null }
+  | { status: "missing"; version: null; requestedModelId?: string; requestedVersion?: number }
+  | { status: "ready"; version: ModelVersion | null };
 
 export function defaultVersion(groups: ModelGroup[]): ModelVersion | null {
   const group = groups.find((g) => g.versions.length > 0);
   return group ? group.versions[group.versions.length - 1] ?? null : null;
+}
+
+export function resolveVersionState(
+  route: Route,
+  models: Loadable<ModelGroup[]>,
+  versions: ModelVersion[],
+): VersionResolution {
+  const groups = models.data ?? [];
+  const hasExplicitTarget = Boolean(route.modelId) || route.version !== undefined;
+
+  if (!hasExplicitTarget) {
+    if (models.loading && !models.data) return { status: "loading", version: null };
+    if (models.error !== null && !models.data) return { status: "error", version: null };
+    return { status: "ready", version: defaultVersion(groups) };
+  }
+
+  let matched: ModelVersion | undefined;
+  if (route.modelId && route.version !== undefined) {
+    matched = versions.find((v) => v.model_id === route.modelId && v.number === route.version);
+  } else if (route.modelId) {
+    const group = groups.find((g) => g.model.id === route.modelId);
+    matched = group && group.versions.length > 0 ? group.versions[group.versions.length - 1] : undefined;
+  } else if (route.version !== undefined) {
+    const matches = versions.filter((v) => v.number === route.version);
+    matched = matches.length === 1 ? matches[0] : undefined;
+  }
+
+  if (matched) return { status: "ready", version: matched };
+  if (models.loading) return { status: "loading", version: null };
+  if (models.error !== null) return { status: "error", version: null };
+  return {
+    status: "missing",
+    version: null,
+    requestedModelId: route.modelId,
+    requestedVersion: route.version,
+  };
 }
 
 export function resolveTrace(version: ModelVersion | null, checks: WorkspaceContextValue["checks"], route: Route): TraceFocus | null {
@@ -47,13 +90,15 @@ export function resolveTrace(version: ModelVersion | null, checks: WorkspaceCont
   return { check, result, property, role, steps, step, focus };
 }
 
-export function SessionView({ api, capabilities, sessionId, listed, route, navigate }: Props) {
+export function SessionView({ api, capabilities, sessionId, listed, route, navigate, onReturnToChats }: Props) {
   const chatPane = usePaneWidth("proveryalka:chat-width", .36, 250, 390, .65);
   const lifetime = useRef(new AbortController());
   useEffect(() => {const controller = new AbortController(); lifetime.current = controller; return () => controller.abort();}, []);
   const routeRef = useRef(route);
   routeRef.current = route;
-  const [pane, setPane] = useState<"chat" | "workspace">("chat");
+  const [pane, setPane] = useState<"chat" | "workspace">(() =>
+    route.view || route.check || route.modelId || route.version !== undefined ? "workspace" : "chat",
+  );
   const [element, setElement] = useState<ElementRef | null>(null);
   const [fileContext, setFileContext] = useState<FileContextRef | null>(()=>loadLocal(api.id,sessionId).draftFileContext ?? null);
   const fileReply = (ref: FileContextRef | null) => {setFileContext(ref); updateLocal(api.id, sessionId, local=>({...local,draftFileContext:ref}));};
@@ -68,7 +113,9 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   const composer = useRef<ComposerHandle>(null);
 
   const go = useCallback((patch: Partial<Route>) => {
-    navigate({ ...routeRef.current, ...patch, sessionId }, { replace: true });
+    const next: Route = { ...routeRef.current, ...patch, sessionId, error: undefined };
+    routeRef.current = next;
+    navigate(next, { replace: true });
   }, [navigate, sessionId]);
 
   const workspace = useSessionWorkspace({
@@ -77,10 +124,35 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   });
 
   const groups = workspace.models.data ?? [];
-  const routed = route.modelId && route.version !== undefined
-    ? workspace.versions.find((v) => v.model_id === route.modelId && v.number === route.version)
-    : undefined;
-  const version = routed ?? defaultVersion(groups);
+  const versionState = useMemo(
+    () => resolveVersionState(route, workspace.models, workspace.versions),
+    [route, workspace.models, workspace.versions],
+  );
+  const version = versionState.version;
+  const fallbackVersion = useMemo(() => defaultVersion(groups), [groups]);
+
+  useEffect(() => {
+    if (versionState.status === "missing") setPane("workspace");
+  }, [versionState.status]);
+
+  const openFallback = useCallback(() => {
+    if (!fallbackVersion) return;
+    setElement(null);
+    go({
+      modelId: fallbackVersion.model_id,
+      version: fallbackVersion.number,
+      check: undefined,
+      property: undefined,
+      step: undefined,
+    });
+    setPane("workspace");
+  }, [fallbackVersion, go]);
+
+  const returnToChats = useCallback(() => {
+    if (onReturnToChats) onReturnToChats();
+    else navigate({ sessionId: null });
+  }, [onReturnToChats, navigate]);
+
   const session: Session | undefined = workspace.detail.data ?? listed;
   const checks = useMemo(() => (version ? workspace.checks.filter((c) => c.versionId === version.id) : []), [version, workspace.checks]);
   const trace = resolveTrace(version, checks, route);
@@ -100,7 +172,9 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
       selection: {
         versionId: version?.id ?? null,
         element,
-        trace: trace ? { checkRunId: trace.check.runId, propertyId: trace.result.property_id, step: trace.step } : (route.check && route.property ? { checkRunId: route.check, propertyId: route.property, step: route.step ?? 0 } : null),
+        trace: trace
+          ? { checkRunId: trace.check.runId, propertyId: trace.result.property_id, step: trace.step }
+          : (route.check ? { checkRunId: route.check, propertyId: route.property ?? "", step: route.step ?? 0 } : null),
       },
       select: (next) => {
         setElement(next);
@@ -143,6 +217,23 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
         go({ view: viewId });
         setPane("workspace");
       },
+      openLocation: (target) => {
+        const nextVersion = target.modelId && target.version !== undefined
+          ? workspace.versions.find((v) => v.model_id === target.modelId && v.number === target.version)
+          : undefined;
+        if (nextVersion && nextVersion.id !== version?.id) {
+          setElement(null);
+        }
+        const patch: Partial<Route> = {};
+        if ("modelId" in target) patch.modelId = target.modelId;
+        if ("version" in target) patch.version = target.version;
+        if ("view" in target) patch.view = target.view;
+        if ("check" in target) patch.check = target.check;
+        if ("property" in target) patch.property = target.property;
+        if ("step" in target) patch.step = target.step;
+        go(patch);
+        setPane("workspace");
+      },
     };
   }, [api, capabilities, session, workspace.versions, version, requirements, checks, trace, element, route.check, route.property, route.step, go]);
 
@@ -177,7 +268,12 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
       <div className="session session--loading">
         {workspace.detail.error !== null
           ? <ErrorNotice error={workspace.detail.error} title="Сессия не загружена"
-              action={<button type="button" className="button button--small" onClick={workspace.reloadDetail}>Повторить</button>} />
+              action={
+                <>
+                  <button type="button" className="button button--small" onClick={workspace.reloadDetail}>Повторить</button>
+                  <button type="button" className="button button--small button--ghost" onClick={returnToChats}>Вернуться к чатам</button>
+                </>
+              } />
           : <QuietStatus busy>Загрузка сессии</QuietStatus>}
       </div>
     );
@@ -193,7 +289,14 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
           </div>
           <ChatPanel fileContext={fileContext} onClearFile={()=>fileReply(null)} context={context} replyQuestionId={reply} onReply={setReply} composerRef={composer} />
           <PaneSeparator pane={chatPane} label="Ширина чата"/>
-          <WorkspacePanel context={context} viewId={route.view} />
+          <WorkspacePanel
+            context={context}
+            viewId={route.view}
+            versionState={versionState}
+            fallbackVersion={fallbackVersion}
+            onOpenFallback={openFallback}
+            onReturnToChats={returnToChats}
+          />
         </div>
       </WorkspaceContext.Provider>
     </CoreContext.Provider>

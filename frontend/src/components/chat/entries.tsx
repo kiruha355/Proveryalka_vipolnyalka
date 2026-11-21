@@ -110,7 +110,18 @@ export function AnalysisEntry({ state, isLatest, time, versions, context, replyQ
       )}
       <div className="msg__links">
         {version ? (
-          <button type="button" className="text-link" onClick={() => { context.selectVersion(version.id); context.openView("model"); }}>
+          <button
+            type="button"
+            className="text-link"
+            onClick={() => context.openLocation({
+              modelId: version.model_id,
+              version: version.number,
+              view: "model",
+              ...(version.id !== context.version?.id
+                ? { check: undefined, property: undefined, step: undefined }
+                : {}),
+            })}
+          >
             Открыть модель · версия {version.number}
           </button>
         ) : model && isLatest ? (
@@ -138,9 +149,14 @@ export function CheckCard({ check, version, modelName, context, onCancel }: Chec
   const summary = summarizeResults(results);
   const violated = results.find((r) => r.status === "PROPERTY_VIOLATED" && r.trace.length > 0);
   const show = (propertyId: string) => {
-    if (version) context.selectVersion(version.id);
-    context.focusTrace({ checkRunId: check.runId, propertyId });
-    context.openView("check");
+    context.openLocation({
+      modelId: version?.model_id ?? check.modelId,
+      version: version?.number ?? check.number,
+      check: check.runId,
+      property: propertyId,
+      step: undefined,
+      view: "check",
+    });
   };
 
   let scenario: ReactNode = null;

@@ -3,6 +3,8 @@ import { useCore } from "../../app/core";
 import { workspaceViews, type WorkspaceViewDefinition } from "../../app/extensions";
 import type { WorkspaceContextValue } from "../../app/workspace";
 import { describeError } from "../../api/errors";
+import type { ModelVersion } from "../../api/types";
+import type { VersionResolution } from "../SessionView";
 import { ErrorNotice, QuietStatus } from "../Notice";
 import { Check } from "../icons";
 import { ModelIssues } from "../views/ModelView";
@@ -12,6 +14,23 @@ import { Inspector } from "./Inspector";
 interface Props {
   context: WorkspaceContextValue;
   viewId: string | undefined;
+  versionState: VersionResolution;
+  fallbackVersion: ModelVersion | null;
+  onOpenFallback(): void;
+  onReturnToChats(): void;
+}
+
+function missingVersionDetail(state: Extract<VersionResolution, { status: "missing" }>): string {
+  if (state.requestedModelId && state.requestedVersion !== undefined) {
+    return `В этой сессии нет модели «${state.requestedModelId}» версии ${state.requestedVersion}.`;
+  }
+  if (state.requestedModelId) {
+    return `В этой сессии нет модели «${state.requestedModelId}».`;
+  }
+  if (state.requestedVersion !== undefined) {
+    return `В этой сессии нет версии ${state.requestedVersion}.`;
+  }
+  return "Запрошенная модель или версия отсутствует в этой сессии.";
 }
 
 function VersionPicker({ context }: { context: WorkspaceContextValue }) {
@@ -58,12 +77,17 @@ function Approval({ context }: { context: WorkspaceContextValue }) {
   );
 }
 
-export function WorkspacePanel({ context, viewId }: Props) {
+export function WorkspacePanel({ context, viewId, versionState, fallbackVersion, onOpenFallback, onReturnToChats }: Props) {
   const core = useCore();
   const { workspace } = core;
+  const isMissingVersion = versionState.status === "missing";
+  const isLoadingVersion = versionState.status === "loading";
+  const isReady = versionState.status === "ready";
   const views = workspaceViews().filter((v) => (v.available ? v.available(context) : true));
   const active: WorkspaceViewDefinition | undefined = views.find((v) => v.id === viewId) ?? (context.version ? views.find(v => v.id === "diagram") : undefined) ?? views.find((v) => v.id === (context.version ? "model" : "requirements")) ?? views[0];
-  const title = context.version?.spec.name ?? core.history?.dialogue?.analysis.subject ?? "Рабочая область";
+  const title = isMissingVersion
+    ? "Версия не найдена"
+    : context.version?.spec.name ?? core.history?.dialogue?.analysis.subject ?? "Рабочая область";
   const dialogue = core.history?.dialogue;
 
   const onTabKey = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -107,7 +131,7 @@ export function WorkspacePanel({ context, viewId }: Props) {
               : undefined} />
         )}
         {workspace.approveError !== null && <p className="warn-text" role="alert">Модель не подтверждена: {describeError(workspace.approveError)}</p>}
-        {views.length > 0 && !nothing && (
+        {isReady && views.length > 0 && !nothing && (
           <div className="tabs" role="tablist" aria-label="Разделы рабочей области" onKeyDown={onTabKey}>
             {views.map((view) => {
               const Icon = view.icon;
@@ -124,13 +148,33 @@ export function WorkspacePanel({ context, viewId }: Props) {
         )}
       </header>
 
-      <div className={`workspace__body${active?.id === "diagram" ? " workspace__body--diagram" : ""}`}>
-        {workspace.models.error !== null && !workspace.models.data && (
+      <div className={`workspace__body${isReady && active?.id === "diagram" ? " workspace__body--diagram" : ""}`}>
+        {versionState.status === "error" && (
           <ErrorNotice error={workspace.models.error} title="Модели не загружены"
             action={<button type="button" className="button button--small" onClick={workspace.reloadModels}>Повторить</button>} />
         )}
-        {workspace.models.loading && !workspace.models.data && <QuietStatus busy>Загрузка модели</QuietStatus>}
-        {nothing && workspace.models.data && (
+        {isLoadingVersion && (
+          <QuietStatus busy>Загрузка модели</QuietStatus>
+        )}
+        {isMissingVersion && (
+          <ErrorNotice
+            title="Запрошенная версия модели не найдена"
+            detail={missingVersionDetail(versionState)}
+            action={
+              <>
+                {fallbackVersion && (
+                  <button type="button" className="button button--small" onClick={onOpenFallback}>
+                    Открыть последнюю версию (v{fallbackVersion.number})
+                  </button>
+                )}
+                <button type="button" className="button button--small button--ghost" onClick={onReturnToChats}>
+                  Вернуться к чатам
+                </button>
+              </>
+            }
+          />
+        )}
+        {isReady && nothing && workspace.models.data && (
           <div className="view view--empty">
             <div className="empty">
               <h2 className="empty__title">Модель появится здесь</h2>
@@ -138,16 +182,16 @@ export function WorkspacePanel({ context, viewId }: Props) {
             </div>
           </div>
         )}
-        {!context.version && dialogue && (
+        {isReady && !context.version && dialogue && (
           <ModelIssues issues={dialogue.analysis.model_issues} missing={dialogue.analysis.missing_information} />
         )}
-        {ActiveView && !nothing && (
+        {isReady && ActiveView && !nothing && (
           <div role="tabpanel" id={`panel-${active!.id}`} aria-labelledby={`tab-${active!.id}`} className={`workspace__view${active!.id === "files" ? " workspace__view--files" : active!.id === "diagram" ? " workspace__view--diagram" : ""}`}>
             <ActiveView context={context} />
           </div>
         )}
       </div>
-      <Inspector context={context} />
+      {isReady && <Inspector context={context} />}
     </section>
   );
 }
