@@ -12,6 +12,10 @@ class StoredSession:
     async def get_items(self, limit=None):
         return await asyncio.to_thread(self.store.history, self.session_id, limit)
 
+    async def image_observations(self, sources):
+        from ..images.evidence import dialogue_observations
+        return await asyncio.to_thread(dialogue_observations, self.store, self.session_id, sources)
+
     async def add_items(self, items):
         await asyncio.to_thread(self.store.append_messages, self.session_id, items)
 

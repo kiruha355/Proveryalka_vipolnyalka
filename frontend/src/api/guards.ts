@@ -16,7 +16,8 @@ export const isSession: Guard<Session> = (v): v is Session =>
   isObject(v) && isString(v.id) && isString(v.title) && isString(v.mode) && isString(v.created_at);
 
 export const isSessionDetail: Guard<SessionDetail> = (v): v is SessionDetail =>
-  isObject(v) && isSession(v) && Array.isArray(v.messages) && Array.isArray(v.sources) && Array.isArray(v.requirements);
+  isObject(v) && isSession(v) && Array.isArray(v.messages) && Array.isArray(v.sources) && Array.isArray(v.requirements)
+  && (v.linked_source_ids === undefined || (Array.isArray(v.linked_source_ids) && v.linked_source_ids.every(isString)));
 
 export const isRun: Guard<Run> = (v): v is Run =>
   isObject(v) && isString(v.run_id) && isString(v.session_id) && isString(v.state) && RUN_STATES.has(v.state);

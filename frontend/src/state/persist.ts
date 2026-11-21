@@ -24,6 +24,7 @@ export interface CheckRunRecord {
 export interface Outbox {
   fileContext?: FileContextRef | null;
   sourceId?: string;
+  imageAnalysis?: { sourceId: string; analysisId: string };
   pendingRetry?: boolean;
   text: string;
   questionId: string | null;
@@ -37,6 +38,7 @@ export interface Outbox {
 }
 
 export interface SessionLocal {
+  openImageId?: string | null;
   draftQuestionId?: string | null;
   draftFileContext?: FileContextRef | null;
   agentRuns: AgentRunRecord[];
@@ -61,6 +63,7 @@ export function loadLocal(apiId: string, sessionId: string): SessionLocal {
       agentRuns: Array.isArray(value.agentRuns) ? value.agentRuns : [],
       checkRuns: Array.isArray(value.checkRuns) ? value.checkRuns : [],
       draftFileContext: value.draftFileContext ?? null,
+      openImageId: typeof value.openImageId === "string" ? value.openImageId : null,
       draftQuestionId: typeof value.draftQuestionId === "string" ? value.draftQuestionId : null,
       draft: typeof value.draft === "string" ? value.draft : "",
       outbox: value.outbox && typeof value.outbox.key === "string" ? value.outbox : null,

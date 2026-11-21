@@ -7,6 +7,7 @@ import { PROPERTY_KIND } from "../../domain/status";
 import { diffModels, sameJson, type ElementChange } from "../../domain/versionDiff";
 import { Expr, Val } from "../Expr";
 import { RequirementChips } from "../RequirementChips";
+import { ImageQuote } from "../images/ImageCitation";
 
 const SECTION_LABEL: Record<ElementChange["section"], string> = {
   requirements: "Требование", variables: "Переменная", transitions: "Переход", properties: "Свойство",
@@ -185,7 +186,8 @@ export function ModelView({ context }: WorkspaceViewProps) {
                         <p>{PROPERTY_KIND[p.kind].label}</p>
                         {p.origin === "proposal" && <p>{p.approved_by ? "Предположение агента подтверждено:" : "Предположение агента — ожидает подтверждения"}</p>}
                         {p.approved_by && <q>{p.approved_by.quote}</q>}
-                        {p.origin !== "proposal" && p.requirement_ids.flatMap(id => spec.requirements.find(r => r.id === id)?.source_refs ?? []).map((ref,i) => <p key={i}><q>{ref.quote}</q> <code>{ref.source_id}</code></p>)}
+                        {p.origin !== "proposal" && p.requirement_ids.flatMap(id => spec.requirements.find(r => r.id === id)?.source_refs ?? []).map((ref,i) =>
+                          <p key={i}><ImageQuote citation={ref} fallback={<><q>{ref.quote}</q> <code>{ref.source_id}</code></>} /></p>)}
                         {p.origin !== "proposal" && p.requirement_ids.length === 0 && <p className="warn-text">Источник правила не указан</p>}
                       </details>
                     </td>

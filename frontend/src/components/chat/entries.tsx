@@ -14,7 +14,7 @@ import { Expr, Val } from "../Expr";
 import { StatusBadge } from "../StatusBadge";
 import { Doc, Shield, Stop } from "../icons";
 
-export function UserBubble({ text, time, children }: { text: string; time?: string | null; children?: ReactNode }) {
+export function UserBubble({ text, time, children }: { text: ReactNode; time?: string | null; children?: ReactNode }) {
   return (
     <li className="msg msg--user">
       <div className="msg__bubble">

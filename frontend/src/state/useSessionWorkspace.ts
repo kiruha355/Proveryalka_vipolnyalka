@@ -201,6 +201,7 @@ export interface SessionWorkspace {
   dialogue: DialogueView | null;
   discardPending(): Promise<void>;
   analyzeDocument(document: DocumentSource): Promise<boolean>;
+  useImageAnalysis(sourceId: string, analysisId: string, label: string): Promise<boolean>;
   retryExplanation(runId: string): Promise<void>;
   history: ParsedHistory | null;
   models: Loadable<ModelGroup[]>;
@@ -509,14 +510,22 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     updateLocal(api.id, sessionId, (local) => ({ ...local, outbox }));
     setSend({ sending: true, outbox, error: null });
     try {
-      const body = outbox.fileContext ? {text: outbox.text, file_context: {generation_id:outbox.fileContext.generation_id, version_id:outbox.fileContext.version_id, path:outbox.fileContext.path, sha256:outbox.fileContext.sha256}} : outbox.sourceId ? {source_id: outbox.sourceId} : outbox.questionId ? { text: outbox.text, question_id: outbox.questionId } : { text: outbox.text };
-      const run = outbox.pendingRetry && api.retryPending
-        ? await api.retryPending(sessionId, outbox.key, root.current.signal)
-        : await api.sendMessage(sessionId, body, outbox.key, root.current.signal);
+      const signal = root.current.signal;
+      let run: Run;
+      if (outbox.imageAnalysis) {
+        if (!api.useImageAnalysisInDialogue) throw new ApiError("unsupported", "Сервер не поддерживает разбор изображений в диалоге.");
+        const { sourceId, analysisId } = outbox.imageAnalysis;
+        run = await api.useImageAnalysisInDialogue(sessionId, sourceId, analysisId, outbox.key, signal);
+      } else {
+        const body = outbox.fileContext ? {text: outbox.text, file_context: {generation_id:outbox.fileContext.generation_id, version_id:outbox.fileContext.version_id, path:outbox.fileContext.path, sha256:outbox.fileContext.sha256}} : outbox.sourceId ? {source_id: outbox.sourceId} : outbox.questionId ? { text: outbox.text, question_id: outbox.questionId } : { text: outbox.text };
+        run = outbox.pendingRetry && api.retryPending
+          ? await api.retryPending(sessionId, outbox.key, signal)
+          : await api.sendMessage(sessionId, body, outbox.key, signal);
+      }
       if (root.current.signal.aborted) return false;
       const record: AgentRunRecord = { runId: run.run_id, text: outbox.text, questionId: outbox.questionId, startedAt: new Date().toISOString() };
       updateLocal(api.id, sessionId, (local) => ({
-        ...local, outbox: null, draft: "",
+        ...local, outbox: null, draft: outbox.imageAnalysis ? local.draft : "",
         agentRuns: local.agentRuns.some((r) => r.runId === run.run_id) ? local.agentRuns : [...local.agentRuns, record],
       }));
       dispatch({ type: "agent/add", view: { ...agentView(record, sessionId), run } });
@@ -582,6 +591,10 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   }, [api, sessionId, reloadDetail]);
   const analyzeDocument = useCallback((document: DocumentSource) => dispatchSend({text: document.text ?? document.filename,
     questionId: null, sourceId: document.id, key: newKey()}), [dispatchSend]);
+  const useImageAnalysis = useCallback((sourceId: string, analysisId: string, label: string) => {
+    if (!api.useImageAnalysisInDialogue || send.outbox) return Promise.resolve(false);
+    return dispatchSend({ text: label, questionId: null, imageAnalysis: { sourceId, analysisId }, key: newKey() });
+  }, [api, dispatchSend, send.outbox]);
   const retryExplanation = useCallback(async (runId: string) => {
     if (!api.retryExplanation || explainingRef.current.has(runId)) return;
     explainingRef.current.add(runId);
@@ -704,7 +717,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const checks = runs.checkOrder.map((id) => runs.checks[id]).filter((v): v is CheckRunView => Boolean(v)).reverse();
 
   return {
-    detail, dialogue, discardPending, analyzeDocument, retryExplanation, history, models, versions, agentRuns, agentTraceHistory, loadOlderAgentRuns, reloadAgentRuns, activeAgentRun, lastAgentRun, checks,
+    detail, dialogue, discardPending, analyzeDocument, useImageAnalysis, retryExplanation, history, models, versions, agentRuns, agentTraceHistory, loadOlderAgentRuns, reloadAgentRuns, activeAgentRun, lastAgentRun, checks,
     send, sendMessage, retryOutbox, discardOutbox, retryPending, cancelAgent,
     checkStart, startCheck, cancelCheck, reconnect, approve, approveError,
     reloadDetail, reloadModels, loadArtifacts, upload, uploadDocument,

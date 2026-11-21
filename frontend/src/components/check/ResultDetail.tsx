@@ -7,6 +7,7 @@ import { Expr } from "../Expr";
 import { RequirementChips } from "../RequirementChips";
 import { StatusBadge } from "../StatusBadge";
 import { FactualExplanation, TraceView } from "./TraceView";
+import { ImageQuote } from "../images/ImageCitation";
 
 export interface Narrative {
   summary: string;
@@ -110,10 +111,17 @@ export function ResultDetail({ version, result, focus, requirements, narrative, 
           <ul className="req-list">
             {result.related_requirements.map((id) => {
               const requirement = requirements?.byId.get(id);
+              const singleQuote = requirement?.source_refs.length === 1 && requirement.source_refs[0]?.quote === requirement.text
+                ? requirement.source_refs[0] : undefined;
               return (
                 <li key={id}>
                   <RequirementChips ids={[id]} index={requirements} onSelect={(rid) => onSelect({ kind: "requirement", id: rid })} />
-                  <span>{requirement ? requirement.text : <span className="warn-text">нет в каталоге требований этой версии</span>}</span>
+                  {singleQuote
+                    ? <ImageQuote citation={singleQuote} fallback={<span>{singleQuote.quote}</span>} />
+                    : <>
+                      <span>{requirement ? requirement.text : <span className="warn-text">нет в каталоге требований этой версии</span>}</span>
+                      {requirement?.source_refs.map(ref => <ImageQuote key={`${ref.source_id}:${ref.start}`} citation={ref} fallback={false} />)}
+                    </>}
                 </li>
               );
             })}

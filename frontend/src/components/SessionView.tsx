@@ -17,6 +17,7 @@ import type { ComposerHandle } from "./chat/Composer";
 import { ErrorNotice, QuietStatus } from "./Notice";
 import { PaneSeparator, usePaneWidth } from "./PaneSeparator";
 import { WorkspacePanel } from "./workspace/WorkspacePanel";
+import { ImageCitationProvider } from "./images/ImageCitation";
 
 interface Props {
   api: ProveryalkaApi;
@@ -186,6 +187,7 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   return (
     <CoreContext.Provider value={core}>
       <WorkspaceContext.Provider value={context}>
+        <ImageCitationProvider api={api} sessionId={sessionId} linkedIds={capabilities.images ? workspace.detail.data?.linked_source_ids : undefined}>
         <div ref={chatPane.container} style={chatPane.style} className={`session session--${pane}`}>
           <div className="pane-switch" role="group" aria-label="Панель">
             <button type="button" aria-pressed={pane === "chat"} onClick={() => setPane("chat")}>Чат</button>
@@ -195,6 +197,7 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
           <PaneSeparator pane={chatPane} label="Ширина чата"/>
           <WorkspacePanel context={context} viewId={route.view} />
         </div>
+        </ImageCitationProvider>
       </WorkspaceContext.Provider>
     </CoreContext.Provider>
   );
