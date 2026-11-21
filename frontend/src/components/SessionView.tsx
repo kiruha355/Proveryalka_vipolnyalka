@@ -17,6 +17,8 @@ import type { ComposerHandle } from "./chat/Composer";
 import { ErrorNotice, QuietStatus } from "./Notice";
 import { PaneSeparator, usePaneWidth } from "./PaneSeparator";
 import { WorkspacePanel } from "./workspace/WorkspacePanel";
+import { RepositoryCitations } from "./repositories/RepositoryCitation";
+import { SessionRepositoryAction } from "./repositories/SessionRepositoryAction";
 
 interface Props {
   api: ProveryalkaApi;
@@ -186,15 +188,20 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   return (
     <CoreContext.Provider value={core}>
       <WorkspaceContext.Provider value={context}>
+        <RepositoryCitations api={capabilities.repositoryContent && capabilities.sourceProvenance ? api.repositories : undefined}
+          sessionId={sessionId} linkedSourceIds={workspace.detail.data?.linked_source_ids}>
         <div ref={chatPane.container} style={chatPane.style} className={`session session--${pane}`}>
           <div className="pane-switch" role="group" aria-label="Панель">
             <button type="button" aria-pressed={pane === "chat"} onClick={() => setPane("chat")}>Чат</button>
             <button type="button" aria-pressed={pane === "workspace"} onClick={() => setPane("workspace")}>Модель и проверка</button>
           </div>
-          <ChatPanel fileContext={fileContext} onClearFile={()=>fileReply(null)} context={context} replyQuestionId={reply} onReply={setReply} composerRef={composer} />
+          <ChatPanel fileContext={fileContext} onClearFile={()=>fileReply(null)} context={context} replyQuestionId={reply} onReply={setReply} composerRef={composer}
+            repositoryAction={<SessionRepositoryAction api={api} capabilities={capabilities} sessionId={sessionId} snapshotId={route.snapshotId}
+              onSelect={snapshotId => go({ snapshotId })} workspace={workspace} />} />
           <PaneSeparator pane={chatPane} label="Ширина чата"/>
           <WorkspacePanel context={context} viewId={route.view} />
         </div>
+        </RepositoryCitations>
       </WorkspaceContext.Provider>
     </CoreContext.Provider>
   );

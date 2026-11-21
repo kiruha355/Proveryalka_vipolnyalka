@@ -7,6 +7,7 @@ import { loadLocal, updateLocal } from "../state/persist";
 import { Composer, type ComposerHandle } from "./chat/Composer";
 import { PaneSeparator, usePaneWidth } from "./PaneSeparator";
 import { ErrorNotice } from "./Notice";
+import { NewRepository } from "./repositories/NewRepository";
 
 const NEW = "__new__";
 
@@ -24,7 +25,7 @@ export function titleFrom(text: string): string {
 interface Props {
   api: ProveryalkaApi;
   capabilities: ApiCapabilities | null;
-  onCreated(session: Session): void;
+  onCreated(session: Session, snapshotId?: string): void;
 }
 
 export function NewChat({ api, capabilities, onCreated }: Props) {
@@ -114,6 +115,13 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
           onChange={(value) => { setDraft(value); updateLocal(api.id, NEW, (local) => ({ ...local, draft: value })); }}
           onSubmit={() => void start()} busy={busy} blockedReason={blocked}
           attach={capabilities?.documents ? {busy, onFile: file => void attach(file)} : null}
+          footer={capabilities?.repositories && api.repositories ? <NewRepository api={api} repositories={api.repositories}
+            connections={capabilities.gitConnections ? api.gitConnections : undefined} disabled={busy}
+            onImported={(session, snapshotId) => {
+              updateLocal(api.id, session.id, local => ({ ...local, draft }));
+              updateLocal(api.id, NEW, local => ({ ...local, draft: "", outbox: null }));
+              onCreated(session, snapshotId);
+            }} /> : undefined}
           placeholder="Например: заявку можно согласовать, отменить или исполнить…" />
       </div>
     </section>

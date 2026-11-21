@@ -1,6 +1,7 @@
 import type {
   AgentRunTracePage, ArtifactEntry, FileContextRef, DocumentSource, DialogueView, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session, SessionDetail,
 } from "./types";
+import type { GitConnectionsApi, RepositoryApi } from "./repositories";
 
 export interface ApiCapabilities {
   /** "demo" data comes from recorded fixtures; never a live LLM or TLC. */
@@ -21,6 +22,12 @@ export interface ApiCapabilities {
   explanations?: boolean;
   fileDialogue?: boolean;
   agentTrace?: boolean;
+  repositories?: boolean;
+  repositoryPlan?: boolean;
+  repositoryContent?: boolean;
+  sourceProvenance?: boolean;
+  sourceAttachments?: boolean;
+  gitConnections?: boolean;
 }
 
 export const DOCUMENT_TYPES = [".txt", ".md", ".docx"] as const;
@@ -39,6 +46,8 @@ export interface MessageBody {
 export interface ProveryalkaApi {
   /** Namespace for client-side persistence (run ids, drafts). */
   readonly id: string;
+  readonly repositories?: RepositoryApi;
+  readonly gitConnections?: GitConnectionsApi;
   capabilities(signal?: AbortSignal): Promise<ApiCapabilities>;
   ready(signal?: AbortSignal): Promise<ReadyInfo>;
 

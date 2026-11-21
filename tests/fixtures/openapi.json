@@ -622,7 +622,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RepositorySelection"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RepositorySelection"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RepositorySelectionRequest"
+                  }
+                ],
+                "title": "Body"
               }
             }
           }
@@ -634,6 +642,143 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RepositoryContext"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "repositories"
+        ],
+        "summary": "Latest Context",
+        "operationId": "latest_context_api_sessions__session_id__repositories__snapshot_id__context_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/RepositoryContextSummary"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Latest Context Api Sessions  Session Id  Repositories  Snapshot Id  Context Get"
                 }
               }
             }
@@ -774,7 +919,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RepositorySelection"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RepositorySelection"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RepositorySelectionRequest"
+                  }
+                ],
+                "title": "Body"
               }
             }
           }
@@ -786,6 +939,176 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Run"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/api/sessions/{session_id}/repositories/{snapshot_id}/files/content": {
+      "get": {
+        "tags": [
+          "repositories"
+        ],
+        "summary": "File Content",
+        "operationId": "file_content_api_sessions__session_id__repositories__snapshot_id__files_content_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "title": "Path"
+            }
+          },
+          {
+            "name": "start_line",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Start Line"
+            }
+          },
+          {
+            "name": "end_line",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Line"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryContent"
                 }
               }
             }
@@ -7433,6 +7756,48 @@
         ],
         "title": "PropertyVerification"
       },
+      "RepositoryContent": {
+        "properties": {
+          "commit_sha": {
+            "type": "string",
+            "title": "Commit Sha"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "start_line": {
+            "type": "integer",
+            "title": "Start Line"
+          },
+          "total_lines": {
+            "type": "integer",
+            "title": "Total Lines"
+          },
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Lines"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "commit_sha",
+          "path",
+          "sha256",
+          "start_line",
+          "total_lines",
+          "lines"
+        ],
+        "title": "RepositoryContent"
+      },
       "RepositoryContext": {
         "properties": {
           "snapshot_id": {
@@ -7468,6 +7833,33 @@
           "source"
         ],
         "title": "RepositoryContext"
+      },
+      "RepositoryContextSummary": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "ranges": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryRange"
+            },
+            "type": "array",
+            "title": "Ranges"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "size_bytes",
+          "ranges"
+        ],
+        "title": "RepositoryContextSummary"
       },
       "RepositoryExcerpt": {
         "properties": {
@@ -7679,6 +8071,46 @@
           "files"
         ],
         "title": "RepositorySelection"
+      },
+      "RepositorySelectionRequest": {
+        "properties": {
+          "manifest_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Manifest Sha256"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryRange"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Files"
+          },
+          "query": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query"
+          },
+          "auto_select": {
+            "type": "boolean",
+            "title": "Auto Select",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "manifest_sha256"
+        ],
+        "title": "RepositorySelectionRequest"
       },
       "RepositorySnapshot": {
         "properties": {

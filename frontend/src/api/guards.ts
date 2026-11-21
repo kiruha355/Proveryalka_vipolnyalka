@@ -8,7 +8,7 @@ import type {
 
 type Guard<T> = (value: unknown) => value is T;
 
-const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+export const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const isString = (v: unknown): v is string => typeof v === "string";
 const RUN_STATES = new Set(["queued", "running", "cancelling", "cancelled", "completed", "failed"]);
 

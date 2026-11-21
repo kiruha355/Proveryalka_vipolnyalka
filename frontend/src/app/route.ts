@@ -11,6 +11,7 @@ export interface Route {
   check?: string;
   property?: string;
   step?: number;
+  snapshotId?: string;
 }
 
 export function parseRoute(hash: string): Route {
@@ -33,6 +34,7 @@ export function parseRoute(hash: string): Route {
     check: str("check"),
     property: str("p"),
     step: int("step"),
+    snapshotId: str("repo"),
   };
 }
 
@@ -45,6 +47,7 @@ export function formatRoute(route: Route): string {
   if (route.check) params.set("check", route.check);
   if (route.property) params.set("p", route.property);
   if (route.step !== undefined) params.set("step", String(route.step));
+  if (route.snapshotId) params.set("repo", route.snapshotId);
   const query = params.toString();
   return `#/s/${encodeURIComponent(route.sessionId)}${query ? `?${query}` : ""}`;
 }

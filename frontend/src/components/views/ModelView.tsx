@@ -1,3 +1,4 @@
+import { RepositoryQuote } from "../repositories/RepositoryCitation";
 import { useCore } from "../../app/core";
 import type { ElementRef } from "../../app/workspace";
 import type { WorkspaceViewProps } from "../../app/extensions";
@@ -185,7 +186,7 @@ export function ModelView({ context }: WorkspaceViewProps) {
                         <p>{PROPERTY_KIND[p.kind].label}</p>
                         {p.origin === "proposal" && <p>{p.approved_by ? "Предположение агента подтверждено:" : "Предположение агента — ожидает подтверждения"}</p>}
                         {p.approved_by && <q>{p.approved_by.quote}</q>}
-                        {p.origin !== "proposal" && p.requirement_ids.flatMap(id => spec.requirements.find(r => r.id === id)?.source_refs ?? []).map((ref,i) => <p key={i}><q>{ref.quote}</q> <code>{ref.source_id}</code></p>)}
+                        {p.origin !== "proposal" && p.requirement_ids.flatMap(id => spec.requirements.find(r => r.id === id)?.source_refs ?? []).map((ref,i) => <p key={i}><RepositoryQuote citation={ref} source={spec.sources.find(source => source.id === ref.source_id)} /> <code>{ref.source_id}</code></p>)}
                         {p.origin !== "proposal" && p.requirement_ids.length === 0 && <p className="warn-text">Источник правила не указан</p>}
                       </details>
                     </td>

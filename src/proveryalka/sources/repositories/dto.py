@@ -60,6 +60,12 @@ class RepositoryExcerpt(RepositoryRange):
     source_end: int
 
 
+class RepositorySelectionRequest(RepositorySelection):
+    files: list[RepositoryRange] = Field(default_factory=list, max_length=20)
+    query: StrictStr | None = Field(default=None, max_length=500)
+    auto_select: bool = Field(default=False, strict=True)
+
+
 class RepositoryContext(Contract):
     snapshot_id: str
     commit_sha: str

@@ -4,6 +4,7 @@ import {
   expect, expectList, isAgentRunTracePage, isDialogueView, isDocumentUpload, isArtifactEntry, isCheckRun, isModel, isModelVersion, isRun, isRunEvent, isSession, isSessionDetail,
 } from "./guards";
 import { readSse } from "./sse";
+import { gitConnectionsHttp, repositoryHttp } from "./repositories";
 import type { CheckRequest, ReadyInfo, RunEvent } from "./types";
 
 type FetchLike = typeof fetch;
@@ -22,6 +23,15 @@ export class HttpApi implements ProveryalkaApi {
   private readonly base: string;
   private readonly fetcher: FetchLike;
   private capabilitiesPromise: Promise<ApiCapabilities> | null = null;
+  private browserAuth = false;
+  readonly repositories = repositoryHttp((method, path, options) => this.request(method, path, options));
+  readonly gitConnections = gitConnectionsHttp(
+    (method, path, options) => this.request(method, path, options),
+    async (path, signal) => {
+      const response = await this.send("DELETE", path, { signal });
+      if (!response.ok) throw await errorFrom(response);
+    },
+  );
 
   constructor(baseUrl = "", fetcher?: FetchLike) {
     this.base = baseUrl.replace(/\/+$/, "");
@@ -34,7 +44,11 @@ export class HttpApi implements ProveryalkaApi {
   capabilities(_signal?: AbortSignal): Promise<ApiCapabilities> {
     if (!this.capabilitiesPromise) {
       this.capabilitiesPromise = this.request("GET", "/openapi.json")
-        .then((doc) => detectCapabilities(doc))
+        .then((doc) => {
+          const capabilities = detectCapabilities(doc);
+          this.browserAuth = Boolean((doc as { paths?: Record<string, unknown> }).paths?.["/api/auth/me"]);
+          return capabilities;
+        })
         .catch((error: unknown) => {
           this.capabilitiesPromise = null;
           throw error;
@@ -163,10 +177,16 @@ export class HttpApi implements ProveryalkaApi {
     const headers: Record<string, string> = { ...(options.headers ?? {}) };
     if (options.body !== undefined && !(options.body instanceof FormData)) headers["Content-Type"] = "application/json";
     if (options.key) headers["Idempotency-Key"] = options.key;
+    if (method !== "GET" && this.browserAuth) {
+      const session = await this.request("GET", "/api/auth/me", { signal: options.signal });
+      const csrf = (session as { csrf_token?: unknown } | null)?.csrf_token;
+      if (typeof csrf === "string" && csrf) headers["X-CSRF-Token"] = csrf;
+    }
     try {
       return await this.fetcher(`${this.base}${path}`, {
         method,
         headers,
+        credentials: "include",
         body: options.body === undefined ? undefined : options.body instanceof FormData ? options.body : JSON.stringify(options.body),
         signal: options.signal,
       });
@@ -228,5 +248,11 @@ export function detectCapabilities(doc: unknown): ApiCapabilities {
     dialogue: "/api/sessions/{session_id}/dialogue" in paths,
     explanations: "/api/checks/{run_id}/explanation" in paths,
     agentTrace: "/api/sessions/{session_id}/agent-runs" in paths,
+    repositories: "/api/sessions/{session_id}/repositories" in paths,
+    repositoryPlan: "/api/sessions/{session_id}/repositories/{snapshot_id}/selection" in paths,
+    repositoryContent: "/api/sessions/{session_id}/repositories/{snapshot_id}/files/content" in paths,
+    sourceProvenance: "/api/sessions/{session_id}/sources/{source_id}/provenance" in paths,
+    sourceAttachments: Boolean(schemas.MessageCreate?.properties && "base_version_id" in schemas.MessageCreate.properties),
+    gitConnections: "/api/connections" in paths,
   };
 }

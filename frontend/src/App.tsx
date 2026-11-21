@@ -12,6 +12,8 @@ import { ErrorNotice, QuietStatus } from "./components/Notice";
 import { SessionView } from "./components/SessionView";
 import { PaneSeparator, usePaneWidth } from "./components/PaneSeparator";
 import { Sidebar } from "./components/Sidebar";
+import { GitConnections } from "./components/repositories/GitConnections";
+import { RepositoryDialog } from "./components/repositories/RepositoryDialog";
 import { loadPrefs, savePrefs, type Prefs } from "./state/persist";
 import type { Loadable } from "./state/types";
 
@@ -57,6 +59,8 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
     return () => query.removeEventListener("change", onChange);
   }, []);
   const sidebarOpen = narrow ? overlayOpen : prefs.sidebarOpen;
+  const [gitConnectionsOpen, setGitConnectionsOpen] = useState(false);
+  const [gitConnectionsBusy, setGitConnectionsBusy] = useState(false);
   const [connectionOpen, setConnectionOpen] = useState(false);
   const [capabilities, retryCapabilities] = useLoad<ApiCapabilities>((signal) => api.capabilities(signal), [api]);
   const [sessions, reloadSessions] = useLoad<Session[]>((signal) => api.listSessions(signal), [api]);
@@ -111,7 +115,7 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   } else {
     main = (
       <NewChat key={api.id} api={api} capabilities={{...caps, agent: caps.agent && ready.data?.agent_configured !== false}}
-        onCreated={(session) => { reloadSessions(); navigate({ sessionId: session.id }); }} />
+        onCreated={(session, snapshotId) => { reloadSessions(); navigate({ sessionId: session.id, snapshotId }); }} />
     );
   }
 
@@ -121,9 +125,15 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
         sessions={sessions} currentId={route.sessionId} onRetry={reloadSessions}
         onSelect={(id) => { setOverlayOpen(false); navigate({ sessionId: id }); }}
         onNew={() => { setOverlayOpen(false); navigate({ sessionId: null }); }}
+        onGitConnections={caps?.gitConnections && api.gitConnections ? () => setGitConnectionsOpen(true) : undefined}
         connectionLabel={connectionLabel} connectionTone={tone} onConnection={() => setConnectionOpen(true)} />
       {sidebarOpen && <PaneSeparator pane={sidebarPane} label="Ширина списка сессий"/>}
       <main className="main">{main}</main>
+      {gitConnectionsOpen && caps?.gitConnections && api.gitConnections && (
+        <RepositoryDialog title="Приватные подключения" busy={gitConnectionsBusy} onClose={() => setGitConnectionsOpen(false)}>
+          <GitConnections api={api.gitConnections} onBusy={setGitConnectionsBusy} />
+        </RepositoryDialog>
+      )}
       {connectionOpen && (
         <ConnectionDialog adapter={prefs.adapter} baseUrl={prefs.baseUrl} ready={ready} onCheckReady={recheckReady}
           onClose={() => setConnectionOpen(false)}
