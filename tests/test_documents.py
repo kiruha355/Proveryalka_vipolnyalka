@@ -86,6 +86,26 @@ def test_rejected_documents(client, name, data, status, code):
     assert client.get(f"/api/sessions/{client.sid}").json()["documents"] == []
 
 
+def test_new_chat_and_validated_document_are_saved_together(client):
+    def create(name, data):
+        return client.post("/api/sessions/from-document", data={"title": name},
+                           files={"file": (name, data)}, headers={"Idempotency-Key": "new-document"})
+
+    assert create("empty.txt", b"").json()["error"]["code"] == "DOCUMENT_EMPTY"
+    assert create("broken.docx", b"not a Word document").json()["error"]["code"] == "DOCUMENT_INVALID"
+    assert [item["id"] for item in client.get("/api/sessions").json()] == [client.sid]
+    provided = create("rules.md", b"Reusable rules")
+    assert provided.status_code == 201, provided.text
+    result = provided.json()
+    session_id = result["session"]["id"]
+    assert result["source"]["session_id"] == session_id
+    assert create("rules.md", b"Reusable rules").json() == result
+    assert create("rules.md", b"Other rules").status_code == 409
+    detail = client.get(f"/api/sessions/{session_id}").json()
+    assert detail["documents"] == [result["document"]]
+    assert detail["sources"] == [result["source"]]
+
+
 def test_docx_entities_and_zip_bomb_are_rejected_quickly(client):
     laughs = f'<?xml version="1.0"?><!DOCTYPE w:document [<!ENTITY a "aaaaaaaaaa"><!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">]><w:document {WORD}><w:body><w:p><w:r><w:t>&b;</w:t></w:r></w:p></w:body></w:document>'
     external = f'<?xml version="1.0"?><!DOCTYPE d [<!ENTITY x SYSTEM "file:///etc/passwd">]><w:document {WORD}><w:body><w:p><w:r><w:t>&x;</w:t></w:r></w:p></w:body></w:document>'

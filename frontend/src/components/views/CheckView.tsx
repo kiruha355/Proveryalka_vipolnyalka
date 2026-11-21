@@ -116,7 +116,16 @@ export function CheckView({ context }: WorkspaceViewProps) {
 
   if (!version || (requestedId && !matchesVersion)) return null;
 
+  const list = core.workspace.checkLists[version.id];
+  const listError = list?.error != null && (
+    <ErrorNotice error={list.error} title="Архив проверок не загружен"
+      action={<button type="button" className="button button--small" onClick={() => void core.workspace.discoverChecks(version)}>Повторить загрузку архива</button>} />
+  );
   if (checks.length === 0 && !requestedId) {
+    if (listError) return <div className="view check-view">{listError}</div>;
+    if (context.capabilities.checkDiscovery && context.api.listCheckRuns && (!list || list.loading)) {
+      return <div className="view check-view"><QuietStatus busy>Загрузка архива проверок</QuietStatus></div>;
+    }
     return (
       <div className="view view--empty">
         <div className="empty">
@@ -135,6 +144,7 @@ export function CheckView({ context }: WorkspaceViewProps) {
 
   return (
     <div className="view check-view">
+      {listError}
       {checks.length > 1 && (
         <nav className="runs" aria-label="Проверки версии">
           {checks.map((check) => {

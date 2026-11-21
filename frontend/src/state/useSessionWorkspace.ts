@@ -26,7 +26,7 @@ type Action =
   | { type: "agent/events"; runId: string; events: RunEvent[] }
   | { type: "agent/stream"; runId: string; stream: StreamStatus }
   | { type: "agent/run"; run: Run }
-  | { type: "agent/cancel"; runId: string; requested: boolean }
+  | { type: "agent/cancel"; runId: string; requested: boolean; error?: unknown }
   | { type: "check/add"; view: CheckRunView }
   | { type: "check/order"; runIds: string[] }
   | { type: "check/events"; runId: string; events: RunEvent[] }
@@ -114,7 +114,7 @@ function reducer(state: RunsState, action: Action): RunsState {
     }
     case "agent/cancel": {
       const view = state.agent[action.runId];
-      return view ? { ...state, agent: { ...state.agent, [action.runId]: { ...view, cancelRequested: action.requested } } } : state;
+      return view ? { ...state, agent: { ...state.agent, [action.runId]: { ...view, cancelRequested: action.requested, cancelError: action.error } } } : state;
     }
     case "check/add":
       if (state.checks[action.view.runId]) return state;
@@ -240,8 +240,10 @@ export interface SessionWorkspace {
   /** Latest finished agent run, for the failure/cancel line under the pending message. */
   lastAgentRun: AgentRunView | null;
   checks: CheckRunView[];
+  checkLists: Record<string, Loadable<string[]>>;
+  discoverChecks(version: ModelVersion): Promise<void>;
   send: SendState;
-  sendMessage(text: string, questionId: string | null, fileContext?: FileContextRef | null): Promise<boolean>;
+  sendMessage(text: string, questionId: string | null, fileContext?: FileContextRef | null, draftRevision?: number): Promise<boolean>;
   retryOutbox(): Promise<boolean>;
   discardOutbox(): void;
   retryPending(): Promise<boolean>;
@@ -279,12 +281,14 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
   const [models, setModels] = useState<Loadable<ModelGroup[]>>({ data: null, error: null, loading: true });
   const [send, setSend] = useState<SendState>(() => ({ sending: false, outbox: loadLocal(api, sessionId).outbox, error: null }));
   const [checkStart, setCheckStart] = useState<CheckStartState>({ starting: false, error: null, retry: null });
+  const [checkLists, setCheckLists] = useState<SessionWorkspace["checkLists"]>({});
   const [approveError, setApproveError] = useState<unknown | null>(null);
   const [upload, setUpload] = useState<UploadState>({ uploading: null, error: null, retry: null, documents: [] });
 
   const root = useRef<AbortController>(new AbortController());
   const trackers = useRef(new Map<string, RunTracker>());
   const knownChecksRef = useRef(new Set<string>());
+  const checkListSeq = useRef(new Map<string, number>());
   const sendingRef = useRef(false);
   const startingRef = useRef(false);
   const uploadingRef = useRef(false);
@@ -333,19 +337,23 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
     );
   }, [api, sessionId, capabilities.dialogue]);
 
-  const discoverChecks = useCallback(async (groups: ModelGroup[]) => {
+  const discoverChecks = useCallback(async (version: ModelVersion) => {
     if (!capabilities.checkDiscovery || !api.listCheckRuns) return;
     const signal = root.current.signal;
-    for (const group of groups) {
-      for (const version of group.versions) {
-        try {
-          const ids = await api.listCheckRuns(version, signal);
-          if (signal.aborted) return;
-          for (const runId of ids) addCheckRef.current({ runId, versionId: version.id, startedAt: null });
-          if (ids.length > 1) dispatch({ type: "check/order", runIds: ids });
-        } catch (error) {
-          if (isAbort(error)) return;
-        }
+    const id = version.id;
+    const sequence = (checkListSeq.current.get(id) ?? 0) + 1;
+    checkListSeq.current.set(id, sequence);
+    const current = () => !signal.aborted && checkListSeq.current.get(id) === sequence;
+    setCheckLists((lists) => ({ ...lists, [id]: { data: lists[id]?.data ?? null, error: null, loading: true } }));
+    try {
+      const ids = await api.listCheckRuns(version, signal);
+      if (!current()) return;
+      for (const runId of ids) addCheckRef.current({ runId, versionId: id, startedAt: null });
+      if (ids.length > 1) dispatch({ type: "check/order", runIds: ids });
+      setCheckLists((lists) => ({ ...lists, [id]: { data: ids, error: null, loading: false } }));
+    } catch (error) {
+      if (!isAbort(error) && current()) {
+        setCheckLists((lists) => ({ ...lists, [id]: { data: lists[id]?.data ?? null, error, loading: false } }));
       }
     }
   }, [api, capabilities.checkDiscovery]);
@@ -362,7 +370,14 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
       (groups) => {
         if (signal.aborted || seq !== modelsSeq.current) return;
         setModels({ data: groups, error: null, loading: false });
-        void discoverChecks(groups);
+        void (async () => {
+          for (const { versions } of groups) {
+            for (const version of versions) {
+              if (signal.aborted || seq !== modelsSeq.current) return;
+              await discoverChecks(version);
+            }
+          }
+        })();
       },
       (error: unknown) => { if (!isAbort(error) && seq === modelsSeq.current) setModels((m) => ({ data: m.data, error, loading: false })); },
     );
@@ -606,13 +621,13 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
     }
   }, [api, registerAgentRun, sessionId]);
 
-  const sendMessage = useCallback((text: string, questionId: string | null, fileContext: FileContextRef | null = null) => {
+  const sendMessage = useCallback((text: string, questionId: string | null, fileContext: FileContextRef | null = null, draftRevision?: number) => {
     const current = send.outbox;
     if (current && (current.text !== text || current.questionId !== questionId || JSON.stringify(current.fileContext ?? null) !== JSON.stringify(fileContext))) return Promise.resolve(false);
     // Same text and target as the unsent message: reuse its key so a lost response cannot duplicate the run.
     const outbox = current && current.text === text && current.questionId === questionId
       ? current
-      : { text, questionId, fileContext, key: newKey() };
+      : { text, questionId, fileContext, draftRevision, key: newKey() };
     return dispatchSend(outbox);
   }, [dispatchSend, send.outbox]);
 
@@ -681,8 +696,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
       dispatch({ type: "agent/run", run });
     } catch (error) {
       if (!isAbort(error)) {
-        dispatch({ type: "agent/cancel", runId: view.runId, requested: false });
-        setSend((s) => ({ ...s, error }));
+        dispatch({ type: "agent/cancel", runId: view.runId, requested: false, error });
       }
     }
   }, [activeAgentRun, api]);
@@ -791,7 +805,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, 
   const checks = runs.checkOrder.map((id) => runs.checks[id]).filter((v): v is CheckRunView => Boolean(v)).reverse();
 
   return {
-    detail, dialogue, discardPending, analyzeDocument, useImageAnalysis, retryExplanation, history, models, versions, agentRuns, agentTraceHistory, loadOlderAgentRuns, reloadAgentRuns, activeAgentRun, lastAgentRun, checks,
+    detail, dialogue, discardPending, analyzeDocument, useImageAnalysis, retryExplanation, history, models, versions, agentRuns, agentTraceHistory, loadOlderAgentRuns, reloadAgentRuns, activeAgentRun, lastAgentRun, checks, checkLists, discoverChecks,
     send, sendMessage, retryOutbox, discardOutbox, retryPending, cancelAgent, registerAgentRun,
     checkStart, startCheck, cancelCheck, fetchCheck, ensureCheck, reconnect, approve, approveError,
     reloadDetail, reloadModels, loadArtifacts, upload, uploadDocument,

@@ -21,6 +21,9 @@ function FileLines({ api, sessionId, target }: { api: RepositoryApi; sessionId: 
     end: Math.min(target.total_lines ?? Infinity, last === undefined ? PAGE_LINES : last + 15),
   }));
   const highlighted = useRef<HTMLLIElement>(null);
+  const downloadRequest = useRef<AbortController | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<unknown>(null);
   const file = useRepositoryLoad(useCallback(async signal => {
     const content = await api.content(sessionId, target.snapshot_id, target.path, range.start, range.end || undefined, signal);
     if (content.commit_sha !== target.commit_sha || content.path !== target.path || content.sha256 !== target.sha256) {
@@ -29,11 +32,51 @@ function FileLines({ api, sessionId, target }: { api: RepositoryApi; sessionId: 
     return content;
   }, [api, range, sessionId, target]));
   useEffect(() => { highlighted.current?.scrollIntoView?.({ block: "nearest" }); }, [file.data]);
+  useEffect(() => () => downloadRequest.current?.abort(), []);
+
+  const download = async () => {
+    if (downloadRequest.current) return;
+    const controller = new AbortController();
+    downloadRequest.current = controller;
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const full = await api.content(sessionId, target.snapshot_id, target.path, 1, undefined, controller.signal);
+      if (controller.signal.aborted) return;
+      const text = full.lines.join("");
+      const digest = globalThis.crypto?.subtle
+        ? new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))
+        : null;
+      if (controller.signal.aborted) return;
+      const hash = digest ? Array.from(digest, byte => byte.toString(16).padStart(2, "0")).join("") : full.sha256;
+      if (full.commit_sha !== target.commit_sha || full.path !== target.path || full.sha256 !== target.sha256 ||
+          full.start_line !== 1 || full.lines.length !== full.total_lines || hash !== target.sha256) {
+        throw new ApiError("malformed", "Файл отличается от выбранного снимка");
+      }
+      const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = target.path.split("/").at(-1)!;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch (error) {
+      if (!controller.signal.aborted) setDownloadError(error);
+    } finally {
+      downloadRequest.current = null;
+      if (!controller.signal.aborted) setDownloading(false);
+    }
+  };
 
   const data = file.data;
   return <>
     <p className="repository-file-path"><code>{target.path}</code></p>
     <p className="muted small">Commit <code>{target.commit_sha}</code>{first !== undefined && <> · строки {first}–{last}</>}</p>
+    {data && <button type="button" className="button button--small" disabled={downloading} onClick={() => void download()}>
+      {downloading ? "Подготовка файла…" : "Скачать файл"}
+    </button>}
+    {downloadError != null && <ErrorNotice error={downloadError} title="Файл не скачан" />}
     {file.loading && <QuietStatus busy>Загрузка файла</QuietStatus>}
     {file.error !== null && <ErrorNotice title="Файл не загружен" error={file.error}
       action={<button type="button" className="button button--small" onClick={file.reload}>Повторить</button>} />}

@@ -122,16 +122,21 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     documentSession.current = attempt;
     const signal = lifetime.current.signal;
     try {
-      if (!attempt.session) attempt.session = await api.createSession({title: titleFrom(file.name)}, attempt.sessionKey, signal);
+      const title = titleFrom(file.name);
+      const createWithDocument = !imageKey && capabilities?.atomicDocumentUpload && api.createSessionFromDocument;
+      const session = createWithDocument
+        ? await createWithDocument.call(api, title, file, attempt.uploadKey, signal)
+        : attempt.session ?? await api.createSession({title}, attempt.sessionKey, signal);
       if (signal.aborted) return;
-      const image = imageKey ? await api.uploadImage!(attempt.session.id, file, imageKey, signal) : null;
-      if (!image) await api.uploadDocument!(attempt.session.id, file, attempt.uploadKey, signal);
+      attempt.session = session;
+      const image = imageKey ? await api.uploadImage!(session.id, file, imageKey, signal) : null;
+      if (!imageKey && !createWithDocument) await api.uploadDocument!(session.id, file, attempt.uploadKey, signal);
       if (signal.aborted) return;
       const currentDraft = draftRef.current;
-      updateLocal(api, attempt.session.id, local => ({...local, draft: currentDraft, openImageId: image?.id}));
+      updateLocal(api, session.id, local => ({...local, draft: currentDraft, openImageId: image?.id}));
       updateLocal(api, NEW, local => ({...local, draft: "", outbox: null}));
       documentSession.current = null;
-      onCreated(attempt.session);
+      onCreated(session);
     } catch (failure) {
       if (signal.aborted || isAbort(failure)) return;
       if (!(failure instanceof ApiError && (failure.retryable || requiresSignIn(failure)))) {

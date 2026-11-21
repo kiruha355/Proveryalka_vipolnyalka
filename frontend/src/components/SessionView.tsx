@@ -19,7 +19,7 @@ import { ErrorNotice, QuietStatus } from "./Notice";
 import { PaneSeparator, usePaneWidth } from "./PaneSeparator";
 import { WorkspacePanel } from "./workspace/WorkspacePanel";
 import { ImageCitationProvider } from "./images/ImageCitation";
-import { RepositoryCitations } from "./repositories/RepositoryCitation";
+import { RepositoryCitations, repositoryCommit } from "./repositories/RepositoryCitation";
 import { SessionRepositoryAction } from "./repositories/SessionRepositoryAction";
 
 interface Props {
@@ -128,16 +128,41 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
     api, capabilities, sessionId, resume,
     onModelProposed: (proposal) => { setElement(null); go({ modelId: proposal.model_id, version: proposal.number, check: undefined, property: undefined, step: undefined }); },
   });
+  const sourceDetail = workspace.detail.data;
+  const imageSourceIds = useMemo(() => {
+    if (!capabilities.images || !sourceDetail?.linked_source_ids) return undefined;
+    const linkedIds = new Set(sourceDetail.linked_source_ids);
+    return sourceDetail.sources.filter(source => linkedIds.has(source.id) && !repositoryCommit(source.text)).map(source => source.id);
+  }, [capabilities.images, sourceDetail]);
 
   const groups = workspace.models.data ?? [];
   const linkedVersionId = workspace.checks.find((check) => check.runId === route.check)?.versionId;
+  const linkedVersion = !route.modelId && route.version === undefined && linkedVersionId
+    ? workspace.versions.find((v) => v.id === linkedVersionId)
+    : undefined;
+  const missingLinkedVersion = !route.modelId && route.version === undefined && linkedVersionId && !linkedVersion
+    ? `${route.check}:${linkedVersionId}`
+    : null;
+  const refreshedReport = useRef<string | null>(null);
+  useEffect(() => {
+    if (!missingLinkedVersion) {
+      refreshedReport.current = null;
+      return;
+    }
+    if (workspace.models.loading || workspace.models.error != null || refreshedReport.current === missingLinkedVersion) return;
+    refreshedReport.current = missingLinkedVersion;
+    void workspace.reloadModels();
+  }, [missingLinkedVersion, workspace.models.loading, workspace.models.error, workspace.reloadModels]);
+
   const versionState = useMemo<VersionResolution>(() => {
-    if (!route.modelId && route.version === undefined && linkedVersionId) {
-      const linkedVersion = workspace.versions.find((v) => v.id === linkedVersionId);
-      if (linkedVersion) return { status: "ready", version: linkedVersion };
+    if (linkedVersion) return { status: "ready", version: linkedVersion };
+    if (missingLinkedVersion) {
+      if (workspace.models.loading) return { status: "loading", version: null };
+      if (workspace.models.error != null) return { status: "error", version: null };
+      if (refreshedReport.current !== missingLinkedVersion) return { status: "loading", version: null };
     }
     return resolveVersionState(route, workspace.models, workspace.versions);
-  }, [route, workspace.models, workspace.versions, linkedVersionId]);
+  }, [route, workspace.models, workspace.versions, linkedVersion, missingLinkedVersion]);
   const version = versionState.version;
   const fallbackVersion = useMemo(() => defaultVersion(groups), [groups]);
 
@@ -320,7 +345,7 @@ export function SessionView({ api, capabilities, sessionId, resume, listed, rout
   return (
     <CoreContext.Provider value={core}>
       <WorkspaceContext.Provider value={context}>
-        <ImageCitationProvider api={api} sessionId={sessionId} linkedIds={capabilities.images ? workspace.detail.data?.linked_source_ids : undefined}>
+        <ImageCitationProvider api={api} sessionId={sessionId} linkedIds={imageSourceIds}>
         <RepositoryCitations api={capabilities.repositoryContent && capabilities.sourceProvenance ? api.repositories : undefined}
           sessionId={sessionId} linkedSourceIds={workspace.detail.data?.linked_source_ids}>
         <div ref={chatPane.container} style={chatPane.style} className={`session session--${pane}`}>

@@ -46,7 +46,7 @@ function SnapshotDetails({ snapshot, api, capabilities, sessionId, blocked, runs
   const [plan, setPlan] = useState<RepositoryPlan | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
   const [busy, setBusy] = useState<"plan" | "send" | null>(null);
-  const [error, setError] = useState<{ error: unknown; mode: "auto" | "manual" } | null>(null);
+  const [error, setError] = useState<{ error: unknown; mode: "plan" | "analysis" } | null>(null);
   const attempt = useRef<{ payload: RepositorySelection; intent: string; key: string } | null>(null);
   const ranges = draft ?? latest.data?.ranges ?? [];
   const invalid = ranges.some(range => !Number.isInteger(range.start_line) || !Number.isInteger(range.end_line)
@@ -57,24 +57,33 @@ function SnapshotDetails({ snapshot, api, capabilities, sessionId, blocked, runs
   const submissionsBlocked = Boolean(blocked || busy || runOngoing);
   const lines = snapshot.files.reduce((total, file) => total + file.lines, 0);
 
-  async function analyze(mode: "auto" | "manual") {
-    if (submissionsBlocked || (mode === "manual" && (!ranges.length || invalid))) return;
-    const intent = JSON.stringify(mode === "auto" ? { mode, query } : { mode, ranges });
+  async function selectAutomatically() {
+    if (busy || runOngoing || !snapshot.files.length) return;
     setError(null);
+    setBusy("plan");
+    onBusy(true);
+    try {
+      const proposed = await api.plan(sessionId, snapshot.id, { query: query.trim() });
+      setPlan(proposed);
+      setDraft(proposed.selection.files);
+    } catch (failure) {
+      setError({ error: failure, mode: "plan" });
+    } finally {
+      setBusy(null);
+      onBusy(false);
+    }
+  }
+
+  async function analyze() {
+    if (submissionsBlocked || !ranges.length || invalid) return;
+    const intent = JSON.stringify(ranges);
+    setError(null);
+    setBusy("send");
     onBusy(true);
     try {
       if (attempt.current?.intent !== intent) {
-        let payload: RepositorySelection = { manifest_sha256: snapshot.manifest_sha256, files: ranges };
-        if (mode === "auto") {
-          setBusy("plan");
-          const proposed = await api.plan(sessionId, snapshot.id, { query: query.trim() });
-          setPlan(proposed);
-          setDraft(proposed.selection.files);
-          payload = proposed.selection;
-        }
-        attempt.current = { intent, payload, key: newKey() };
+        attempt.current = { intent, payload: { manifest_sha256: snapshot.manifest_sha256, files: ranges }, key: newKey() };
       }
-      setBusy("send");
       const accepted = await api.analyze(sessionId, snapshot.id, attempt.current.payload, attempt.current.key);
       const label = `Репозиторий ${snapshot.remote_url} · ${snapshot.commit_sha.slice(0, 12)}`;
       onRun(accepted, label);
@@ -82,7 +91,7 @@ function SnapshotDetails({ snapshot, api, capabilities, sessionId, blocked, runs
       latest.reload();
       attempt.current = null;
     } catch (failure) {
-      setError({ error: failure, mode });
+      setError({ error: failure, mode: "analysis" });
     } finally {
       setBusy(null);
       onBusy(false);
@@ -118,8 +127,8 @@ function SnapshotDetails({ snapshot, api, capabilities, sessionId, blocked, runs
         <h3>Контекст анализа</h3>
         {capabilities.repositoryPlan && <div className="repository-form">
           <label>Область анализа<input className="input" value={query} maxLength={500} placeholder="Весь проект" disabled={!!busy} onChange={event => setQuery(event.target.value)} /></label>
-          <button type="button" className="button button--primary" disabled={submissionsBlocked || !snapshot.files.length} onClick={() => void analyze("auto")}>
-            {query.trim() ? "Анализировать по запросу (автоотбор)" : "Анализировать весь проект (автоотбор)"}
+          <button type="button" className="button" disabled={!!busy || runOngoing || !snapshot.files.length} onClick={() => void selectAutomatically()}>
+            {query.trim() ? "Подобрать файлы по запросу" : "Подобрать файлы по всему проекту"}
           </button>
         </div>}
         <div className="repository-ranges">
@@ -142,7 +151,7 @@ function SnapshotDetails({ snapshot, api, capabilities, sessionId, blocked, runs
           </div>)}
         </div>
         {invalid && <p className="small warn-text">Диапазон должен находиться в пределах файла.</p>}
-        <button type="button" className="button" disabled={submissionsBlocked || !ranges.length || invalid} onClick={() => void analyze("manual")}>
+        <button type="button" className="button button--primary" disabled={submissionsBlocked || !ranges.length || invalid} onClick={() => void analyze()}>
           Анализировать выбранные файлы
         </button>
         {busy && <QuietStatus busy>{busy === "plan" ? "Отбор файлов" : "Запуск анализа"}</QuietStatus>}
@@ -150,8 +159,9 @@ function SnapshotDetails({ snapshot, api, capabilities, sessionId, blocked, runs
         {run && (run.state === "failed" || run.state === "cancelled") && <ErrorNotice title="Анализ снимка не завершён"
           detail={describeCode(run.error_code) ?? run.error_code ?? undefined}
           action={blocked ? <button type="button" className="button button--small" onClick={onClose}>К чату</button> : undefined} />}
-        {error && <ErrorNotice title="Анализ не запущен" error={error.error}
-          action={<button type="button" className="button button--small" disabled={submissionsBlocked} onClick={() => void analyze(error.mode)}>Повторить</button>} />}
+        {error && <ErrorNotice title={error.mode === "plan" ? "Файлы не подобраны" : "Анализ не запущен"} error={error.error}
+          action={<button type="button" className="button button--small" disabled={busy !== null || runOngoing || (error.mode === "analysis" && Boolean(blocked))}
+            onClick={() => void (error.mode === "plan" ? selectAutomatically() : analyze())}>Повторить</button>} />}
         {!runOngoing && !busy && blocked && <p className="muted small">{blocked}</p>}
       </section>
     </div>

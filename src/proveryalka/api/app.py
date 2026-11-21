@@ -15,7 +15,7 @@ from ..behavior import BehavioralModel
 from ..verification import VerificationResult
 from ..contracts import (
     AgentRunTracePage, CheckCreate, Contract, DialogueView, DocumentUpload, ErrorResponse, Event, ExplanationView,
-    MessageCreate, Run, Session, SessionCreate, SessionDetail, Source, TextSourceCreate,
+    MessageCreate, Run, Session, SessionCreate, SessionDetail, SessionDocumentUpload, Source, TextSourceCreate,
 )
 from ..services import Backend, ServiceError
 from ..storage.sqlite import SQLiteStore
@@ -181,15 +181,13 @@ def create_app(
                 return {"kind": "repository", **repositories.locate_reference(session_id, source_id, start, end)}
             return app.state.images.store.provenance(session_id, source_id)
 
-    document_body = {"requestBody": {"required": True, "content": {"multipart/form-data": {"schema": {
-        "type": "object", "required": ["file"],
-        "properties": {"file": {"type": "string", "format": "binary", "description": ".txt, .md (UTF-8) или .docx"}},
-    }}}}}
+    def document_body(**fields):
+        properties = {"file": {"type": "string", "format": "binary", "description": ".txt, .md (UTF-8) или .docx"}, **fields}
+        return {"requestBody": {"required": True, "content": {"multipart/form-data": {"schema": {
+            "type": "object", "required": list(properties), "properties": properties,
+        }}}}}
 
-    @app.post("/api/sessions/{session_id}/documents", response_model=DocumentUpload, status_code=201,
-              responses=document_errors, openapi_extra=document_body)
-    async def upload_document(session_id: str, request: Request,
-                              idempotency_key: str = Header(min_length=1, max_length=128)):
+    async def read_document(request: Request, *, require_title: bool = False):
         # Размер проверяется до разбора multipart, чтобы большой файл не попадал во временное хранилище.
         length = request.headers.get("content-length", "")
         if not length.isdigit():
@@ -203,8 +201,25 @@ def create_app(
                 raise ServiceError(422, "INVALID_REQUEST", "Multipart field 'file' is required")
             data = await upload.read(settings.max_document_bytes + 1)
             filename = upload.filename
+            title = form.get("title")
+            if require_title and (not isinstance(title, str) or not 1 <= len(title) <= 200):
+                raise ServiceError(422, "INVALID_REQUEST", "Multipart field 'title' must contain 1–200 characters")
         finally:
             await form.close()
+        return filename, data, title
+
+    @app.post("/api/sessions/from-document", response_model=SessionDocumentUpload, status_code=201,
+              responses=document_errors, openapi_extra=document_body(title={"type": "string", "minLength": 1, "maxLength": 200}))
+    async def create_session_from_document(request: Request, idempotency_key: str = Header(min_length=1, max_length=128)):
+        filename, data, title = await read_document(request, require_title=True)
+        return await run_in_threadpool(adapter.call, "create_session_from_document", title=title,
+                                       filename=filename, data=data, key=idempotency_key)
+
+    @app.post("/api/sessions/{session_id}/documents", response_model=DocumentUpload, status_code=201,
+              responses=document_errors, openapi_extra=document_body())
+    async def upload_document(session_id: str, request: Request,
+                              idempotency_key: str = Header(min_length=1, max_length=128)):
+        filename, data, _ = await read_document(request)
         return await run_in_threadpool(adapter.call, "create_document", session_id=session_id,
                                        filename=filename, data=data, key=idempotency_key)
 

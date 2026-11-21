@@ -96,6 +96,47 @@ describe("UX [9] + F07: version checks discovery and direct check links", () => 
     await waitFor(() => expect(result.current.checks[0]?.results?.length).toBeGreaterThan(0));
   });
 
+  it("offers archive retry after discovery fails and restores the report", async () => {
+    const api = makeApi();
+    const version = (await api.listVersions("demo_m_order"))[0]!;
+    const [runId] = await (api as DemoApi).listCheckRuns(version);
+    api.capabilities = async () => ({ ...baseCaps, checkDiscovery: true });
+    api.listCheckRuns = vi.fn<NonNullable<ProveryalkaApi["listCheckRuns"]>>()
+      .mockRejectedValueOnce(new ApiError("network", "Сбой архива"))
+      .mockImplementation(async (ref) => ref.id === version.id ? [runId!] : []);
+    window.location.hash = `#/s/${sid}?m=${version.model_id}&v=${version.number}&view=check`;
+    render(<App initialApi={api} />);
+    expect(await screen.findByText("Архив проверок не загружен")).toBeVisible();
+    expect(screen.queryByText(/ещё не проверялась/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Повторить загрузку архива" }));
+    expect(await screen.findByRole("list", { name: "Проверяемые правила" })).toBeVisible();
+  });
+
+  it("refreshes stale versions for a check-only bookmark and offers a retry if refresh fails", async () => {
+    const api = makeApi();
+    const versions = await api.listVersions("demo_m_order");
+    const base = versions[0]!;
+    const added = { ...base, id: "added-version", number: 3 };
+    const report = await api.getCheck((await (api as DemoApi).listCheckRuns(base))[0]!);
+    api.listVersions = vi.fn<ProveryalkaApi["listVersions"]>()
+      .mockResolvedValueOnce(versions)
+      .mockRejectedValueOnce(new ApiError("network", "Не удалось обновить"))
+      .mockResolvedValue([...versions, added]);
+    api.getCheck = async (id) => ({
+      ...report,
+      run: { ...report.run, run_id: id, version_id: added.id },
+      results: report.results.map((result) => ({ ...result, version_id: added.id })),
+    });
+    window.location.hash = `#/s/${sid}?m=${base.model_id}&v=${base.number}&view=model`;
+    render(<App initialApi={api} />);
+    await screen.findByRole("tabpanel", { name: "Модель" });
+    act(() => { window.location.hash = `#/s/${sid}?check=chk_v3`; });
+    expect(await screen.findByText("Модели не загружены")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+    expect(await screen.findByRole("button", { name: "Проверить версию 3" })).toBeVisible();
+    expect(await screen.findByRole("list", { name: "Проверяемые правила" })).toBeVisible();
+  });
+
   it("loads a direct route.check URL even without checkDiscovery or localStorage, showing loading/error instead of empty state", async () => {
     const api = makeApi();
     const version = (await api.listVersions("demo_m_order"))[0]!;
@@ -223,6 +264,27 @@ describe("UX [5]: ModelView manual version warning and explicit guard diff", () 
 });
 
 describe("F01: chat draft protection on late POST response", () => {
+  it("retains a new draft edited back to the same text before retry succeeds", async () => {
+    const api = makeApi();
+    let fail!: (error: ApiError) => void;
+    const accepted: Run = { run_id: "retried", session_id: sid, state: "completed", version_id: null, error_code: null };
+    api.sendMessage = vi.fn<ProveryalkaApi["sendMessage"]>()
+      .mockImplementationOnce(() => new Promise<Run>((_resolve, reject) => { fail = reject; }))
+      .mockResolvedValue(accepted);
+    window.location.hash = `#/s/${sid}`;
+    render(<App initialApi={api} />);
+    const input = await screen.findByRole("textbox", { name: "Сообщение агенту" });
+    fireEvent.change(input, { target: { value: "А" } });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+    fireEvent.change(input, { target: { value: "Б" } });
+    fireEvent.change(input, { target: { value: "А" } });
+    await act(async () => fail(new ApiError("network", "Сбой отправки")));
+    fireEvent.click(screen.getByRole("button", { name: "Повторить отправку" }));
+    await waitFor(() => expect(loadLocal(api, sid).outbox).toBeNull());
+    expect(input).toHaveValue("А");
+    expect(loadLocal(api, sid).draft).toBe("А");
+  });
+
   it("preserves new draft typed in ChatPanel while sendMessage POST is still in-flight", async () => {
     const api = makeApi();
     let resolveSend!: (run: Run) => void;
@@ -319,6 +381,8 @@ describe("F05 + F06: cancel races and check report fetch retry", () => {
     // 1. Cancel fails -> cancelRequested resets to false.
     await act(async () => { await result.current.cancelAgent(); });
     expect(result.current.activeAgentRun?.cancelRequested).toBe(false);
+    expect(result.current.activeAgentRun?.cancelError).toBeInstanceOf(ApiError);
+    expect(result.current.send.error).toBeNull();
 
     // 2. Second cancel starts, meanwhile SSE completes the run, then late cancel response returns "cancelling".
     let cancelPromise!: Promise<void>;

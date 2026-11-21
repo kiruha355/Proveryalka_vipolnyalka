@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useState } from "react";
 import type {
   Assignment,
   BehavioralModel,
@@ -16,8 +16,7 @@ import { cx } from "../../ui/cx";
 import { CloseIcon, PlusIcon } from "../../ui/icons";
 import { applyDraftAction } from "../draft";
 import type { DraftAction } from "../draft";
-
-type EffectRow = { key: number; variable: string; text: string };
+import { loadTransitionForm, saveTransitionForm, type TransitionForm } from "../draft-store";
 
 type Parsed = { expression: Expression | null; error: string | null };
 
@@ -43,32 +42,44 @@ function parse(text: string): Parsed {
 export function TransitionEditor({
   spec,
   transition,
+  draftKey = null,
+  revision = 0,
   onApply,
   onRemove,
   onClose,
 }: {
   spec: BehavioralModel;
   transition: Transition;
+  draftKey?: string | null;
+  revision?: number;
   onApply: (actions: DraftAction[]) => void;
   onRemove: () => void;
   onClose: () => void;
 }) {
   const formId = useId();
-  const [name, setName] = useState(transition.name);
+  const [saved] = useState(() => {
+    const form = loadTransitionForm(draftKey, revision);
+    return form?.transitionId === transition.id ? form : undefined;
+  });
+  const [name, setName] = useState(saved?.name ?? transition.name);
   const [requirementIds, setRequirementIds] = useState<string[]>(
-    transition.requirement_ids,
+    saved?.requirementIds ?? transition.requirement_ids,
   );
   const [guardText, setGuardText] = useState(
-    formatExpression(transition.guard),
+    saved?.guardText ?? formatExpression(transition.guard),
   );
-  const [rows, setRows] = useState<EffectRow[]>(
-    transition.effects.map((effect, index) => ({
+  const [rows, setRows] = useState<TransitionForm["rows"]>(
+    saved?.rows ?? transition.effects.map((effect, index) => ({
       key: index,
       variable: effect.variable,
       text: formatExpression(effect.value),
     })),
   );
-  const [nextKey, setNextKey] = useState(transition.effects.length);
+  const [nextKey, setNextKey] = useState(saved?.nextKey ?? transition.effects.length);
+
+  useLayoutEffect(() => {
+    saveTransitionForm(draftKey, { transitionId: transition.id, revision, name, requirementIds, guardText, rows, nextKey });
+  }, [draftKey, transition.id, revision, name, requirementIds, guardText, rows, nextKey]);
 
   const guard = useMemo(() => parse(guardText), [guardText]);
   const parsedRows = useMemo(

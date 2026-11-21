@@ -20,6 +20,7 @@ export interface ApiCapabilities {
   checkDiscovery: boolean;
   /** TXT/MD/DOCX upload with server-side text extraction. */
   documents: boolean;
+  atomicDocumentUpload?: boolean;
   dialogue?: boolean;
   explanations?: boolean;
   fileDialogue?: boolean;
@@ -60,6 +61,7 @@ export interface ProveryalkaApi {
 
   listSessions(signal?: AbortSignal): Promise<Session[]>;
   createSession(body: { title: string }, key: string, signal?: AbortSignal): Promise<Session>;
+  createSessionFromDocument?(title: string, file: File, key: string, signal?: AbortSignal): Promise<Session>;
   getSession(sessionId: string, signal?: AbortSignal): Promise<SessionDetail>;
   sendMessage(sessionId: string, body: MessageBody, key: string, signal?: AbortSignal): Promise<Run>;
 

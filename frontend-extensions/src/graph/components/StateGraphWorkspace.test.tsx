@@ -50,6 +50,29 @@ function Harness({
 }
 
 describe("StateGraphWorkspace", () => {
+  it("сохраняет поля редактора перехода при возврате на диаграмму", async () => {
+    const user = userEvent.setup();
+    const props = {
+      versions: ORDER_VERSIONS,
+      selectedVersionId: ORDER_VERSIONS[0]!.id,
+      onSelectVersion: vi.fn(),
+      versionsPort: { listVersions: vi.fn(), createVersion: vi.fn() },
+      draftStorageKey: "editor-tab-remount",
+      focus: { kind: "transition" as const, transitionId: "Cancel", edgeId: null },
+      inspector: "edit-only" as const,
+    };
+    const first = render(<StateGraphWorkspace {...props} />);
+    await user.click(screen.getByRole("button", { name: "Изменить", exact: true }));
+    await user.click(screen.getByRole("button", { name: "Изменить guard и effects" }));
+    const guard = screen.getByRole("textbox", { name: /Условие \(guard\)/ });
+    await user.clear(guard);
+    await user.type(guard, "approved == false");
+    first.unmount();
+
+    render(<StateGraphWorkspace {...props} />);
+    expect(screen.getByRole("textbox", { name: /Условие \(guard\)/ })).toHaveValue("approved == false");
+  });
+
   it("показывает этапы, нарушение и шаги реальной трассы TLC", async () => {
     render(<Harness />);
     expect(

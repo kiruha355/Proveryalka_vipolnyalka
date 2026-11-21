@@ -428,6 +428,10 @@ class ApplicationBackend(SQLiteBackend):
         text, document = extract_document(filename, data, self.settings.max_document_bytes, self.settings.max_input_chars)
         return self.store.create_document(session_id, document, text, key)
 
+    def create_session_from_document(self, title, filename, data, key):
+        text, document = extract_document(filename, data, self.settings.max_document_bytes, self.settings.max_input_chars)
+        return self.store.create_session_from_document(title, document, text, key)
+
     def call(self, operation, **arguments):
         if operation in ("send_message", "create_check", "create_explanation", "retry_pending") and self.closing:
             raise ServiceError(503, "SHUTTING_DOWN", "Server is shutting down")
@@ -436,7 +440,7 @@ class ApplicationBackend(SQLiteBackend):
             if run["state"] == "cancelling":
                 self.loop.call_soon_threadsafe(self.stop, run["run_id"])
             return run
-        if operation in ("send_message", "retry_pending", "discard_pending", "get_dialogue", "create_document"):
+        if operation in ("send_message", "retry_pending", "discard_pending", "get_dialogue", "create_document", "create_session_from_document"):
             return getattr(self, operation)(**arguments)
         if operation == "events":
             return self.stream(**arguments)

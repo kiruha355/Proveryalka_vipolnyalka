@@ -32,7 +32,9 @@ import type { DraftAction, ModelChange } from "../draft";
 import {
   deleteGraphDraft,
   loadGraphDraft,
+  loadTransitionForm,
   saveGraphDraft,
+  saveTransitionForm,
 } from "../draft-store";
 import type { GraphSelection, TraceView } from "../flow-elements";
 import { layoutProjection } from "../layout";
@@ -197,7 +199,7 @@ export function StateGraphWorkspace({
   const selection =
     selectionProp !== undefined ? selectionProp : localSelection;
   const [editingTransition, setEditingTransition] = useState<string | null>(
-    null,
+    () => loadTransitionForm(draftStorageKey, draft?.revision)?.transitionId ?? null,
   );
   const [view, setView] = useState<"graph" | "table">("graph");
   const [showConditional, setShowConditional] = useState(true);
@@ -248,7 +250,7 @@ export function StateGraphWorkspace({
     setSave({ phase: "idle" });
     setDraftError(null);
     setLocalSelection(focus);
-    setEditingTransition(null);
+    setEditingTransition(loadTransitionForm(draftStorageKey, restored?.revision)?.transitionId ?? null);
     setLocalTraceIndex(0);
     // focus применяется при смене версии и при его собственном изменении (эффект ниже).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -406,12 +408,17 @@ export function StateGraphWorkspace({
     }
   };
 
+  const closeTransitionEditor = useCallback(() => {
+    setEditingTransition(null);
+    saveTransitionForm(draftStorageKey, null);
+  }, [draftStorageKey]);
+
   const select = useCallback(
     (next: GraphSelection | null) => {
       setSelection(next);
-      if (next?.kind !== "transition") setEditingTransition(null);
+      if (next?.kind !== "transition") closeTransitionEditor();
     },
-    [setSelection],
+    [setSelection, closeTransitionEditor],
   );
 
   if (versions.length === 0 || !version || !spec) {
@@ -490,8 +497,10 @@ export function StateGraphWorkspace({
           key={`${selectedTransition.id}:${draft.revision}`}
           spec={draft.spec}
           transition={selectedTransition}
+          draftKey={draftStorageKey}
+          revision={draft.revision}
           onApply={(actions) => {
-            if (apply(actions)) setEditingTransition(null);
+            if (apply(actions)) closeTransitionEditor();
           }}
           onRemove={() => {
             if (
@@ -503,10 +512,10 @@ export function StateGraphWorkspace({
               ])
             ) {
               setSelection(null);
-              setEditingTransition(null);
+              closeTransitionEditor();
             }
           }}
-          onClose={() => setEditingTransition(null)}
+          onClose={closeTransitionEditor}
         />
       );
     }

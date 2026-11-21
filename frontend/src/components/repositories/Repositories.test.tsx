@@ -91,8 +91,8 @@ it("imports a private repository into a new chat once, reuses the key after a lo
   expect(await screen.findByText(COMMIT)).toBeInTheDocument();
   expect(createSession).toHaveBeenCalledTimes(1);
   expect(repositories.import.mock.calls).toEqual([
-    [session.id, { remote_url: REMOTE, ref: "develop", credential_ref: connection.id }, expect.any(String)],
-    [session.id, { remote_url: REMOTE, ref: "develop", credential_ref: connection.id }, repositories.import.mock.calls[0]![2]],
+    [session.id, { remote_url: REMOTE, ref: "develop", credential_ref: connection.id }, expect.any(String), expect.any(AbortSignal)],
+    [session.id, { remote_url: REMOTE, ref: "develop", credential_ref: connection.id }, repositories.import.mock.calls[0]![2], expect.any(AbortSignal)],
   ]);
   expect(parseRoute(window.location.hash)).toMatchObject({ sessionId: session.id, snapshotId: snapshot.id });
   unmount();
@@ -136,9 +136,12 @@ it("uses the server selection, shows context coverage and refreshes to a new sel
   expect(await screen.findByText("Сохранённый контекст · 157 Б")).toBeInTheDocument();
   expect(screen.getByLabelText(`Начало диапазона ${PATH}`)).toHaveValue(2);
   expect(screen.getByText("Исключено · 2")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Анализировать весь проект (автоотбор)" }));
-  await waitFor(() => expect(onRun).toHaveBeenCalledWith(accepted, expect.stringContaining(COMMIT.slice(0, 12))));
+  fireEvent.click(screen.getByRole("button", { name: "Подобрать файлы по всему проекту" }));
+  await waitFor(() => expect(screen.queryByText("Отбор файлов")).toBeNull());
   expect(api.plan).toHaveBeenCalledWith(session.id, snapshot.id, { query: "" });
+  expect(api.analyze).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Анализировать выбранные файлы" }));
+  await waitFor(() => expect(onRun).toHaveBeenCalledWith(accepted, expect.stringContaining(COMMIT.slice(0, 12))));
   expect(api.analyze).toHaveBeenCalledWith(session.id, snapshot.id, selection, expect.any(String));
   expect(await screen.findByText("Идёт анализ снимка")).toBeInTheDocument();
   rerender(<RepositorySnapshots {...props} runs={new Map([[accepted.run_id, { ...accepted, state: "completed" }]])} snapshotId={snapshot.id} />);

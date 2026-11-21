@@ -32,6 +32,7 @@ export interface AgentRunView {
   proposed: { model_id: string; version_id: string; number: number }[];
   failure: RunFailure | null;
   cancelRequested: boolean;
+  cancelError?: unknown;
 }
 
 export interface CheckRunView {

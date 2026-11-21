@@ -27,6 +27,7 @@ export interface Outbox {
   sourceId?: string;
   imageAnalysis?: { sourceId: string; analysisId: string };
   pendingRetry?: boolean;
+  draftRevision?: number;
   text: string;
   questionId: string | null;
   /** Reused on retry so a lost response cannot start a second run. */
@@ -45,6 +46,7 @@ export interface SessionLocal {
   agentRuns: AgentRunRecord[];
   checkRuns: CheckRunRecord[];
   draft: string;
+  draftRevision?: number;
   outbox: Outbox | null;
 }
 
@@ -87,6 +89,7 @@ export function loadLocal(scope: StorageScope, sessionId: string): SessionLocal 
       openImageId: typeof value.openImageId === "string" ? value.openImageId : null,
       draftQuestionId: typeof value.draftQuestionId === "string" ? value.draftQuestionId : null,
       draft: typeof value.draft === "string" ? value.draft : "",
+      draftRevision: Number.isSafeInteger(value.draftRevision) ? value.draftRevision : undefined,
       outbox: value.outbox && typeof value.outbox.key === "string" ? value.outbox : null,
     };
   } catch {

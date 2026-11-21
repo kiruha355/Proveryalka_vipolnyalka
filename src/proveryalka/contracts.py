@@ -69,6 +69,10 @@ class DocumentUpload(Contract):
     document: DocumentInfo
 
 
+class SessionDocumentUpload(DocumentUpload):
+    session: Session
+
+
 class SessionDetail(Session):
     messages: list[Message] = Field(default_factory=list)
     sources: list[Source] = Field(default_factory=list)

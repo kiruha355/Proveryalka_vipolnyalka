@@ -119,18 +119,34 @@ class SQLiteStore(VersionStore, RunStore):
         connection.execute("INSERT INTO idempotency VALUES (?,?,?,?)", (scope, key, request, encode(result)))
         return result
 
+    @staticmethod
+    def _insert_session(connection, body, owner):
+        result = {"id": identifier("s"), **body, "created_at": now()}
+        connection.execute(
+            "INSERT INTO sessions(id,title,mode,created_at,owner_id) VALUES (:id,:title,:mode,:created_at,:owner)",
+            {**result, "owner": owner},
+        )
+        return result
+
     def create_session(self, body, key):
         body = SessionCreate.model_validate(body).model_dump()
         user = principal.get()
         owner = user['id'] if user else None
         with self.transaction(write=True) as connection:
+            return self._idempotent(connection, f"session:create:{owner}" if owner else "session:create", key, body,
+                                    lambda: self._insert_session(connection, body, owner))
+
+    def create_session_from_document(self, title, document, text, key):
+        body = SessionCreate(title=title).model_dump()
+        user = principal.get()
+        owner = user['id'] if user else None
+        with self.transaction(write=True) as connection:
             def action():
-                result = {"id": identifier("s"), **body, "created_at": now()}
-                connection.execute(
-                    "INSERT INTO sessions(id,title,mode,created_at,owner_id) VALUES (:id,:title,:mode,:created_at,:owner)", {**result, "owner": owner},
-                )
-                return result
-            return self._idempotent(connection, f"session:create:{owner}" if owner else "session:create", key, body, action)
+                session = self._insert_session(connection, body, owner)
+                return {"session": session, **self._insert_document(connection, session["id"], document, text)}
+
+            scope = f"session:document:{owner}" if owner else "session:document"
+            return self._idempotent(connection, scope, key, {"session": body, "document": document}, action)
 
     def list_sessions(self, limit=50, offset=0):
         if not 1 <= limit <= 200 or offset < 0:
@@ -197,26 +213,27 @@ class SQLiteStore(VersionStore, RunStore):
 
             return self._idempotent(connection, f"source:create:{session_id}", key, body, action)
 
+    @staticmethod
+    def _insert_document(connection, session_id, document, text):
+        result = {"id": identifier("src"), "session_id": session_id, "kind": "text", "text": text}
+        created = now()
+        connection.execute(
+            "INSERT INTO sources(id,session_id,kind,text,created_at) VALUES (:id,:session_id,:kind,:text,:created_at)",
+            {**result, "created_at": created},
+        )
+        info = {"source_id": result["id"], **document}
+        connection.execute(
+            "INSERT INTO source_documents VALUES (:source_id,:session_id,:filename,:format,:media_type,:size_bytes,:sha256,:characters,:created_at)",
+            {**info, "session_id": session_id, "created_at": created},
+        )
+        return {"source": result, "document": info}
+
     def create_document(self, session_id, document, text, key):
         """Источник из загруженного документа: текст в sources, происхождение в source_documents."""
         with self.transaction(write=True) as connection:
             self._session(connection, session_id)
-
-            def action():
-                result = {"id": identifier("src"), "session_id": session_id, "kind": "text", "text": text}
-                created = now()
-                connection.execute(
-                    "INSERT INTO sources(id,session_id,kind,text,created_at) VALUES (:id,:session_id,:kind,:text,:created_at)",
-                    {**result, "created_at": created},
-                )
-                info = {"source_id": result["id"], **document}
-                connection.execute(
-                    "INSERT INTO source_documents VALUES (:source_id,:session_id,:filename,:format,:media_type,:size_bytes,:sha256,:characters,:created_at)",
-                    {**info, "session_id": session_id, "created_at": created},
-                )
-                return {"source": result, "document": info}
-
-            return self._idempotent(connection, f"document:create:{session_id}", key, document, action)
+            return self._idempotent(connection, f"document:create:{session_id}", key, document,
+                                    lambda: self._insert_document(connection, session_id, document, text))
 
     def get_source(self, session_id, source_id):
         with self.transaction() as connection:

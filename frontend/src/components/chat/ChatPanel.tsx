@@ -32,7 +32,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   const { api, capabilities, session } = context;
   const images = useSessionImages(api, session.id, Boolean(capabilities.images));
   const [draft, setDraft] = useState(() => loadLocal(api, session.id).draft);
-  const draftRevRef = useRef(0);
+  const draftRevRef = useRef(loadLocal(api, session.id).draftRevision ?? 0);
   const fileContextRef = useRef(fileContext);
   fileContextRef.current = fileContext;
   const replyQuestionIdRef = useRef(replyQuestionId);
@@ -47,7 +47,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   const setDraftPersist = (value: string) => {
     draftRevRef.current += 1;
     setDraft(value);
-    updateLocal(api, session.id, (local) => ({ ...local, draft: value }));
+    updateLocal(api, session.id, (local) => ({ ...local, draft: value, draftRevision: draftRevRef.current }));
   };
 
   const openQuestions = (workspace.dialogue?.questions ?? history?.dialogue?.questions ?? []).filter((q) => q.status === "open");
@@ -72,11 +72,10 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
     else composerRef.current?.focus();
   };
 
-  const sendDraft = async (send: () => Promise<boolean>, fromComposer: boolean) => {
-    const rev = draftRevRef.current;
+  const sendDraft = async (send: () => Promise<boolean>, revision: number | undefined) => {
     const sentFile = fileContext;
     const sentReplyId = replyQuestionId;
-    if (await send() && fromComposer && draftRevRef.current === rev
+    if (await send() && draftRevRef.current === revision
       && fileContextRef.current === sentFile && replyQuestionIdRef.current === sentReplyId) {
       setDraftPersist("");
       onClearFile();
@@ -86,7 +85,8 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
 
   const submit = () => {
     const text = draft.trim();
-    if (text) void sendDraft(() => workspace.sendMessage(text, fileContext ? null : replyQuestion?.id ?? null, fileContext), true);
+    const revision = draftRevRef.current;
+    if (text) void sendDraft(() => workspace.sendMessage(text, fileContext ? null : replyQuestion?.id ?? null, fileContext, revision), revision);
   };
 
   const retryOutbox = () => {
@@ -95,7 +95,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
       && outbox.text === draft.trim()
       && outbox.questionId === replyQuestionId
       && JSON.stringify(outbox.fileContext ?? null) === JSON.stringify(fileContext);
-    void sendDraft(workspace.retryOutbox, fromComposer);
+    void sendDraft(workspace.retryOutbox, fromComposer ? outbox.draftRevision : undefined);
   };
   const needsManualSend = workspace.send.outbox && !workspace.send.outbox.autoSend && !workspace.send.sending;
 
@@ -236,6 +236,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
                   <ErrorNotice error={active.stream.error} title="Нет связи с ходом анализа"
                     action={<button type="button" className="button button--small" onClick={() => workspace.reconnect(active.runId)}>Переподключиться</button>} />
                 )}
+                {active.cancelError != null && <ErrorNotice error={active.cancelError} title="Не удалось остановить анализ" />}
                 {active.delta && <MessageText text={active.delta}/>}
               </AgentBlock>
             </>
