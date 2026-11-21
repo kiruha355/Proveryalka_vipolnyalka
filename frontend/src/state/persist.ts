@@ -52,6 +52,7 @@ export interface SessionLocal {
 
 const EMPTY: SessionLocal = { agentRuns: [], checkRuns: [], draft: "", outbox: null };
 const LIMIT = 40;
+const unsavedSessions = new Map<string, string>();
 
 type StorageScope = string | Pick<ProveryalkaApi, "id" | "ownerId">;
 
@@ -78,7 +79,8 @@ function legacyKey(scope: StorageScope, sessionId: string) {
 
 export function loadLocal(scope: StorageScope, sessionId: string): SessionLocal {
   try {
-    const raw = localStorage.getItem(storageKey(scope, sessionId))
+    const key = storageKey(scope, sessionId);
+    const raw = unsavedSessions.get(key) ?? localStorage.getItem(key)
       ?? (isAnonymous(scope) ? localStorage.getItem(legacyKey(scope, sessionId)) : null);
     if (!raw) return { ...EMPTY };
     const value = JSON.parse(raw) as Partial<SessionLocal>;
@@ -101,10 +103,13 @@ export function updateLocal(scope: StorageScope, sessionId: string, change: (cur
   const next = change(loadLocal(scope, sessionId));
   next.agentRuns = next.agentRuns.slice(-LIMIT);
   next.checkRuns = next.checkRuns.slice(-LIMIT);
+  const key = storageKey(scope, sessionId);
+  const raw = JSON.stringify(next);
   try {
-    localStorage.setItem(storageKey(scope, sessionId), JSON.stringify(next));
+    localStorage.setItem(key, raw);
+    unsavedSessions.delete(key);
   } catch {
-    // Storage full or disabled: the session still works, only reload recovery is lost.
+    unsavedSessions.set(key, raw);
   }
   return next;
 }
@@ -112,6 +117,7 @@ export function updateLocal(scope: StorageScope, sessionId: string, change: (cur
 export function moveLocal(scope: StorageScope, from: string, to: string) {
   const value = loadLocal(scope, from);
   updateLocal(scope, to, () => value);
+  unsavedSessions.delete(storageKey(scope, from));
   try {
     if (isAnonymous(scope)) localStorage.removeItem(legacyKey(scope, from));
     localStorage.removeItem(storageKey(scope, from));

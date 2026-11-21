@@ -141,6 +141,11 @@ describe("UX [9] + F07: version checks discovery and direct check links", () => 
     fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
     expect(await screen.findByRole("button", { name: "Проверить версию 3" })).toBeVisible();
     expect(await screen.findByRole("list", { name: "Проверяемые правила" })).toBeVisible();
+    const current = new URL(window.location.href);
+    const sameRun = current.hash.replace(/&step=\d+/, "") + "&step=1";
+    fireEvent.click(screen.getByRole("button", { name: "Чат" }));
+    act(() => { window.location.hash = sameRun; });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Модель и проверка" })).toHaveAttribute("aria-pressed", "true"));
   });
 
   it("loads a direct route.check URL even without checkDiscovery or localStorage, showing loading/error instead of empty state", async () => {
@@ -354,7 +359,7 @@ describe("F01: chat draft protection on late POST response", () => {
     expect(loadLocal(api.id, "s_new_1").draft).toBe("Добавил ещё правило");
   });
 
-  it("reuses the original new-chat attempt and preserves edits made during it", async () => {
+  it.each([false, true])("reuses the original new-chat attempt and preserves edits (storage fails: %s)", async (storageFails) => {
     const api = makeApi();
     let fail!: (error: ApiError) => void;
     const created = { id: "created-after-retry", title: "А", mode: "analyzer" as const, created_at: "2026-11-21T00:00:00Z" };
@@ -362,18 +367,27 @@ describe("F01: chat draft protection on late POST response", () => {
       .mockImplementationOnce(() => new Promise<Session>((_resolve, reject) => { fail = reject; }))
       .mockResolvedValue(created);
     const onCreated = vi.fn();
-    render(<NewChat api={api} capabilities={baseCaps} onCreated={onCreated} />);
-    const draft = screen.getByRole("textbox", { name: "Описание поведения" });
-    fireEvent.change(draft, { target: { value: "А" } });
-    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
-    fireEvent.change(draft, { target: { value: "Б" } });
-    fireEvent.change(draft, { target: { value: "А" } });
-    await act(async () => fail(new ApiError("http", "Temporary", { status: 503 })));
-    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
-    await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created));
-    const calls = vi.mocked(api.createSession).mock.calls;
-    expect(calls[1]?.[1]).toBe(calls[0]?.[1]);
-    expect(loadLocal(api, created.id)).toMatchObject({ draft: "А", outbox: { text: "А", autoSend: true } });
+    const storage = storageFails ? vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Storage unavailable", "QuotaExceededError");
+    }) : null;
+    try {
+      render(<NewChat api={api} capabilities={baseCaps} onCreated={onCreated} />);
+      const draft = screen.getByRole("textbox", { name: "Описание поведения" });
+      fireEvent.change(draft, { target: { value: "А" } });
+      fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+      fireEvent.change(draft, { target: { value: "Б" } });
+      if (!storageFails) fireEvent.change(draft, { target: { value: "А" } });
+      await act(async () => fail(new ApiError("http", "Temporary", { status: 503 })));
+      fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+      await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created));
+      const calls = vi.mocked(api.createSession).mock.calls;
+      expect(calls[1]?.[1]).toBe(calls[0]?.[1]);
+      expect(loadLocal(api, created.id)).toMatchObject({ draft: storageFails ? "Б" : "А", outbox: { text: "А", autoSend: true } });
+    } finally {
+      storage?.mockRestore();
+      updateLocal(api, "__new__", () => ({ agentRuns: [], checkRuns: [], draft: "", outbox: null }));
+      updateLocal(api, created.id, () => ({ agentRuns: [], checkRuns: [], draft: "", outbox: null }));
+    }
   });
 });
 
