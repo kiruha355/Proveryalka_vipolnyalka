@@ -21,6 +21,7 @@ function server(initial: typeof alice | null = null, enabled = true) {
   let csrf = "csrf-me";
   let loginCount = 0;
   let holdRegistration: Promise<Response> | null = null;
+  let nextRead: { path: string; response: Promise<Response> } | null = null;
   const accounts = new Map([[alice.email, alice], [bob.email, bob]]);
   const session = () => ({
     id: `chat-${user?.id ?? "local"}`, title: `Чат ${user?.id ?? "local"}`,
@@ -46,7 +47,15 @@ function server(initial: typeof alice | null = null, enabled = true) {
     if (path === "/api/auth/password/reset-request") return json({}, 202);
     if (path === "/api/auth/password/reset") return JSON.parse(String(init?.body)).token === TOKEN ? empty() : failure(400, "RESET_INVALID");
     if (enabled && !user) return failure(401, "AUTH_REQUIRED");
+    if (enabled && method === "GET" && headers.has("X-CSRF-Token") && headers.get("X-CSRF-Token") !== csrf) {
+      return failure(401, "AUTH_REQUIRED");
+    }
     if (enabled && method !== "GET" && headers.get("X-CSRF-Token") !== csrf) return failure(403, "CSRF_INVALID");
+    if (method === "GET" && nextRead?.path === path) {
+      const { response } = nextRead;
+      nextRead = null;
+      return response;
+    }
     if (path === "/api/auth/sessions" || path === "/api/auth/logout") {
       user = null;
       return empty();
@@ -62,6 +71,7 @@ function server(initial: typeof alice | null = null, enabled = true) {
   return {
     expire: () => { user = null; },
     registration: (response: Promise<Response>) => { holdRegistration = response; },
+    nextRead: (path: string, response: Promise<Response>) => { nextRead = { path, response }; },
     requests: (path: string) => fetcher.mock.calls.filter(([url]) => String(url) === path).map(([, init]) => init!),
   };
 }
@@ -120,6 +130,66 @@ it("waits for demo capabilities before reopening the last recorded chat on an HT
   expect(await timeline.findByText("Проверка версии 1")).toBeInTheDocument();
   expect(await timeline.findByText("Проверка версии 2")).toBeInTheDocument();
   expect(openRecordedChat).toHaveBeenCalledWith(LIVE_RECORDING.session.id, expect.any(AbortSignal));
+});
+
+const aliceBookmark = "#/s/chat-alice?m=model-a&v=2&view=check&check=run-a&p=rule-a&step=3";
+
+it("authorizes the bookmarked chat after an expired cookie and preserves the complete check route", async () => {
+  const service = server(alice);
+  service.expire();
+  window.history.replaceState(null, "", aliceBookmark);
+  saveLastSession({ id: "http:same-origin", ownerId: alice.id }, "previous-chat");
+  let authorize!: () => void;
+  service.nextRead("/api/sessions/chat-alice", new Promise((resolve) => {
+    authorize = () => resolve(json({
+      id: "chat-alice", title: "Чат alice", created_at: "2026-10-31T10:00:00Z", mode: "analyzer",
+      messages: [], sources: [], requirements: [],
+    }));
+  }));
+  render(<App />);
+  await screen.findByRole("heading", { name: "Вход" });
+  signIn(alice.email);
+
+  await screen.findByText("Открываем чат");
+  expect(service.requests("/api/sessions?limit=200")).toEqual([]);
+  expect(new Headers(service.requests("/api/sessions/chat-alice")[0]?.headers).get("X-CSRF-Token")).toBe("csrf-login-1");
+  await act(async () => authorize());
+  expect(await screen.findByRole("heading", { name: "Чат alice" })).toBeInTheDocument();
+  expect(window.location.hash).toBe(aliceBookmark);
+});
+
+it("falls back to the incoming owner's last chat when the bookmarked chat is forbidden by ownership", async () => {
+  const service = server();
+  const scope = { id: "http:same-origin", ownerId: bob.id };
+  saveLastSession(scope, "chat-bob");
+  window.history.replaceState(null, "", aliceBookmark);
+  render(<App />);
+  await screen.findByRole("heading", { name: "Вход" });
+  signIn(bob.email);
+
+  expect(await screen.findByRole("heading", { name: "Чат bob" })).toBeInTheDocument();
+  expect(window.location.hash).toBe("#/s/chat-bob");
+  expect(loadLastSession(scope)).toBe("chat-bob");
+  expect(service.requests("/api/sessions/chat-alice")).toHaveLength(1);
+  expect(service.requests("/api/sessions/chat-alice/models")).toEqual([]);
+});
+
+it("keeps the bookmarked route when authorization is temporarily unavailable and retries with the existing login", async () => {
+  const service = server();
+  service.nextRead("/api/sessions/chat-alice", Promise.resolve(failure(503, "STORAGE_UNAVAILABLE")));
+  window.history.replaceState(null, "", aliceBookmark);
+  render(<App />);
+  await screen.findByRole("heading", { name: "Вход" });
+  signIn(alice.email);
+
+  expect(await screen.findByText("Не удалось открыть чат")).toBeInTheDocument();
+  expect(window.location.hash).toBe(aliceBookmark);
+  expect(service.requests("/api/sessions?limit=200")).toEqual([]);
+  fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+
+  expect(await screen.findByRole("heading", { name: "Чат alice" })).toBeInTheDocument();
+  expect(window.location.hash).toBe(aliceBookmark);
+  expect(service.requests("/api/auth/login")).toHaveLength(1);
 });
 
 it("keeps the same session and draft after reauthentication, then isolates a different user in the same browser", async () => {

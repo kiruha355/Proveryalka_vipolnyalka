@@ -8,6 +8,14 @@ from .service import csrf_token
 COOKIE='pv_session'
 
 
+def require_read_session(request, token):
+    # Clients may send their in-memory token to bind a read to the same session.
+    # Headerless reads remain supported for clients using only the cookie.
+    supplied = request.headers.get('x-csrf-token')
+    if supplied is not None and not hmac.compare_digest(supplied.encode(), csrf_token(token).encode()):
+        raise ServiceError(401,'AUTH_REQUIRED','Browser session changed')
+
+
 class Email(Contract):
     email: str = Field(min_length=3,max_length=254,pattern=r'^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$')
 
@@ -51,6 +59,8 @@ def create_auth_router(auth):
             origin(request)
             if not hmac.compare_digest(request.headers.get('x-csrf-token',''),csrf_token(token)):
                 raise ServiceError(403,'CSRF_INVALID','Invalid CSRF token')
+        else:
+            require_read_session(request, token)
         return token,user
 
     @router.post('/register',status_code=201)

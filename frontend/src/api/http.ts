@@ -79,9 +79,8 @@ export class HttpApi implements ProveryalkaApi {
     if (this.ownerId && !this.csrfToken) {
       throw signedOut();
     }
-    const method = init?.method ?? "GET";
     let headers = init?.headers;
-    if (this.csrfToken && !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase())) {
+    if (this.csrfToken) {
       headers = new Headers(headers);
       headers.set("X-CSRF-Token", this.csrfToken);
     }
