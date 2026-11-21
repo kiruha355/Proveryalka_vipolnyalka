@@ -22,6 +22,9 @@ const DEFAULT_PREFS: Prefs = {
   sidebarOpen: true,
 };
 
+type ApiReadiness = { api: ProveryalkaApi; ready: Loadable<ReadyInfo> };
+const unknownReadiness: Loadable<ReadyInfo> = { data: null, error: null, loading: true };
+
 function useLoad<T>(load: (signal: AbortSignal) => Promise<T>, deps: unknown[]): [Loadable<T>, () => void] {
   const [state, setState] = useState<Loadable<T>>({ data: null, error: null, loading: true });
   const [tick, setTick] = useState(0);
@@ -40,11 +43,12 @@ function useLoad<T>(load: (signal: AbortSignal) => Promise<T>, deps: unknown[]):
 export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   const sidebarPane = usePaneWidth("proveryalka:sidebar-width", .18, 170, 660, .32);
   const [prefs, setPrefs] = useState<Prefs>(() => loadPrefs(DEFAULT_PREFS));
+  const activeBaseUrl = prefs.baseUrl.trim().replace(/\/+$/, "");
   const api = useMemo<ProveryalkaApi>(
-    () => initialApi ?? (prefs.adapter === "demo" ? new DemoApi() : new HttpApi(prefs.baseUrl)),
-    [initialApi, prefs.adapter, prefs.baseUrl],
+    () => initialApi ?? (prefs.adapter === "demo" ? new DemoApi() : new HttpApi(activeBaseUrl)),
+    [initialApi, prefs.adapter, activeBaseUrl],
   );
-  useEffect(() => { configureFilesForAdapter(api.id === "demo" ? "demo" : "http", prefs.baseUrl); }, [api, prefs.baseUrl]);
+  useEffect(() => { configureFilesForAdapter(api.id === "demo" ? "demo" : "http", activeBaseUrl); }, [api, activeBaseUrl]);
   const [route, navigate] = useRoute();
   // On narrow screens the session list is an overlay: closed by default, closed after a choice.
   const [narrow, setNarrow] = useState(() => window.matchMedia?.("(max-width: 900px)").matches ?? false);
@@ -60,7 +64,46 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   const [connectionOpen, setConnectionOpen] = useState(false);
   const [capabilities, retryCapabilities] = useLoad<ApiCapabilities>((signal) => api.capabilities(signal), [api]);
   const [sessions, reloadSessions] = useLoad<Session[]>((signal) => api.listSessions(signal), [api]);
-  const [ready, recheckReady] = useLoad<ReadyInfo>((signal) => api.ready(signal), [api]);
+  const [loadedReady, setLoadedReady] = useState<ApiReadiness | null>(null);
+  const [activeProbe, setActiveProbe] = useState<ApiReadiness | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    api.ready(controller.signal).then(
+      (data) => { if (!controller.signal.aborted) setLoadedReady({ api, ready: { data, error: null, loading: false } }); },
+      (error: unknown) => {
+        if (!controller.signal.aborted && !isAbort(error)) {
+          setLoadedReady({ api, ready: { data: null, error, loading: false } });
+        }
+      },
+    );
+    return () => controller.abort();
+  }, [api]);
+  const initialReady = loadedReady?.api === api ? loadedReady.ready : unknownReadiness;
+  const ready = activeProbe?.api === api
+    ? { ...activeProbe.ready, data: activeProbe.ready.data ?? initialReady.data }
+    : initialReady;
+  const closeConnection = useCallback(() => setConnectionOpen(false), []);
+
+  const checkReady = useCallback((targetUrl: string, signal: AbortSignal): Promise<ReadyInfo> => {
+    const normalized = targetUrl.trim().replace(/\/+$/, "");
+    const isActiveHttp = prefs.adapter === "http" && normalized === activeBaseUrl;
+    const probeApi = isActiveHttp ? api : new HttpApi(normalized);
+    return probeApi.ready(signal).then(
+      (info) => {
+        if (isActiveHttp && !signal.aborted) setActiveProbe({ api, ready: { data: info, error: null, loading: false } });
+        return info;
+      },
+      (error: unknown) => {
+        if (isActiveHttp && !signal.aborted && !isAbort(error)) {
+          setActiveProbe((previous) => ({
+            api,
+            ready: { data: previous?.api === api ? previous.ready.data : null, error, loading: false },
+          }));
+        }
+        throw error;
+      },
+    );
+  }, [api, prefs.adapter, activeBaseUrl]);
 
   const update = (patch: Partial<Prefs>) => setPrefs((p) => {
     const next = { ...p, ...patch };
@@ -86,7 +129,7 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
   const tone = prefs.adapter === "demo" ? "demo" : capabilities.error !== null ? "error" : caps ? "ok" : "pending";
   const connectionLabel = prefs.adapter === "demo" ? "Демо: записанные данные"
     : capabilities.error !== null ? "Сервер недоступен"
-      : caps ? `Сервер ${prefs.baseUrl || "через proxy"}` : "Подключение…";
+      : caps ? (prefs.baseUrl ? `Сервер ${prefs.baseUrl}` : "Сервер подключён") : "Подключение…";
 
   let main;
   if (!caps) {
@@ -125,8 +168,8 @@ export function App({ initialApi }: { initialApi?: ProveryalkaApi } = {}) {
       {sidebarOpen && <PaneSeparator pane={sidebarPane} label="Ширина списка сессий"/>}
       <main className="main">{main}</main>
       {connectionOpen && (
-        <ConnectionDialog adapter={prefs.adapter} baseUrl={prefs.baseUrl} ready={ready} onCheckReady={recheckReady}
-          onClose={() => setConnectionOpen(false)}
+        <ConnectionDialog adapter={prefs.adapter} baseUrl={prefs.baseUrl} ready={ready} onCheckReady={checkReady}
+          onClose={closeConnection}
           onApply={(adapter, baseUrl) => {
             setConnectionOpen(false);
             update({ adapter, baseUrl });

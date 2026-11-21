@@ -45,8 +45,17 @@ export class HttpApi implements ProveryalkaApi {
 
   async ready(signal?: AbortSignal): Promise<ReadyInfo> {
     const value = await this.request("GET", "/ready", { signal });
-    if (typeof value !== "object" || value === null) throw new ApiError("malformed", "Ответ /ready не является объектом");
-    return value as ReadyInfo;
+    if (typeof value !== "object" || value === null) {
+      throw new ApiError("malformed", "Ответ /ready не подтверждает готовность сервера");
+    }
+    const info = value as ReadyInfo;
+    if (info.status !== "ready"
+      || (info.checker !== undefined && typeof info.checker !== "string")
+      || (info.llm_provider != null && typeof info.llm_provider !== "string")
+      || (info.agent_configured !== undefined && typeof info.agent_configured !== "boolean")) {
+      throw new ApiError("malformed", "Ответ /ready не подтверждает готовность сервера");
+    }
+    return info;
   }
 
   async listSessions(signal?: AbortSignal) {

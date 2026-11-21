@@ -12,7 +12,7 @@ import {
   useViewport,
 } from "@xyflow/react";
 import type { EdgeProps, NodeChange, NodeProps } from "@xyflow/react";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import {
   createContext,
   memo,
@@ -21,6 +21,7 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
 } from "react";
 import {useExpandedGraph} from "./useExpandedGraph";
 import type { Transition } from "../../contracts/model";
@@ -87,7 +88,7 @@ export const StageNode = memo(function StageNode({
         />
       ))}
       <span className="pv-stage__dot" aria-hidden="true" />
-      <span className="pv-stage__label">{data.label}</span>
+      <span className="pv-stage__label" title={data.label}>{data.label}</span>
       {data.traceSteps.length > 0 && (
         <span className="pv-stage__steps" aria-hidden="true">
           {data.traceSteps.join(", ")}
@@ -284,14 +285,194 @@ function ZoomControls({ expandControl }: { expandControl?: ReactNode }) {
   );
 }
 
-function FitOnChange({ token }: { token: string }) {
+export const NARROW_CANVAS_BREAKPOINT = 640;
+export const READABLE_MOBILE_MIN_ZOOM = 0.85;
+export const READABLE_DESKTOP_MIN_ZOOM = 0.72;
+export const MAX_FIT_ZOOM = 1.1;
+
+export type GraphBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type ReadableViewport = {
+  x: number;
+  y: number;
+  zoom: number;
+  clippedX: boolean;
+  clippedY: boolean;
+};
+
+export function computeGraphBounds(
+  layout: GraphLayout,
+  positions: Record<string, { x: number; y: number }> = {},
+  edges: TransitionFlowEdge[] = [],
+): GraphBounds {
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (const [id, box] of Object.entries(layout.boxes)) {
+    const moved = positions[id];
+    const x = moved?.x ?? box.x;
+    const y = moved?.y ?? box.y;
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + box.width);
+    maxY = Math.max(maxY, y + box.height);
+  }
+  for (const edge of edges) {
+    const arcY = edge.data?.arcY;
+    if (arcY != null) {
+      minY = Math.min(minY, arcY - 26);
+      maxY = Math.max(maxY, arcY + 26);
+    }
+  }
+  if (!Number.isFinite(minX)) {
+    return {
+      x: 0,
+      y: 0,
+      width: Math.max(1, layout.width),
+      height: Math.max(1, layout.height),
+    };
+  }
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(1, maxX - minX),
+    height: Math.max(1, maxY - minY),
+  };
+}
+
+/**
+ * Вычисляет стартовый viewport, сохраняя читаемый масштаб подписей узлов и
+ * переходов на узких экранах (без сжатия графа до микроскопических процентов).
+ */
+export function computeReadableViewport(
+  viewportWidth: number,
+  viewportHeight: number,
+  bounds: GraphBounds,
+  options: {
+    maxZoom?: number;
+    mobileMinZoom?: number;
+    desktopMinZoom?: number;
+  } = {},
+): ReadableViewport {
+  const safeW = Math.max(1, viewportWidth);
+  const safeH = Math.max(1, viewportHeight);
+  const isNarrow = safeW < NARROW_CANVAS_BREAKPOINT;
+  const padX = isNarrow
+    ? Math.min(20, Math.max(12, Math.round(safeW * 0.05)))
+    : Math.min(48, Math.max(24, Math.round(safeW * 0.08)));
+  const topPad = isNarrow ? 50 : 44;
+  const bottomPad = isNarrow ? 18 : 26;
+  const availW = Math.max(1, safeW - padX * 2);
+  const availH = Math.max(1, safeH - topPad - bottomPad);
+  const fitZoom = Math.min(
+    availW / Math.max(1, bounds.width),
+    availH / Math.max(1, bounds.height),
+  );
+  const minReadable = isNarrow
+    ? (options.mobileMinZoom ?? READABLE_MOBILE_MIN_ZOOM)
+    : (options.desktopMinZoom ?? READABLE_DESKTOP_MIN_ZOOM);
+  const maxZoom = options.maxZoom ?? MAX_FIT_ZOOM;
+  const zoom = Math.min(maxZoom, Math.max(minReadable, fitZoom));
+  const scaledW = bounds.width * zoom;
+  const scaledH = bounds.height * zoom;
+  const clippedX = scaledW > availW + 1;
+  const clippedY = scaledH > availH + 1;
+  const x = clippedX
+    ? padX - bounds.x * zoom
+    : (safeW - scaledW) / 2 - bounds.x * zoom;
+  const y = clippedY
+    ? topPad - bounds.y * zoom
+    : topPad + (availH - scaledH) / 2 - bounds.y * zoom;
+  return {
+    x: Math.round(x * 100) / 100,
+    y: Math.round(y * 100) / 100,
+    zoom: Math.round(zoom * 1000) / 1000,
+    clippedX,
+    clippedY,
+  };
+}
+
+function FitOnChange({
+  token,
+  bounds,
+  flowContainerRef,
+}: {
+  token: string;
+  bounds: GraphBounds;
+  flowContainerRef: RefObject<HTMLDivElement | null>;
+}) {
   const flow = useReactFlow();
+  const boundsRef = useRef(bounds);
+  boundsRef.current = bounds;
+  const lastSizeRef = useRef<{ width: number; height: number }>({
+    width: 0,
+    height: 0,
+  });
+
+  const applyForSize = useCallback(
+    (width: number, height: number) => {
+      if (width <= 0 || height <= 0) return false;
+      lastSizeRef.current = { width, height };
+      const viewport = computeReadableViewport(
+        width,
+        height,
+        boundsRef.current,
+      );
+      void flow.setViewport(
+        { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
+        { duration: 0 },
+      );
+      return true;
+    },
+    [flow],
+  );
+
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      void flow.fitView({ padding: 0.2, maxZoom: 1.1 });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [flow, token]);
+    const el = flowContainerRef.current;
+    if (!el) return;
+    const measureAndApply = () => {
+      const rect = el.getBoundingClientRect();
+      const width = Math.round(rect.width || el.clientWidth || el.offsetWidth);
+      const height = Math.round(
+        rect.height || el.clientHeight || el.offsetHeight,
+      );
+      applyForSize(width, height);
+    };
+    const frame = requestAnimationFrame(measureAndApply);
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        const width = Math.round(entry?.contentRect.width ?? el.clientWidth ?? 0);
+        const height = Math.round(
+          entry?.contentRect.height ?? el.clientHeight ?? 0,
+        );
+        if (width <= 0 || height <= 0) {
+          lastSizeRef.current = { width: 0, height: 0 };
+          return;
+        }
+        const prev = lastSizeRef.current;
+        const becameVisible = prev.width <= 0 || prev.height <= 0;
+        const crossedBreakpoint =
+          (prev.width < NARROW_CANVAS_BREAKPOINT) !==
+          (width < NARROW_CANVAS_BREAKPOINT);
+        if (becameVisible || crossedBreakpoint) {
+          applyForSize(width, height);
+        }
+      });
+      observer.observe(el);
+    }
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [applyForSize, flowContainerRef, token]);
   return null;
 }
 
@@ -332,6 +513,7 @@ function CanvasInner(props: StateGraphCanvasProps & { expandControl?: ReactNode 
     children, footer, expandControl,
   } = props;
   const markerPrefix = `pv-arrow-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const flowContainerRef = useRef<HTMLDivElement>(null);
   const { nodes, edges } = useMemo(
     () =>
       buildFlowElements(projection, layout, transitions, {
@@ -349,6 +531,10 @@ function CanvasInner(props: StateGraphCanvasProps & { expandControl?: ReactNode 
       trace,
       showConditional,
     ],
+  );
+  const graphBounds = useMemo(
+    () => computeGraphBounds(layout, positions, edges),
+    [layout, positions, edges],
   );
 
   const selectChip = useCallback(
@@ -385,6 +571,7 @@ function CanvasInner(props: StateGraphCanvasProps & { expandControl?: ReactNode 
     <CanvasContext.Provider value={actions}>
       <div className="pv-canvas">
       <ReactFlow<StageFlowNode, TransitionFlowEdge>
+        ref={flowContainerRef}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
@@ -397,9 +584,8 @@ function CanvasInner(props: StateGraphCanvasProps & { expandControl?: ReactNode 
         edgesFocusable={false}
         elementsSelectable
         selectNodesOnDrag={false}
-        fitView
-        fitViewOptions={{ padding: 0.2, maxZoom: 1.1 }}
-        minZoom={0.15}
+        panOnDrag
+        minZoom={0.2}
         maxZoom={2.5}
         ariaLabelConfig={ARIA_LABELS}
         aria-label={ariaLabel}
@@ -435,7 +621,11 @@ function CanvasInner(props: StateGraphCanvasProps & { expandControl?: ReactNode 
           size={1.2}
           className="pv-canvas-bg"
         />
-        <FitOnChange token={fitToken} />
+        <FitOnChange
+          token={fitToken}
+          bounds={graphBounds}
+          flowContainerRef={flowContainerRef}
+        />
         {children}
       </ReactFlow>
       <div className="pv-canvas-controls" role="toolbar" aria-label="Управление диаграммой">
