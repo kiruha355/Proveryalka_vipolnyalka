@@ -149,11 +149,11 @@ export function WorkspacePanel({ context, viewId, versionState, fallbackVersion,
       </header>
 
       <div className={`workspace__body${isReady && active?.id === "diagram" ? " workspace__body--diagram" : ""}`}>
-        {workspace.models.error !== null && !workspace.models.data && (
+        {versionState.status === "error" && (
           <ErrorNotice error={workspace.models.error} title="Модели не загружены"
             action={<button type="button" className="button button--small" onClick={workspace.reloadModels}>Повторить</button>} />
         )}
-        {isLoadingVersion && !(workspace.models.error !== null && !workspace.models.data) && (
+        {isLoadingVersion && (
           <QuietStatus busy>Загрузка модели</QuietStatus>
         )}
         {isMissingVersion && (
