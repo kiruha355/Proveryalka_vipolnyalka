@@ -127,20 +127,7 @@ export function AnalysisEntry({ state, isLatest, time, versions, context, replyQ
         ) : model && isLatest ? (
           <span className="muted small">Версия модели загружается</span>
         ) : null}
-        <button
-          type="button"
-          className="text-link"
-          onClick={() => (version
-            ? context.openLocation({
-                modelId: version.model_id,
-                version: version.number,
-                view: "requirements",
-                ...(version.id !== context.version?.id ? { check: undefined, property: undefined, step: undefined } : {}),
-              })
-            : context.openView("requirements"))}
-        >
-          Требования и цитаты
-        </button>
+        <button type="button" className="text-link" onClick={() => context.openView("requirements")}>Требования и цитаты</button>
       </div>
     </AgentBlock>
   );

@@ -35,7 +35,10 @@ export function CheckView({ context }: WorkspaceViewProps) {
   const core = useCore();
   const { version, checks, selection, trace } = context;
   const demo = context.capabilities.adapter === "demo";
-  const selected = checks.find((c) => c.runId === selection.trace?.checkRunId) ?? checks[0] ?? null;
+  const requestedCheckId = selection.trace?.checkRunId;
+  const selected = requestedCheckId
+    ? (checks.find((c) => c.runId === requestedCheckId) ?? null)
+    : (checks[0] ?? null);
   const bound = selected && version ? boundResults(selected, version.id, version.spec_hash) : null;
   const ordered = bound ? sortForReading(bound.own) : [];
   const propertyId = selection.trace?.checkRunId === selected?.runId ? selection.trace?.propertyId : undefined;
@@ -50,7 +53,7 @@ export function CheckView({ context }: WorkspaceViewProps) {
 
   if (!version) return null;
 
-  if (checks.length === 0) {
+  if (checks.length === 0 && !requestedCheckId) {
     return (
       <div className="view view--empty">
         <div className="empty">
@@ -85,6 +88,12 @@ export function CheckView({ context }: WorkspaceViewProps) {
             );
           })}
         </nav>
+      )}
+
+      {!selected && requestedCheckId && (
+        <section className="run-panel" aria-label="Проверка">
+          <QuietStatus busy>Загрузка отчёта проверки</QuietStatus>
+        </section>
       )}
 
       {selected && (
