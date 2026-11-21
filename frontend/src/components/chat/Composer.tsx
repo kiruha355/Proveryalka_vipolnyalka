@@ -1,6 +1,6 @@
 import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { DOCUMENT_TYPES, newKey } from "../../api/api";
-import { ApiError, describeError } from "../../api/errors";
+import { ApiError, describeError, requiresSignIn } from "../../api/errors";
 import { IMAGE_ACCEPT, imageFileError } from "../images/imageFile";
 import { Close, Paperclip, Picture, Send } from "../icons";
 
@@ -43,7 +43,8 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer(prop
     try {
       await props.attachImage(chosen, key);
     } catch (error) {
-      setImageError({ text: describeError(error), retry: error instanceof ApiError && error.retryable ? { file: chosen, key } : undefined });
+      const canRetry = error instanceof ApiError && (error.retryable || requiresSignIn(error));
+      setImageError({ text: describeError(error), retry: canRetry ? { file: chosen, key } : undefined });
     } finally {
       uploading.current = false;
       setImageBusy(false);

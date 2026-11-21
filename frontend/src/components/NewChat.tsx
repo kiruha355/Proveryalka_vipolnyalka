@@ -108,6 +108,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     if (inFlight.current || (imageKey ? !api.uploadImage : !api.uploadDocument)) return;
     const validationError = imageKey ? null : validateDocumentFile(file);
     if (validationError) {
+      documentSession.current = null;
       setDocumentError(true);
       setError(validationError);
       return;
@@ -141,6 +142,8 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     finally {inFlight.current = false; setBusy(false);}
   };
 
+  const documentToRetry = documentSession.current?.file;
+  const retryError = documentError ? (documentToRetry ? () => void attach(documentToRetry) : null) : () => void start();
   return (
     <div className="session" ref={split.container} style={split.style}>
     <section className="chat chat--new" aria-labelledby="new-chat-title">
@@ -162,7 +165,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
       <div className="chat__footer">
         {error !== null && (
           <ErrorNotice error={error} title={documentError ? "Документ не загружен" : "Чат не создан"}
-            action={documentError ? undefined : <button type="button" className="button button--small" onClick={() => void start()}>Повторить</button>} />
+            action={retryError ? <button type="button" className="button button--small" onClick={retryError} disabled={busy}>Повторить</button> : undefined} />
         )}
         <Composer ref={composer} value={draft} label="Описание поведения"
           onChange={updateDraft}

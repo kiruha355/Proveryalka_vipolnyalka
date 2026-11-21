@@ -56,6 +56,9 @@ function server(initial: typeof alice | null = null, enabled = true) {
     if (path === "/api/sessions") return json([session()]);
     if (path === `/api/sessions/${session().id}`) return json({ ...session(), messages: [], sources: [], requirements: [] });
     if (path === `/api/sessions/${session().id}/models`) return json([]);
+    if (path === `/api/sessions/${session().id}/messages` && method === "POST") {
+      return json({ run_id: "saved-send", session_id: session().id, state: "completed", version_id: null, error_code: null }, 202);
+    }
     return failure(404, "NOT_FOUND");
   });
   vi.stubGlobal("fetch", fetcher);
@@ -171,11 +174,13 @@ it("keeps the same session and draft after reauthentication, then isolates a dif
   expect(await screen.findByRole("textbox", { name: "Сообщение агенту" })).toHaveValue("Черновик Алисы");
   expect(screen.queryByRole("button", { name: /Чат bob/ })).not.toBeInTheDocument();
 
+  fireEvent.click(screen.getByRole("button", { name: "Повторить отправку" }));
+  await waitFor(() => expect(service.requests("/api/sessions/chat-alice/messages")).toHaveLength(3));
   const sends = service.requests("/api/sessions/chat-alice/messages");
-  expect(sends).toHaveLength(2);
-  expect(sends.map((init) => new Headers(init.headers).get("X-CSRF-Token"))).toEqual(["csrf-me", "csrf-login-1"]);
+  expect(sends.map((init) => new Headers(init.headers).get("X-CSRF-Token")))
+    .toEqual(["csrf-me", "csrf-login-1", "csrf-login-3"]);
   expect(sends[0]?.credentials).toBe("include");
-  expect(new Headers(sends[0]?.headers).get("Idempotency-Key")).toBe(new Headers(sends[1]?.headers).get("Idempotency-Key"));
+  expect(new Set(sends.map((init) => new Headers(init.headers).get("Idempotency-Key"))).size).toBe(1);
   const all = service.requests("/api/auth/sessions")[0]!;
   expect(all.method).toBe("DELETE");
   expect(new Headers(all.headers).get("X-CSRF-Token")).toBe("csrf-login-2");

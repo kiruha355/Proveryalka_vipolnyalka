@@ -94,6 +94,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
       && JSON.stringify(outbox.fileContext ?? null) === JSON.stringify(fileContext);
     void sendDraft(workspace.retryOutbox, fromComposer);
   };
+  const needsManualSend = workspace.send.outbox && !workspace.send.outbox.autoSend && !workspace.send.sending;
 
   let blocked: string | null = null;
   if (!capabilities.agent) blocked = capabilities.adapter === "demo" ? "Записанные данные: агент не вызывается." : "Агент не настроен. Проверьте подключение.";
@@ -248,7 +249,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
       </div>
 
       <div className="chat__footer">
-        {workspace.send.error !== null && (
+        {(workspace.send.error !== null || needsManualSend) && (
           <ErrorNotice error={workspace.send.error} title={workspace.send.outbox ? "Сообщение не отправлено" : "Сервер не принял сообщение"}
             action={workspace.send.outbox ? (
               <>
