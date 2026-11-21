@@ -11,7 +11,7 @@ export function useSessionImages(api: ProveryalkaApi, sessionId: string, enabled
   const [images, setImages] = useState<ImageSource[]>([]);
   const [error, setError] = useState<unknown>(null);
   const [reload, setReload] = useState(0);
-  const [selectedId, setSelectedId] = useState(() => loadLocal(api.id, sessionId).openImageId ?? null);
+  const [selectedId, setSelectedId] = useState(() => loadLocal(api, sessionId).openImageId ?? null);
 
   useEffect(() => {
     if (!enabled || !api.listImages) return;
@@ -29,7 +29,7 @@ export function useSessionImages(api: ProveryalkaApi, sessionId: string, enabled
 
   const select = (id: string | null) => {
     setSelectedId(id);
-    updateLocal(api.id, sessionId, local => ({ ...local, openImageId: id }));
+    updateLocal(api, sessionId, local => ({ ...local, openImageId: id }));
   };
 
   const upload = enabled && api.uploadImage ? async (file: File, key: string) => {

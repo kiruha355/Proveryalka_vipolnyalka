@@ -34,6 +34,7 @@ export const List = make(<><path d="M9 7h11" /><path d="M9 12h11" /><path d="M9 
 export const Paperclip = make(<path d="M8.5 12.5 14 7a3 3 0 0 1 4.2 4.2l-7.1 7.1a5 5 0 0 1-7.1-7.1L10.6 4.6" />);
 export const Picture = make(<><rect x="4" y="5" width="16" height="14" rx="1" /><circle cx="9" cy="10" r="1.5" /><path d="m4 16 4-3 3 2 4-4 5 5" /></>);
 export const Plug = make(<><path d="M9 3.5V8" /><path d="M15 3.5V8" /><path d="M7 8h10v3a5 5 0 0 1-10 0V8z" /><path d="M12 16v4.5" /></>);
+export const User = make(<><circle cx="12" cy="8" r="3.5" /><path d="M5 20v-2a7 7 0 0 1 14 0v2" /></>);
 export const Download = make(<><path d="M12 4v11" /><path d="m7.5 10.5 4.5 4.5 4.5-4.5" /><path d="M5 19.5h14" /></>);
 export const Retry = make(<><path d="M19 12a7 7 0 1 1-2.1-5" /><path d="M19 4.5V8h-3.5" /></>);
 export const Branch = make(<><circle cx="7" cy="6" r="2" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="8" r="2" /><path d="M7 8v8" /><path d="M17 10c0 4-10 2-10 6" /></>);

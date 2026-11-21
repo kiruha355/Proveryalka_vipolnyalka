@@ -41,8 +41,10 @@ export interface MessageBody {
  * backend; DemoApi serves recorded fixtures. Components never call fetch.
  */
 export interface ProveryalkaApi {
-  /** Namespace for client-side persistence (run ids, drafts). */
+  /** Identifies the source of workspace data. */
   readonly id: string;
+  /** Server account owning the workspace. Local and demo clients are anonymous. */
+  readonly ownerId?: string;
   capabilities(signal?: AbortSignal): Promise<ApiCapabilities>;
   ready(signal?: AbortSignal): Promise<ReadyInfo>;
 
@@ -72,6 +74,7 @@ export interface ProveryalkaApi {
   getCheck(runId: string, signal?: AbortSignal): Promise<CheckRun>;
   listArtifacts(runId: string, signal?: AbortSignal): Promise<ArtifactEntry[]>;
   artifactUrl(runId: string, name: string): string;
+  downloadArtifact?(runId: string, name: string, signal?: AbortSignal): Promise<Blob>;
   /** Only when capabilities().checkDiscovery is true. */
   listCheckRuns?(version: CheckVersion, signal?: AbortSignal): Promise<string[]>;
   /** Only when capabilities().documents is true. HTTP extraction errors reject with their API code. */

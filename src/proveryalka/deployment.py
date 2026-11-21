@@ -11,7 +11,7 @@ import re
 import tempfile
 from pathlib import Path
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from starlette.staticfiles import StaticFiles
 
 from .api.app import create_app
@@ -48,6 +48,10 @@ def create_deployment(settings=None, frontend_dist=None, **api_options):
                 return JSONResponse(status_code=503, content={"error": {
                     "code": "DELIVERY_UNAVAILABLE", "message": "Frontend build or artifacts directory unavailable", "details": []}})
         return response
+
+    @app.get("/reset-password", include_in_schema=False)
+    async def reset_password_page():
+        return FileResponse(directory / "index.html")
 
     # API routes are registered first. StaticFiles confines paths to this build;
     # data/, .env, home and repository files are never mounted.

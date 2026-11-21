@@ -341,3 +341,24 @@ it("filesDigest совпадает с Python ensure_ascii для Unicode paths",
   ).trim();
   expect(filesDigest(files)).toBe(expected);
 });
+
+it("uses current CSRF for writes and reports authentication failures for reads and ZIP", async () => {
+  let csrf = "first";
+  const onAuthError = vi.fn();
+  const fetcher = vi.fn<typeof fetch>(async (input, init) => {
+    if (init?.method === "POST") return new Response(JSON.stringify(g));
+    const archive = String(input).endsWith("/archive");
+    return new Response(JSON.stringify({error: {
+      code: archive ? "CSRF_INVALID" : "AUTH_REQUIRED", message: "Denied",
+    }}), {status: archive ? 403 : 401});
+  });
+  const provider = createCodegenProvider({fetch: fetcher, getCsrfToken: () => csrf, onAuthError});
+  await provider.createGeneration(version, {allowUnverified: false}, "one");
+  csrf = "second";
+  await provider.createGeneration(version, {allowUnverified: false}, "two");
+  await expect(provider.readFile(g.generation_id, "README.md")).rejects.toMatchObject({status: 401, code: "AUTH_REQUIRED"});
+  await expect(provider.downloadArchive(g.generation_id)).rejects.toMatchObject({status: 403, code: "CSRF_INVALID"});
+  expect(fetcher.mock.calls.map(([, init]) => init?.credentials)).toEqual(Array(4).fill("include"));
+  expect(fetcher.mock.calls.map(([, init]) => new Headers(init?.headers).get("X-CSRF-Token"))).toEqual(["first", "second", null, null]);
+  expect(onAuthError.mock.calls.map(([error]) => error.status)).toEqual([401, 403]);
+});

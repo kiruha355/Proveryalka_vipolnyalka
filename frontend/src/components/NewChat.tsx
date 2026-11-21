@@ -1,7 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
 import { newKey } from "../api/api";
-import { ApiError, validateDocumentFile } from "../api/errors";
+import { ApiError, isAbort, requiresSignIn, validateDocumentFile } from "../api/errors";
 import type { Session } from "../api/types";
 import { loadLocal, updateLocal } from "../state/persist";
 import { Composer, type ComposerHandle } from "./chat/Composer";
@@ -30,9 +30,15 @@ interface Props {
 export function NewChat({ api, capabilities, onCreated }: Props) {
   const split = usePaneWidth("proveryalka:chat-width", .36, 250, 390, .65);
   const inFlight = useRef(false);
+  const lifetime = useRef(new AbortController());
+  useEffect(() => {
+    const controller = new AbortController();
+    lifetime.current = controller;
+    return () => controller.abort();
+  }, []);
   const documentSession = useRef<{session: Session | null; sessionKey: string; uploadKey: string; file: File} | null>(null);
   const [documentError, setDocumentError] = useState(false);
-  const [draft, setDraft] = useState(() => loadLocal(api.id, NEW).draft);
+  const [draft, setDraft] = useState(() => loadLocal(api, NEW).draft);
   const draftRevRef = useRef(0);
   const draftRef = useRef(draft);
   const [busy, setBusy] = useState(false);
@@ -43,7 +49,7 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     draftRevRef.current += 1;
     draftRef.current = value;
     setDraft(value);
-    updateLocal(api.id, NEW, (local) => ({ ...local, draft: value }));
+    updateLocal(api, NEW, (local) => ({ ...local, draft: value }));
   };
 
   const blocked = !capabilities
@@ -58,32 +64,35 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     inFlight.current = true;
     const rev = draftRevRef.current;
     setDocumentError(false);
-    const saved = loadLocal(api.id, NEW).outbox;
+    const saved = loadLocal(api, NEW).outbox;
     const outbox = saved && saved.text === text && saved.sessionKey
       ? saved
       : { text, questionId: null, key: newKey(), sessionKey: newKey(), sessionTitle: titleFrom(text) };
-    updateLocal(api.id, NEW, (local) => ({ ...local, outbox }));
+    updateLocal(api, NEW, (local) => ({ ...local, outbox }));
     setBusy(true);
     setError(null);
+    const signal = lifetime.current.signal;
     try {
-      const session = await api.createSession({ title: outbox.sessionTitle ?? titleFrom(text) }, outbox.sessionKey!);
+      const session = await api.createSession({ title: outbox.sessionTitle ?? titleFrom(text) }, outbox.sessionKey!, signal);
+      if (signal.aborted) return;
       const unchanged = draftRevRef.current === rev;
       const remainingDraft = unchanged ? "" : draftRef.current;
       // The session view sends the message with the key reserved here.
-      updateLocal(api.id, session.id, (local) => ({
+      updateLocal(api, session.id, (local) => ({
         ...local,
         draft: remainingDraft,
         outbox: { text, questionId: null, key: outbox.key, autoSend: true },
       }));
-      updateLocal(api.id, NEW, () => ({ agentRuns: [], checkRuns: [], draft: "", outbox: null }));
+      updateLocal(api, NEW, () => ({ agentRuns: [], checkRuns: [], draft: "", outbox: null }));
       if (unchanged) {
         draftRef.current = "";
         setDraft("");
       }
       onCreated(session);
     } catch (failure) {
-      if (!(failure instanceof ApiError && failure.retryable)) {
-        updateLocal(api.id, NEW, (local) => ({
+      if (signal.aborted || isAbort(failure)) return;
+      if (!(failure instanceof ApiError && (failure.retryable || requiresSignIn(failure)))) {
+        updateLocal(api, NEW, (local) => ({
           ...local,
           outbox: null,
         }));
@@ -109,17 +118,21 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
       ? saved
       : { session: null, sessionKey: newKey(), uploadKey: newKey(), file };
     documentSession.current = attempt;
+    const signal = lifetime.current.signal;
     try {
-      if (!attempt.session) attempt.session = await api.createSession({title: titleFrom(file.name)}, attempt.sessionKey);
-      const image = imageKey ? await api.uploadImage!(attempt.session.id, file, imageKey) : null;
-      if (!image) await api.uploadDocument!(attempt.session.id, file, attempt.uploadKey);
+      if (!attempt.session) attempt.session = await api.createSession({title: titleFrom(file.name)}, attempt.sessionKey, signal);
+      if (signal.aborted) return;
+      const image = imageKey ? await api.uploadImage!(attempt.session.id, file, imageKey, signal) : null;
+      if (!image) await api.uploadDocument!(attempt.session.id, file, attempt.uploadKey, signal);
+      if (signal.aborted) return;
       const currentDraft = draftRef.current;
-      updateLocal(api.id, attempt.session.id, local => ({...local, draft: currentDraft, openImageId: image?.id}));
-      updateLocal(api.id, NEW, local => ({...local, draft: "", outbox: null}));
+      updateLocal(api, attempt.session.id, local => ({...local, draft: currentDraft, openImageId: image?.id}));
+      updateLocal(api, NEW, local => ({...local, draft: "", outbox: null}));
       documentSession.current = null;
       onCreated(attempt.session);
     } catch (failure) {
-      if (!(failure instanceof ApiError && failure.retryable)) {
+      if (signal.aborted || isAbort(failure)) return;
+      if (!(failure instanceof ApiError && (failure.retryable || requiresSignIn(failure)))) {
         documentSession.current = null;
       }
       if (imageKey) throw failure;

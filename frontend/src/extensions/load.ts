@@ -7,16 +7,13 @@ import type { FileContextRef } from "../api/types";
 interface ConfigurableModule extends ExtensionModule {
   setProjectFocus?: (focus: {path: string; generationId: string; versionId: string}) => void;
   configureProjectFiles?: (options: {provider: unknown} | null) => void;
-  createCodegenProvider?: (options?: {baseUrl?: string}) => unknown;
+  createCodegenProvider?: (options?: {baseUrl?: string; fetch?: typeof fetch}) => unknown;
 }
 const modules = import.meta.glob<ConfigurableModule>("../../../frontend-extensions/src/index.{ts,tsx}", { eager: true });
 
 export function loadExtensions(): string[] {
   const loaded: string[] = [];
   for (const [path, module] of Object.entries(modules)) {
-    if (module.configureProjectFiles && module.createCodegenProvider) {
-      module.configureProjectFiles({provider: module.createCodegenProvider()});
-    }
     registerExtension(module);
     loaded.push(path);
   }
@@ -24,10 +21,10 @@ export function loadExtensions(): string[] {
 }
 
 /** Keep code generation on the same backend as the selected API adapter. */
-export function configureFilesForAdapter(adapter: "http" | "demo", baseUrl = ""): void {
+export function configureFilesForAdapter(adapter: "http" | "demo", baseUrl = "", fetcher?: typeof fetch): void {
   for (const module of Object.values(modules)) {
     if (!module.configureProjectFiles || !module.createCodegenProvider) continue;
-    module.configureProjectFiles(adapter === "demo" ? null : {provider: module.createCodegenProvider({baseUrl})});
+    module.configureProjectFiles(adapter === "demo" ? null : {provider: module.createCodegenProvider({baseUrl, fetch: fetcher})});
   }
 }
 

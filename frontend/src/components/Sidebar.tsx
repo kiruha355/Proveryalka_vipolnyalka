@@ -4,6 +4,8 @@ import type { Loadable } from "../state/types";
 import { ErrorNotice } from "./Notice";
 import { Chat, Menu, Plug, Plus } from "./icons";
 import { InterfaceUpdate } from "./InterfaceUpdate";
+import { AccountMenu } from "./auth/AccountMenu";
+import type { WorkspaceAccount } from "../app/AuthGate";
 
 interface Props {
   open: boolean;
@@ -16,6 +18,7 @@ interface Props {
   connectionLabel: string;
   connectionTone: "ok" | "demo" | "error" | "pending";
   onConnection(): void;
+  account?: WorkspaceAccount;
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -98,6 +101,7 @@ export function Sidebar(props: Props) {
 
       <div className="sidebar__bottom">
         <InterfaceUpdate compact={!open} />
+        {props.account && <AccountMenu email={props.account.user.email} compact={!open} onAction={props.account.onAction} />}
         <button type="button" className={`connection connection--${props.connectionTone}${open ? "" : " connection--rail"}`}
           onClick={props.onConnection} aria-label={`Подключение: ${props.connectionLabel}`} title={props.connectionLabel}>
           <Plug size={16} />

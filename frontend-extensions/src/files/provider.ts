@@ -1,5 +1,5 @@
 import { checkArchivePath } from "./safe-path";
-import { ApiError, readJson } from "../api/http";
+import { ApiError, readJson, type HttpOptions } from "../api/http";
 import { VERIFICATION_STATES } from "./contract";
 import type {
   CodegenStatus,
@@ -99,10 +99,7 @@ export function dispositionFileName(header: string | null): string | null {
   return clean && clean !== "." && clean !== ".." ? clean : null;
 }
 
-export type CodegenHttpOptions = {
-  /** Префикс сервера; пусто — тот же origin (proxy dev-server ядра). */
-  baseUrl?: string;
-  fetch?: typeof fetch;
+export type CodegenHttpOptions = HttpOptions & {
   label?: string | null;
 };
 
@@ -115,6 +112,7 @@ export function createCodegenProvider(
     ((...args: Parameters<typeof fetch>) => globalThis.fetch(...args));
   const get = (path: string, signal?: AbortSignal) =>
     doFetch(`${base}${path}`, {
+      credentials: "include",
       headers: { Accept: "application/json" },
       signal: signal ?? null,
     });
@@ -123,17 +121,21 @@ export function createCodegenProvider(
     body: unknown,
     key: string | null,
     signal?: AbortSignal,
-  ) =>
-    doFetch(`${base}${path}`, {
+  ) => {
+    const csrf = options.getCsrfToken?.();
+    return doFetch(`${base}${path}`, {
       method: "POST",
+      credentials: "include",
       headers: {
         Accept: "application/json",
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
         ...(key ? { "Idempotency-Key": key } : {}),
+        ...(csrf ? { "X-CSRF-Token": csrf } : {}),
       },
       body: body === undefined ? null : JSON.stringify(body),
       signal: signal ?? null,
     });
+  };
   const version = (ref: Pick<VersionRef, "model_id" | "number">) =>
     `/api/models/${encodeURIComponent(ref.model_id)}/versions/${encodeURIComponent(String(ref.number))}/generations`;
   const generation = (id: string) =>
@@ -160,27 +162,30 @@ export function createCodegenProvider(
       }
       return {
         available: true,
-        status: await readJson<CodegenStatus>(response),
+        status: await readJson<CodegenStatus>(response, options.onAuthError),
       };
     },
     async listGenerations(ref, signal, onVerificationState) {
       const response = await get(version(ref), signal);
-      const generations = await readJson<Generation[]>(response);
+      const generations = await readJson<Generation[]>(response, options.onAuthError);
       const state = response.headers.get("X-TLC-Verification-State");
       onVerificationState?.(VERIFICATION_STATES.find((candidate) => candidate === state) ?? null);
       return generations;
     },
     async getGeneration(id, signal) {
-      return readJson<Generation>(await get(generation(id), signal));
+      return readJson<Generation>(
+        await get(generation(id), signal),
+        options.onAuthError,
+      );
     },
     async readFile(id, path, signal) {
       const checked = checkArchivePath(path);
       if (!checked.ok) throw new Error(checked.reason);
       const response = await doFetch(
         `${base}${generation(id)}/files/${encodePathSegments(path)}`,
-        { signal: signal ?? null },
+        { credentials: "include", signal: signal ?? null },
       );
-      if (!response.ok) await readJson(response);
+      if (!response.ok) await readJson(response, options.onAuthError);
       return {
         bytes: new Uint8Array(await response.arrayBuffer()),
         sha256Header: response.headers.get("X-Content-SHA256"),
@@ -188,9 +193,10 @@ export function createCodegenProvider(
     },
     async downloadArchive(id, signal) {
       const response = await doFetch(`${base}${generation(id)}/archive`, {
+        credentials: "include",
         signal: signal ?? null,
       });
-      if (!response.ok) await readJson(response);
+      if (!response.ok) await readJson(response, options.onAuthError);
       return {
         bytes: new Uint8Array(await response.arrayBuffer()),
         fileName: dispositionFileName(
@@ -212,31 +218,39 @@ export function createCodegenProvider(
           key,
           signal,
         ),
+        options.onAuthError,
       );
     },
     async listTestRuns(id, signal) {
       return readJson<TestRun[]>(
         await get(`${generation(id)}/test-runs`, signal),
+        options.onAuthError,
       );
     },
     async getTestRun(id, signal) {
-      return readJson<TestRun>(await get(testRun(id), signal));
+      return readJson<TestRun>(
+        await get(testRun(id), signal),
+        options.onAuthError,
+      );
     },
     async startTestRun(id, key, signal) {
       return readJson<TestRun>(
         await post(`${generation(id)}/test-runs`, {}, key, signal),
+        options.onAuthError,
       );
     },
     async cancelTestRun(id, signal) {
       return readJson<TestRun>(
         await post(`${testRun(id)}/cancel`, undefined, null, signal),
+        options.onAuthError,
       );
     },
     async getTestLog(id, signal) {
       const response = await doFetch(`${base}${testRun(id)}/log`, {
+        credentials: "include",
         signal: signal ?? null,
       });
-      if (!response.ok) await readJson(response);
+      if (!response.ok) await readJson(response, options.onAuthError);
       return response.text();
     },
     comparisons: {
@@ -247,16 +261,17 @@ export function createCodegenProvider(
         for (let offset = 0; ; offset += limit) {
           const page = await readJson<RepositorySnapshot[]>(
             await get(`${path}?limit=${limit}&offset=${offset}`, signal),
+            options.onAuthError,
           );
           snapshots.push(...page);
           if (page.length < limit) return snapshots;
         }
       },
       async list(id, signal) {
-        return readJson<TestRun[]>(await get(comparisons(id), signal));
+        return readJson<TestRun[]>(await get(comparisons(id), signal), options.onAuthError);
       },
       async start(id, body, key) {
-        return readJson<TestRun>(await post(comparisons(id), body, key));
+        return readJson<TestRun>(await post(comparisons(id), body, key), options.onAuthError);
       },
     },
   };

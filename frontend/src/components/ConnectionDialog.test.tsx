@@ -167,7 +167,7 @@ describe("ConnectionDialog", () => {
   });
 
   it("App checks entered URL B against B/ready without applying it and hides proxy from sidebar label", async () => {
-    savePrefs({ adapter: "http", baseUrl: "", lastSession: {}, sidebarOpen: true });
+    savePrefs({ adapter: "http", baseUrl: "", sidebarOpen: true });
     const requests: string[] = [];
     const fetchMock = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
@@ -289,7 +289,7 @@ describe("ConnectionDialog", () => {
   });
 
   it("refreshes App readiness state when probing the active URL (S2) and preserves URL input focus on rerender (F12)", async () => {
-    savePrefs({ adapter: "http", baseUrl: "", lastSession: {}, sidebarOpen: true });
+    savePrefs({ adapter: "http", baseUrl: "", sidebarOpen: true });
     const activeProbe = deferred<Response>();
     let readyRequests = 0;
     const fetchMock = vi.fn<typeof fetch>(async (input) => {
@@ -351,7 +351,7 @@ describe("ConnectionDialog", () => {
 
   it("retains readiness when connecting again to an equivalent API URL", async () => {
     const base = "http://server-a.local:8000";
-    savePrefs({ adapter: "http", baseUrl: base, lastSession: {}, sidebarOpen: true });
+    savePrefs({ adapter: "http", baseUrl: base, sidebarOpen: true });
     let readyRequests = 0;
     vi.stubGlobal("fetch", vi.fn<typeof fetch>(async (input) => {
       const path = String(input).slice(base.length);
@@ -359,6 +359,7 @@ describe("ConnectionDialog", () => {
         return Response.json({ paths: { "/api/sessions": {}, "/api/sessions/{session_id}/messages": {} } });
       }
       if (path === "/api/sessions?limit=200") return Response.json([]);
+      if (path === "/api/auth/me") return Response.json({}, { status: 404 });
       if (path === "/ready" && readyRequests++ === 0) return Response.json({ status: "ready", agent_configured: false });
       return Response.json({}, { status: 503 });
     }));

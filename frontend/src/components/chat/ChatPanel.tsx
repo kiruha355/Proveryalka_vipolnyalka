@@ -30,7 +30,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   const { workspace, history } = core;
   const { api, capabilities, session } = context;
   const images = useSessionImages(api, session.id, Boolean(capabilities.images));
-  const [draft, setDraft] = useState(() => loadLocal(api.id, session.id).draft);
+  const [draft, setDraft] = useState(() => loadLocal(api, session.id).draft);
   const draftRevRef = useRef(0);
   const fileContextRef = useRef(fileContext);
   fileContextRef.current = fileContext;
@@ -44,7 +44,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   const setDraftPersist = (value: string) => {
     draftRevRef.current += 1;
     setDraft(value);
-    updateLocal(api.id, session.id, (local) => ({ ...local, draft: value }));
+    updateLocal(api, session.id, (local) => ({ ...local, draft: value }));
   };
 
   const openQuestions = (workspace.dialogue?.questions ?? history?.dialogue?.questions ?? []).filter((q) => q.status === "open");

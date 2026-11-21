@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ApiCapabilities, ProveryalkaApi } from "../api/api";
 import { newKey } from "../api/api";
-import { ApiError, isAbort, validateDocumentFile } from "../api/errors";
+import { ApiError, isAbort, requiresSignIn, validateDocumentFile } from "../api/errors";
 import type {
   AgentRunTrace, CheckLimits, FileContextRef, DialogueView, ExplanationView, DocumentSource, ModelVersion, Question, Run, RunEvent, SessionDetail, VerificationResult,
 } from "../api/types";
@@ -263,10 +263,11 @@ export interface SessionWorkspaceOptions {
   api: ProveryalkaApi;
   capabilities: ApiCapabilities;
   sessionId: string;
+  resume?: number;
   onModelProposed?: (proposal: { model_id: string; version_id: string; number: number }) => void;
 }
 
-export function useSessionWorkspace({ api, capabilities, sessionId, onModelProposed }: SessionWorkspaceOptions): SessionWorkspace {
+export function useSessionWorkspace({ api, capabilities, sessionId, resume = 0, onModelProposed }: SessionWorkspaceOptions): SessionWorkspace {
   const [runs, dispatch] = useReducer(reducer, INITIAL);
   const runsRef = useRef(runs);
   runsRef.current = runs;
@@ -274,7 +275,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const [dialogue, setDialogue] = useState<DialogueView | null>(null);
   const [agentTraceHistory, setAgentTraceHistory] = useState({loading: false, error: null as unknown | null, nextCursor: null as number | null});
   const [models, setModels] = useState<Loadable<ModelGroup[]>>({ data: null, error: null, loading: true });
-  const [send, setSend] = useState<SendState>(() => ({ sending: false, outbox: loadLocal(api.id, sessionId).outbox, error: null }));
+  const [send, setSend] = useState<SendState>(() => ({ sending: false, outbox: loadLocal(api, sessionId).outbox, error: null }));
   const [checkStart, setCheckStart] = useState<CheckStartState>({ starting: false, error: null, retry: null });
   const [approveError, setApproveError] = useState<unknown | null>(null);
   const [upload, setUpload] = useState<UploadState>({ uploading: null, error: null, documents: [] });
@@ -434,11 +435,11 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
 
   const persistAgentOutcome = useCallback((runId: string, run: Run | null) => {
     if (!run) return;
-    updateLocal(api.id, sessionId, (local) => ({
+    updateLocal(api, sessionId, (local) => ({
       ...local,
       agentRuns: local.agentRuns.map((r) => (r.runId === runId ? { ...r, state: run.state, errorCode: run.error_code } : r)),
     }));
-  }, [api.id, sessionId]);
+  }, [api, sessionId]);
 
   const track = useCallback((kind: "agent" | "check", runId: string) => {
     if (trackers.current.has(runId) || root.current.signal.aborted) return;
@@ -494,7 +495,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
     reloadDetail();
     reloadModels();
     reloadAgentRuns();
-    const local = loadLocal(api.id, sessionId);
+    const local = loadLocal(api, sessionId);
     const latest = local.agentRuns[local.agentRuns.length - 1];
     if (latest) {
       dispatch({ type: "agent/add", view: agentView(latest, sessionId) });
@@ -525,6 +526,21 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   }, []);
 
   useEffect(() => {
+    if (!resume) return;
+    reloadDetail();
+    reloadModels();
+    reloadAgentRuns();
+    for (const tracker of trackers.current.values()) tracker.reconnect();
+    for (const view of Object.values(runsRef.current.checks)) {
+      if (requiresSignIn(view.resultsError)) {
+        fetchCheck(view.runId);
+        if (!view.run || !isTerminal(view.run.state)) track("check", view.runId);
+      }
+      if (requiresSignIn(view.artifacts.error)) loadArtifacts(view.runId);
+    }
+  }, [resume, reloadDetail, reloadModels, reloadAgentRuns, fetchCheck, loadArtifacts, track]);
+
+  useEffect(() => {
     for (const view of Object.values(runs.agent)) {
       if (view.trace && view.run && !isTerminal(view.run.state)) track("agent", view.runId);
     }
@@ -544,7 +560,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const dispatchSend = useCallback(async (outbox: Outbox): Promise<boolean> => {
     if (sendingRef.current) return false;
     sendingRef.current = true;
-    updateLocal(api.id, sessionId, (local) => ({ ...local, outbox }));
+    updateLocal(api, sessionId, (local) => ({ ...local, outbox }));
     setSend({ sending: true, outbox, error: null });
     try {
       const signal = root.current.signal;
@@ -561,7 +577,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
       }
       if (root.current.signal.aborted) return false;
       const record: AgentRunRecord = { runId: run.run_id, text: outbox.text, questionId: outbox.questionId, startedAt: new Date().toISOString() };
-      updateLocal(api.id, sessionId, (local) => ({
+      updateLocal(api, sessionId, (local) => ({
         ...local,
         outbox: null,
         agentRuns: local.agentRuns.some((r) => r.runId === run.run_id) ? local.agentRuns : [...local.agentRuns, record],
@@ -576,9 +592,9 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
       return true;
     } catch (error) {
       if (isAbort(error)) return false;
-      const keep = error instanceof ApiError && error.retryable;
+      const keep = error instanceof ApiError && (error.retryable || requiresSignIn(error));
       const kept = keep ? { ...outbox, autoSend: false } : null;
-      updateLocal(api.id, sessionId, (local) => ({ ...local, outbox: kept }));
+      updateLocal(api, sessionId, (local) => ({ ...local, outbox: kept }));
       setSend({ sending: false, outbox: kept, error });
       return false;
     } finally {
@@ -599,15 +615,15 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
   const retryOutbox = useCallback(() => (send.outbox ? dispatchSend(send.outbox) : Promise.resolve(false)), [dispatchSend, send.outbox]);
 
   const discardOutbox = useCallback(() => {
-    updateLocal(api.id, sessionId, (local) => ({ ...local, outbox: null }));
+    updateLocal(api, sessionId, (local) => ({ ...local, outbox: null }));
     setSend({ sending: false, outbox: null, error: null });
-  }, [api.id, sessionId]);
+  }, [api, sessionId]);
 
   // Message composed before the session existed (new chat): send it once.
   // Deferred so a StrictMode mount/unmount/mount cycle schedules one request.
   useEffect(() => {
     const timer = setTimeout(() => {
-      const local = loadLocal(api.id, sessionId);
+      const local = loadLocal(api, sessionId);
       if (local.outbox?.autoSend) void dispatchSend(local.outbox);
     }, 0);
     return () => clearTimeout(timer);
@@ -689,7 +705,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
           runId: run.run_id, versionId: version.id, modelId: version.model_id, number: version.number,
           propertyIds, startedAt: new Date().toISOString(),
         };
-        updateLocal(api.id, sessionId, (local) => ({
+        updateLocal(api, sessionId, (local) => ({
           ...local, checkRuns: local.checkRuns.some((r) => r.runId === run.run_id) ? local.checkRuns : [...local.checkRuns, record],
         }));
         knownChecksRef.current.add(run.run_id);
@@ -699,7 +715,7 @@ export function useSessionWorkspace({ api, capabilities, sessionId, onModelPropo
         return run.run_id;
       } catch (error) {
         if (isAbort(error)) return null;
-        const retryable = error instanceof ApiError && error.retryable;
+        const retryable = error instanceof ApiError && (error.retryable || requiresSignIn(error));
         setCheckStart({ starting: false, error, retry: retryable ? () => { void attempt(); } : null });
         return null;
       } finally {

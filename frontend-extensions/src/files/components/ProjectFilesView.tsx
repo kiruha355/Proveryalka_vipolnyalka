@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ApiError } from "../../api/http";
+import { ApiError, describeApiError } from "../../api/http";
 import { SplitPane } from "../../ui/SplitPane";
 import type {
   CodegenStatus,
@@ -303,9 +303,11 @@ function GenerationFiles({
             error:
               e instanceof ApiError && e.status === 404
                 ? "Файл указан в manifest, но в источнике его нет"
-                : e instanceof Error
-                  ? e.message
-                  : String(e),
+                : e instanceof ApiError && (e.status === 401 || e.status === 403)
+                  ? describeApiError(e).title
+                  : e instanceof Error
+                    ? e.message
+                    : String(e),
           });
       });
     return () => ac.abort();
@@ -387,7 +389,13 @@ function GenerationFiles({
               if (alive.current) saveBytes(a.bytes, a.fileName);
             } catch (e) {
               if (alive.current)
-                setDownloadError(e instanceof Error ? e.message : String(e));
+                setDownloadError(
+                  e instanceof ApiError && (e.status === 401 || e.status === 403)
+                    ? describeApiError(e).title
+                    : e instanceof Error
+                      ? e.message
+                      : String(e),
+                );
             } finally {
               if (alive.current) setDownload(false);
             }
