@@ -35,6 +35,7 @@ export interface SessionRequirement {
 }
 
 export interface SessionDetail extends Session {
+  linked_source_ids?: string[];
   messages: Message[];
   sources: Source[];
   requirements: SessionRequirement[];

@@ -13,6 +13,8 @@ import { MessageText } from "./MessageText";
 import { AgentTrace } from "./AgentTrace";
 import type { AgentRunView } from "../../state/types";
 import { DemoAnswers } from "./DemoAnswers";
+import { ImageSourceLink } from "../images/ImageCitation";
+import { SessionImages, useSessionImages } from "../images/SessionImages";
 
 interface Props {
   context: WorkspaceContextValue;
@@ -27,6 +29,7 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
   const core = useCore();
   const { workspace, history } = core;
   const { api, capabilities, session } = context;
+  const images = useSessionImages(api, session.id, Boolean(capabilities.images));
   const [draft, setDraft] = useState(() => loadLocal(api.id, session.id).draft);
   const draftRevRef = useRef(0);
   const fileContextRef = useRef(fileContext);
@@ -111,10 +114,13 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
     if (entry.kind === "user") {
       const isPending = entry.status === "pending" && !active;
       const failure = isPending && last && last.text === entry.text && last.run && isTerminal(last.run.state) ? last.failure : null;
+      const content = entry.sourceId && capabilities.images
+        ? <ImageSourceLink sourceId={entry.sourceId} fallback={entry.text} />
+        : entry.text;
       items.push({
         at: entry.createdAt, key: entry.key,
         node: (
-          <UserBubble key={entry.key} text={entry.text} time={clock(entry.createdAt)}>
+          <UserBubble key={entry.key} text={content} time={clock(entry.createdAt)}>
             {fileLink(entry.fileContext)}
             {capabilities.adapter === "demo" && !session.recording_label && <p className="msg__note">Исходный текст записанного примера</p>}
             {entry.status === "discarded" && <p className="msg__note">Сообщение отменено и не разобрано</p>}
@@ -273,7 +279,11 @@ export function ChatPanel({ fileContext, onClearFile, context, replyQuestionId, 
           label="Сообщение агенту" placeholder={replyQuestion ? "Ваш ответ на выбранный вопрос…" : openQuestions.length > 0 ? "Ответьте на уточнение или добавьте правило…" : "Добавить правило или уточнение…"}
           blockedReason={blocked} busy={workspace.send.sending}
           reply={replyQuestion && capabilities.questionId ? { text: replyQuestion.text, onClear: () => onReply(null) } : null}
-          attach={capabilities.documents && workspace.dialogue?.status === "not_started" ? { busy: workspace.upload.uploading !== null, onFile: (file) => void workspace.uploadDocument(file) } : null} />
+          attach={capabilities.documents && workspace.dialogue?.status === "not_started" ? { busy: workspace.upload.uploading !== null, onFile: (file) => void workspace.uploadDocument(file) } : null}
+          attachImage={images.upload}
+          footer={capabilities.images && <SessionImages api={api} sessionId={session.id} library={images}
+            blocked={Boolean(blocked) || workspace.send.sending || Boolean(fileContext) || history?.dialogue?.status === "limit_reached"}
+            onUse={(image, id) => void workspace.useImageAnalysis(image.id, id, `Изображение ${image.filename}`)} />} />
         {new URLSearchParams(window.location.search).get("scenario") === "order" && (
           <DemoAnswers onChoose={(text) => composerRef.current?.prefill(text)} />
         )}

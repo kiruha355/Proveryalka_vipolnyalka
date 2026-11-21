@@ -3,6 +3,7 @@ import type { WorkspaceViewProps } from "../../app/extensions";
 import type { DialogueState, ExtractedRequirement, Question, Source } from "../../api/types";
 import { highlightSpans, indexRequirements, refMatches } from "../../domain/requirements";
 import { describeError } from "../../api/errors";
+import { ImageQuote, ImageSourceLink } from "../images/ImageCitation";
 
 export function sourceLabel(source: Source, index: number, documents: { id: string; filename: string }[]): string {
   const document = documents.find((d) => d.id === source.id);
@@ -26,7 +27,7 @@ function SourceText({ source, label, requirements, onPick, active }: {
   const index = indexRequirements(requirements, []);
   return (
     <figure className="source">
-      <figcaption className="source__label">{label}</figcaption>
+      <figcaption className="source__label"><ImageSourceLink sourceId={source.id} fallback={label} /></figcaption>
       <p className="source__text">
         {spans.map((span) => {
           const text = Array.from(source.text).slice(span.start, span.end).join("");
@@ -110,7 +111,7 @@ export function RequirementsView({ context }: WorkspaceViewProps) {
                       const ok = source ? refMatches(source, ref) : false;
                       return (
                         <li key={`${ref.source_id}:${ref.start}`}>
-                          <q>{ref.quote}</q>
+                          <ImageQuote citation={ref} />
                           {!ok && <span className="warn-text small"> цитата не совпадает с источником</span>}
                         </li>
                       );

@@ -9,6 +9,7 @@ import { diffModels, sameJson, type ElementChange } from "../../domain/versionDi
 import { Expr, Val } from "../Expr";
 import { RequirementChips } from "../RequirementChips";
 import { useHorizontalScrollCue } from "../ScrollCue";
+import { ImageQuote } from "../images/ImageCitation";
 
 function ScrollableTable({ children }: { children: ReactNode }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -221,7 +222,8 @@ export function ModelView({ context }: WorkspaceViewProps) {
                         <p>{PROPERTY_KIND[p.kind].label}</p>
                         {p.origin === "proposal" && <p>{p.approved_by ? "Предположение агента подтверждено:" : "Предположение агента — ожидает подтверждения"}</p>}
                         {p.approved_by && <q>{p.approved_by.quote}</q>}
-                        {p.origin !== "proposal" && p.requirement_ids.flatMap(id => spec.requirements.find(r => r.id === id)?.source_refs ?? []).map((ref,i) => <p key={i}><q>{ref.quote}</q> <code>{ref.source_id}</code></p>)}
+                        {p.origin !== "proposal" && p.requirement_ids.flatMap(id => spec.requirements.find(r => r.id === id)?.source_refs ?? []).map((ref,i) =>
+                          <p key={i}><ImageQuote citation={ref} fallback={<><q>{ref.quote}</q> <code>{ref.source_id}</code></>} /></p>)}
                         {p.origin !== "proposal" && p.requirement_ids.length === 0 && <p className="warn-text">Источник правила не указан</p>}
                       </details>
                     </td>

@@ -8,6 +8,7 @@ import { Expr, Val } from "../Expr";
 import { RequirementChips } from "../RequirementChips";
 import { StatusBadge } from "../StatusBadge";
 import { Close } from "../icons";
+import { ImageQuote } from "../images/ImageCitation";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -24,7 +25,7 @@ function Quotes({ requirement, model }: { requirement: ExtractedRequirement; mod
       {requirement.source_refs.map((ref) => {
         const index = model.sources.findIndex((s) => s.id === ref.source_id);
         const origin = index === 0 ? "из описания пользователя" : ref.source_id.startsWith("answer_") ? "из ответа на уточнение" : "из источника";
-        return <li key={`${ref.source_id}:${ref.start}`}><q>{ref.quote}</q> <span className="muted small">{origin}</span></li>;
+        return <li key={`${ref.source_id}:${ref.start}`}><ImageQuote citation={ref} fallback={<><q>{ref.quote}</q> <span className="muted small">{origin}</span></>} /></li>;
       })}
     </ul>
   );
@@ -70,7 +71,7 @@ export function Inspector({ context }: { context: WorkspaceContextValue }) {
   useEffect(() => {
     if (!element) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !(event.target instanceof HTMLTextAreaElement)) context.select(null);
+      if (event.key === "Escape" && !(event.target instanceof HTMLTextAreaElement) && !(event.target instanceof Element && event.target.closest("dialog"))) context.select(null);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
