@@ -158,6 +158,7 @@ def test_crop_provenance_survives_dialogue_model_check_and_reload(tmp_path, monk
             assert observations[source_id]["uncertainties"] == [UNCERTAINTY]
             assert observations[source_id]["proposals"] == [CASE["draft"]["requirements"][-1]["quote"], PROPOSAL]
             if payload.get("turn_kind") == "attachment":
+                assert payload["new_image_source_id"] == source_id
                 candidate = model_draft(source_id, previous, questions=[
                     {**question("Куда ведёт стрелка из согласования?"), "reason": UNCERTAINTY},
                 ])
@@ -166,6 +167,9 @@ def test_crop_provenance_survives_dialogue_model_check_and_reload(tmp_path, monk
                 else:
                     assert "видимое наблюдение" in payload["validation_feedback"]["error"]
             else:
+                assert "new_image_source_id" not in payload
+                if started:
+                    assert payload["attached_source_id"] == source_id
                 candidate = model_draft(source_id, previous, resolutions=[{
                     "question_id": payload["answer_to_question_id"], "decision": "answered", "quote": ANSWER,
                 }])
@@ -201,11 +205,13 @@ def test_crop_provenance_survives_dialogue_model_check_and_reload(tmp_path, monk
         assert client.post(attach.replace(client.sid, other)).status_code == 404
         assert UNCERTAINTY in source["text"] and PROPOSAL in source["text"]
 
-        response = post(client, messages, {"source_id": source["id"]}, "image-turn")
+        base = {"base_version_id": old_model["version_id"]} if started else {}
+        attach_body = {"source_id": source["id"], **base}
+        response = post(client, messages, attach_body, "image-turn")
         assert response.status_code == 202, response.text
         run_id = response.json()["run_id"]
         assert wait_run(client, run_id)["state"] == "completed"
-        assert post(client, messages, {"source_id": source["id"]}, "image-turn").json()["run_id"] == run_id
+        assert post(client, messages, attach_body, "image-turn").json()["run_id"] == run_id
         duplicate = post(client, messages, {"source_id": source["id"]}, "duplicate-turn")
         assert duplicate.json()["error"]["code"] == "SOURCE_ALREADY_ANALYZED"
         pending = client.get(f"{root}/dialogue").json()
@@ -215,7 +221,8 @@ def test_crop_provenance_survives_dialogue_model_check_and_reload(tmp_path, monk
         assert "Куда ведёт стрелка" in pending["questions"][0]["text"]
         assert len(inputs) == (3 if started else 2)
 
-        answer = post(client, messages, {"text": ANSWER, "question_id": pending["open_question_ids"][0]}, "answer").json()
+        evidence_body = {"source_id": source["id"], **base} if started else {}
+        answer = post(client, messages, {"text": ANSWER, "question_id": pending["open_question_ids"][0], **evidence_body}, "answer").json()
         assert wait_run(client, answer["run_id"])["state"] == "completed"
         saved = client.get(f"{root}/dialogue").json()
         assert saved["status"] == "ready" and saved["open_question_ids"] == []

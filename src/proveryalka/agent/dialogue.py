@@ -108,8 +108,8 @@ async def generate_state(payload, sources, previous, question_id, max_rounds, ma
                     image_question_source = None
                     if observations:
                         from ..images.evidence import validate_observations
-                        introduced_source_id = payload.get("attached_source_id") or sources[-1].id
-                        image_question_source = validate_observations(candidate, sources, observations, introduced_source_id)
+                        image_question_source = validate_observations(candidate, sources, observations,
+                                                                      payload.get("new_image_source_id"))
                     image_ranges = {key: observation["visible_ranges"] for key, observation in observations.items()}
                     state = build_state(sources, candidate, previous, question_id, max_rounds, image_ranges, image_question_source)
                     await activity("validation", attempt=attempt, outcome="passed")
@@ -192,6 +192,9 @@ async def resume_pending(session: Session) -> DialogueState:
         observations = await session.image_observations(sources)
         if observations:
             payload["image_observations"] = observations
+            attached_id = pending.attachment.id if pending.attachment else source.id
+            if attached_id in observations and not (previous and any(item.id == attached_id for item in previous.sources)):
+                payload["new_image_source_id"] = attached_id
     check_context(payload)
     await activity("context_ready", source_id=source.id, sources_count=len(sources), purpose="analysis")
     state = await generate_state(payload, sources, previous, pending.question_id, pending.max_rounds)
