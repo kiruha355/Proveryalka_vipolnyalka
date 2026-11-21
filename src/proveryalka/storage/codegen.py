@@ -126,7 +126,10 @@ class CodegenStore:
             version = self.store._version(connection, model_id, number)
             ids = [row[0] for row in connection.execute(
                 "SELECT generation_id FROM codegen_generations WHERE version_id=? ORDER BY created_at,rowid", (version["id"],))]
-            return [self._generation(connection, generation_id) for generation_id in ids]
+            return (
+                [self._generation(connection, generation_id) for generation_id in ids],
+                verification_snapshot(connection, version)["state"],
+            )
 
     def list_for_session(self, session_id):
         with self.transaction() as connection:

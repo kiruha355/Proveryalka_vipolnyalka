@@ -4,11 +4,25 @@
  * (PR #64, ветка t3/codegen-sandbox, коммит dbbf757, src/proveryalka/codegen/dto.py).
  */
 
-export type VerificationState =
-  | "holds"
-  | "violated"
-  | "inconclusive"
-  | "not_checked";
+export const VERIFICATION_STATES = ["holds", "violated", "inconclusive", "not_checked"] as const;
+export type VerificationState = (typeof VERIFICATION_STATES)[number];
+
+export type ApplicationMode = "template" | "agent";
+
+export type TechnicalConditions = {
+  language: string;
+  platform: string;
+  api_prefix: string;
+  storage: string;
+  integrations: string[];
+};
+
+export type GenerationOptions = {
+  allowUnverified: boolean;
+  target?: string;
+  technicalConditions?: TechnicalConditions;
+  applicationMode?: ApplicationMode;
+};
 
 export type GeneratedElement = {
   kind: "transition" | "variable" | "requirement";
@@ -60,7 +74,7 @@ export type Generation = {
   target: string;
   generator: { name: string; version: string };
   technical_conditions: Record<string, string | string[]>;
-  application_mode?: "template" | "agent";
+  application_mode?: ApplicationMode;
   /** ASCII-slug, корневая папка в ZIP. */
   project_name: string;
   verification: {
@@ -128,6 +142,39 @@ export type TestCounts = {
   skipped: number | null;
 };
 
+export type RepositorySnapshot = {
+  id: string;
+  remote_url: string;
+  commit_sha: string;
+  manifest_sha256: string;
+};
+
+export type CandidateAdapter = {
+  kind: "fastapi-evaluate-v1";
+  module: string;
+  api_prefix: string;
+};
+
+export type ComparisonRequest = {
+  snapshot_id: string;
+  manifest_sha256: string;
+  reference_code_hash: string;
+  adapter: CandidateAdapter;
+};
+
+export type CandidateComparison = ComparisonRequest & {
+  status: "pending" | "matches" | "mismatch" | "incompatible_adapter" | "execution_error";
+  commit_sha: string;
+  code_hash: string;
+  tests_hash: string;
+  differences: {
+    scenario_id: string;
+    transition_id: string | null;
+    requirement_ids: string[];
+    message: string | null;
+  }[];
+};
+
 export type TestRun = {
   test_run_id: string;
   generation_id: string;
@@ -150,6 +197,7 @@ export type TestRun = {
   sandbox: SandboxInfo | null;
   log_available: boolean;
   log_truncated: boolean | null;
+  comparison?: CandidateComparison | null;
 };
 
 export type CodegenStatus = {

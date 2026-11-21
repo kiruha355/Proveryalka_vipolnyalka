@@ -55,6 +55,7 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   routeRef.current = route;
   const [pane, setPane] = useState<"chat" | "workspace">("chat");
   const [element, setElement] = useState<ElementRef | null>(null);
+  const [requestedFile, setRequestedFile] = useState<FileContextRef | null>(null);
   const [fileContext, setFileContext] = useState<FileContextRef | null>(()=>loadLocal(api.id,sessionId).draftFileContext ?? null);
   const fileReply = (ref: FileContextRef | null) => {setFileContext(ref); updateLocal(api.id, sessionId, local=>({...local,draftFileContext:ref}));};
   const [reply, setReplyState] = useState<string | null>(()=>loadLocal(api.id,sessionId).draftQuestionId ?? null);
@@ -87,6 +88,17 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
   const requirements = useMemo(() => (version ? indexRequirements(version.spec.requirements, version.spec.sources) : null), [version]);
   const allProps = version?.spec.properties.map((p) => p.id) ?? [];
   const selectedProperties = version ? selectedByVersion[version.id] ?? allProps : [];
+  const requestedVersion = requestedFile && workspace.versions.find((v) => v.id === requestedFile.version_id);
+  useEffect(() => {
+    if (!requestedFile || !requestedVersion) return;
+    focusGeneratedFile(requestedFile);
+    setRequestedFile(null);
+    setElement(null);
+    go({
+      modelId: requestedVersion.model_id, version: requestedVersion.number, view: "files",
+      check: undefined, property: undefined, step: undefined,
+    });
+  }, [requestedFile, requestedVersion, go]);
 
   const context = useMemo<WorkspaceContextValue | null>(() => {
     if (!session) return null;
@@ -135,9 +147,8 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
         requestAnimationFrame(()=>composer.current?.prefill(`Объясни файл ${ref.path} из генерации ${ref.generation_id}, версия ${ref.version_number ?? ref.version_id}. Как в нём реализованы правила этой модели? Ничего не изменяй.`));
       } : undefined,
       openGeneratedFile: (ref) => {
-        const target=workspace.versions.find(v=>v.id===ref.version_id);
-        if (!target) return;
-        focusGeneratedFile(ref); go({modelId:target.model_id,version:target.number,view:"files",check:undefined,property:undefined,step:undefined});setPane("workspace");
+        setRequestedFile(ref);
+        setPane("workspace");
       },
       openView: (viewId) => {
         go({ view: viewId });
@@ -183,6 +194,17 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
     );
   }
 
+  const fileOpenNotice = requestedFile && !requestedVersion && (
+    workspace.models.loading ? <QuietStatus busy>Загрузка версии для файла {requestedFile.path}</QuietStatus>
+      : workspace.models.error !== null ? (
+        <ErrorNotice error={workspace.models.error} title={`Не удалось загрузить версию для файла ${requestedFile.path}`}
+          action={<button type="button" className="button button--small" onClick={workspace.reloadModels}>Повторить загрузку версий</button>} />
+      ) : (
+        <ErrorNotice title="Версия модели из ссылки не найдена"
+          detail={`${requestedFile.path} · версия ${requestedFile.version_number ?? requestedFile.version_id}`} />
+      )
+  );
+
   return (
     <CoreContext.Provider value={core}>
       <WorkspaceContext.Provider value={context}>
@@ -193,7 +215,7 @@ export function SessionView({ api, capabilities, sessionId, listed, route, navig
           </div>
           <ChatPanel fileContext={fileContext} onClearFile={()=>fileReply(null)} context={context} replyQuestionId={reply} onReply={setReply} composerRef={composer} />
           <PaneSeparator pane={chatPane} label="Ширина чата"/>
-          <WorkspacePanel context={context} viewId={route.view} />
+          <WorkspacePanel context={context} viewId={route.view} fileOpenNotice={fileOpenNotice} />
         </div>
       </WorkspaceContext.Provider>
     </CoreContext.Provider>

@@ -1,10 +1,11 @@
 import { registerExtension, type ExtensionModule } from "../app/extensions";
+import type { FileContextRef } from "../api/types";
 
 // Feature packages live outside frontend/ (repo-root frontend-extensions/).
 // The glob resolves to nothing when the directory is absent, so the core app
 // builds and runs without them.
 interface ConfigurableModule extends ExtensionModule {
-  setProjectFocus?: (focus: {path: string; generationId: string}) => void;
+  setProjectFocus?: (focus: {path: string; generationId: string; versionId: string; sha256: string}) => void;
   configureProjectFiles?: (options: {provider: unknown} | null) => void;
   createCodegenProvider?: (options?: {baseUrl?: string}) => unknown;
 }
@@ -30,6 +31,8 @@ export function configureFilesForAdapter(adapter: "http" | "demo", baseUrl = "")
   }
 }
 
-export function focusGeneratedFile(ref: {path:string; generation_id:string}): void {
-  for (const module of Object.values(modules)) module.setProjectFocus?.({path:ref.path,generationId:ref.generation_id});
+export function focusGeneratedFile(ref: Pick<FileContextRef, "path" | "generation_id" | "version_id" | "sha256">): void {
+  for (const module of Object.values(modules)) module.setProjectFocus?.({
+    path: ref.path, generationId: ref.generation_id, versionId: ref.version_id, sha256: ref.sha256,
+  });
 }

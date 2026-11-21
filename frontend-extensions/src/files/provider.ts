@@ -1,9 +1,14 @@
 import { checkArchivePath } from "./safe-path";
 import { ApiError, readJson } from "../api/http";
+import { VERIFICATION_STATES } from "./contract";
 import type {
   CodegenStatus,
+  ComparisonRequest,
   Generation,
+  GenerationOptions,
+  RepositorySnapshot,
   TestRun,
+  VerificationState,
   VersionRef,
 } from "./contract";
 
@@ -23,6 +28,12 @@ export type ArchiveDownload = {
   codeHash: string | null;
 };
 
+export interface ComparisonProvider {
+  listSnapshots(sessionId: string, signal?: AbortSignal): Promise<RepositorySnapshot[]>;
+  list(generationId: string, signal?: AbortSignal): Promise<TestRun[]>;
+  start(generationId: string, body: ComparisonRequest, key: string): Promise<TestRun>;
+}
+
 export interface CodegenProvider {
   /** Подпись источника, если это не живой сервер (например, «Запись прогона генератора»). */
   readonly label: string | null;
@@ -30,6 +41,7 @@ export interface CodegenProvider {
   listGenerations(
     version: Pick<VersionRef, "model_id" | "number">,
     signal?: AbortSignal,
+    onVerificationState?: (state: VerificationState | null) => void,
   ): Promise<Generation[]>;
   getGeneration(
     generationId: string,
@@ -46,7 +58,7 @@ export interface CodegenProvider {
   ): Promise<ArchiveDownload>;
   createGeneration(
     version: Pick<VersionRef, "model_id" | "number">,
-    options: { allowUnverified: boolean },
+    options: GenerationOptions,
     key: string,
     signal?: AbortSignal,
   ): Promise<Generation>;
@@ -59,6 +71,7 @@ export interface CodegenProvider {
   ): Promise<TestRun>;
   cancelTestRun(testRunId: string, signal?: AbortSignal): Promise<TestRun>;
   getTestLog(testRunId: string, signal?: AbortSignal): Promise<string>;
+  readonly comparisons?: ComparisonProvider;
 }
 
 /** Кодирует каждый сегмент пути отдельно, сохраняя «/». */
@@ -126,6 +139,7 @@ export function createCodegenProvider(
   const generation = (id: string) =>
     `/api/generations/${encodeURIComponent(id)}`;
   const testRun = (id: string) => `/api/test-runs/${encodeURIComponent(id)}`;
+  const comparisons = (id: string) => `${generation(id)}/comparisons`;
 
   return {
     label: options.label ?? null,
@@ -149,8 +163,12 @@ export function createCodegenProvider(
         status: await readJson<CodegenStatus>(response),
       };
     },
-    async listGenerations(ref, signal) {
-      return readJson<Generation[]>(await get(version(ref), signal));
+    async listGenerations(ref, signal, onVerificationState) {
+      const response = await get(version(ref), signal);
+      const generations = await readJson<Generation[]>(response);
+      const state = response.headers.get("X-TLC-Verification-State");
+      onVerificationState?.(VERIFICATION_STATES.find((candidate) => candidate === state) ?? null);
+      return generations;
     },
     async getGeneration(id, signal) {
       return readJson<Generation>(await get(generation(id), signal));
@@ -181,11 +199,16 @@ export function createCodegenProvider(
         codeHash: response.headers.get("X-Code-Hash"),
       };
     },
-    async createGeneration(ref, { allowUnverified }, key, signal) {
+    async createGeneration(ref, { allowUnverified, target, technicalConditions, applicationMode }, key, signal) {
       return readJson<Generation>(
         await post(
           version(ref),
-          allowUnverified ? { allow_unverified: true } : {},
+          {
+            ...(allowUnverified ? { allow_unverified: true } : {}),
+            ...(target === undefined ? {} : { target }),
+            ...(technicalConditions === undefined ? {} : { technical_conditions: technicalConditions }),
+            ...(applicationMode === undefined ? {} : { application_mode: applicationMode }),
+          },
           key,
           signal,
         ),
@@ -216,6 +239,26 @@ export function createCodegenProvider(
       if (!response.ok) await readJson(response);
       return response.text();
     },
+    comparisons: {
+      async listSnapshots(sessionId, signal) {
+        const path = `/api/sessions/${encodeURIComponent(sessionId)}/repositories`;
+        const snapshots: RepositorySnapshot[] = [];
+        const limit = 100;
+        for (let offset = 0; ; offset += limit) {
+          const page = await readJson<RepositorySnapshot[]>(
+            await get(`${path}?limit=${limit}&offset=${offset}`, signal),
+          );
+          snapshots.push(...page);
+          if (page.length < limit) return snapshots;
+        }
+      },
+      async list(id, signal) {
+        return readJson<TestRun[]>(await get(comparisons(id), signal));
+      },
+      async start(id, body, key) {
+        return readJson<TestRun>(await post(comparisons(id), body, key));
+      },
+    },
   };
 }
 
@@ -233,6 +276,16 @@ export function verificationDetails(error: unknown): Array<{
     check_run_id:
       typeof detail.check_run_id === "string" ? detail.check_run_id : null,
   }));
+}
+
+export function codegenErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError))
+    return "Нет связи с сервером генерации. Повторите попытку.";
+  const details = error.details.map(({ path, reason, message }) => {
+    const field = Array.isArray(path) ? path.join(".") : path;
+    return [field, reason ?? message].filter(Boolean).join(": ");
+  });
+  return [error.message, ...details.filter(Boolean)].join("\n");
 }
 
 /** Новый ключ идемпотентности на каждое осознанное действие (контракт генератора). */

@@ -99,6 +99,7 @@ export type {
   CodegenProvider,
   CodegenAvailability,
   CodegenHttpOptions,
+  ComparisonProvider,
 } from "./files/provider";
 export {
   reviewManifest,

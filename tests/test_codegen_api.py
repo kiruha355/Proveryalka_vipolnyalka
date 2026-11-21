@@ -120,6 +120,30 @@ def generate(client, model_id, body=None, key="g1", number=1):
 HOLDS = {"NoCancelledExecution": "PROPERTY_HOLDS", "CanExecute": "PROPERTY_HOLDS", "EndsProperly": "PROPERTY_HOLDS"}
 
 
+def test_lists_current_tlc_state_without_changing_saved_generation(tmp_path):
+    app, _ = build(tmp_path)
+    store = app.state.backend.store
+    with TestClient(app) as client:
+        _, model, _ = add_version(store, fixture="order_bug")
+        path = f"/api/models/{model['id']}/versions/1/generations"
+        response = client.get(path)
+        assert response.json() == []
+        assert response.headers["X-TLC-Verification-State"] == "not_checked"
+
+        complete_check(store, model["id"], 1, {p: "TIMEOUT" for p in HOLDS})
+        assert client.get(path).headers["X-TLC-Verification-State"] == "inconclusive"
+        complete_check(store, model["id"], 1, HOLDS)
+        assert client.get(path).headers["X-TLC-Verification-State"] == "holds"
+        saved = generate(client, model["id"]).json()
+        assert saved["verification"]["state"] == "holds"
+
+        complete_check(store, model["id"], 1, {**HOLDS, "NoCancelledExecution": "PROPERTY_VIOLATED"},
+                       {"NoCancelledExecution": ORDER_BUG_TRACE})
+        response = client.get(path)
+        assert response.headers["X-TLC-Verification-State"] == "violated"
+        assert response.json() == [saved]
+
+
 def test_generation_requires_approved_version_and_verified_or_acknowledged(tmp_path):
     app, _ = build(tmp_path)
     store = app.state.backend.store

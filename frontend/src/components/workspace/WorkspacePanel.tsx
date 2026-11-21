@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { useCore } from "../../app/core";
 import { workspaceViews, type WorkspaceViewDefinition } from "../../app/extensions";
 import type { WorkspaceContextValue } from "../../app/workspace";
@@ -12,6 +12,7 @@ import { Inspector } from "./Inspector";
 interface Props {
   context: WorkspaceContextValue;
   viewId: string | undefined;
+  fileOpenNotice?: ReactNode;
 }
 
 function VersionPicker({ context }: { context: WorkspaceContextValue }) {
@@ -58,7 +59,7 @@ function Approval({ context }: { context: WorkspaceContextValue }) {
   );
 }
 
-export function WorkspacePanel({ context, viewId }: Props) {
+export function WorkspacePanel({ context, viewId, fileOpenNotice }: Props) {
   const core = useCore();
   const { workspace } = core;
   const views = workspaceViews().filter((v) => (v.available ? v.available(context) : true));
@@ -125,11 +126,12 @@ export function WorkspacePanel({ context, viewId }: Props) {
       </header>
 
       <div className={`workspace__body${active?.id === "diagram" ? " workspace__body--diagram" : ""}`}>
-        {workspace.models.error !== null && !workspace.models.data && (
+        {fileOpenNotice}
+        {!fileOpenNotice && workspace.models.error !== null && !workspace.models.data && (
           <ErrorNotice error={workspace.models.error} title="Модели не загружены"
             action={<button type="button" className="button button--small" onClick={workspace.reloadModels}>Повторить</button>} />
         )}
-        {workspace.models.loading && !workspace.models.data && <QuietStatus busy>Загрузка модели</QuietStatus>}
+        {!fileOpenNotice && workspace.models.loading && !workspace.models.data && <QuietStatus busy>Загрузка модели</QuietStatus>}
         {nothing && workspace.models.data && (
           <div className="view view--empty">
             <div className="empty">
@@ -141,7 +143,7 @@ export function WorkspacePanel({ context, viewId }: Props) {
         {!context.version && dialogue && (
           <ModelIssues issues={dialogue.analysis.model_issues} missing={dialogue.analysis.missing_information} />
         )}
-        {ActiveView && !nothing && (
+        {ActiveView && !nothing && !(fileOpenNotice && active?.id === "files") && (
           <div role="tabpanel" id={`panel-${active!.id}`} aria-labelledby={`tab-${active!.id}`} className={`workspace__view${active!.id === "files" ? " workspace__view--files" : active!.id === "diagram" ? " workspace__view--diagram" : ""}`}>
             <ActiveView context={context} />
           </div>

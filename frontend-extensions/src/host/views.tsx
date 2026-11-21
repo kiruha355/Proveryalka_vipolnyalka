@@ -359,6 +359,7 @@ export function ImplementationSection({ context }: HostViewProps) {
                 path: link.path,
                 lines: link.lines,
                 generationId: manifest.generation_id,
+                versionId: manifest.version_id,
               });
               context.openView(FILES_VIEW_ID);
             }}
