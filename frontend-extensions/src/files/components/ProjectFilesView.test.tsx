@@ -422,7 +422,7 @@ it("открывает файл из дерева после несовпаде�
 it("ответ генерации сохраняет более новую ссылку из чата", async () => {
   const provider = await currentProvider();
   let complete!: (generation: typeof g) => void;
-  provider.createGeneration = vi.fn(() => new Promise(resolve => { complete = resolve; }));
+  provider.createGeneration = vi.fn(() => new Promise<typeof g>(resolve => { complete = resolve; }));
   const manual = { generationId: g.generation_id, path: "app/rules.py" };
   const chatLink = { ...manual, sha256: "0".repeat(64) };
   setProjectFocus(manual);

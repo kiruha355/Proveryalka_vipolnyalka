@@ -97,6 +97,19 @@ def decode(result):
     return result.json()
 
 
+def test_chat_created_from_document_belongs_to_its_creator(users):
+    users.switch('alice')
+    response = users.post('/api/sessions/from-document', data={'title': 'Rules'},
+                          files={'file': ('rules.txt', b'Create and approve the order.')},
+                          headers={'Idempotency-Key': 'uploaded'})
+    assert response.status_code == 201, response.text
+    session = response.json()['session']
+    assert users.get('/api/sessions').json() == [session]
+    users.switch('bob')
+    assert users.get('/api/sessions').json() == []
+    assert users.get('/api/sessions/' + session['id']).status_code == 404
+
+
 def test_user_mcp_project_grants_and_revocation(users):
     c=users;alice=c.switch('alice');store=c.app.state.auth.store
     ctx=principal.set(alice)

@@ -75,5 +75,5 @@ async def authorize_resource(request: Request):
         if kind in RESOURCES:
             require_owner(auth.store,'image_id' if kind == 'source_id' and '/images/' in request.url.path else kind,value)
             checked=True
-    if not checked and request.url.path not in ('/api/sessions','/api/codegen/status') and not request.url.path.startswith('/api/connections'):
+    if not checked and request.url.path not in ('/api/sessions','/api/sessions/from-document','/api/codegen/status') and not request.url.path.startswith('/api/connections'):
         raise ServiceError(404,'NOT_FOUND','Resource not found')
