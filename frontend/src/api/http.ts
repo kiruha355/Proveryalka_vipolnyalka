@@ -45,7 +45,9 @@ export class HttpApi implements ProveryalkaApi {
 
   async ready(signal?: AbortSignal): Promise<ReadyInfo> {
     const value = await this.request("GET", "/ready", { signal });
-    if (typeof value !== "object" || value === null) throw new ApiError("malformed", "Ответ /ready не является объектом");
+    if (typeof value !== "object" || value === null || (value as Record<string, unknown>).status !== "ready") {
+      throw new ApiError("malformed", "Ответ /ready не подтверждает готовность сервера");
+    }
     return value as ReadyInfo;
   }
 

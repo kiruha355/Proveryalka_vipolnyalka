@@ -470,7 +470,7 @@ describe("controls and expanded diagram", () => {
       const zoomButton = within(toolbar).getByRole("button", { name: /сбросить до 100%/ });
       await waitFor(() => {
         const pct = Number.parseInt(zoomButton.textContent ?? "0", 10);
-        expect(pct).toBeGreaterThanOrEqual(85);
+        expect(pct).toBe(85);
       });
       expect(within(toolbar).getByRole("button", { name: "Развернуть диаграмму" })).toBeInTheDocument();
       expect(screen.getByText("Черновик заявки на согласование")).toBeInTheDocument();

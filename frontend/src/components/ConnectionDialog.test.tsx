@@ -1,8 +1,9 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { ApiError } from "../api/errors";
+import { HttpApi } from "../api/http";
 import type { ReadyInfo } from "../api/types";
 import { savePrefs } from "../state/persist";
 import { ConnectionDialog } from "./ConnectionDialog";
@@ -216,6 +217,119 @@ describe("ConnectionDialog", () => {
 
       // Connection has NOT been applied yet: no openapi/sessions calls to server-b.
       expect(requests.some((u) => u.startsWith("http://server-b.example:8080/openapi.json"))).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("gives current readiness error precedence over retained data (S1) and hides SQLite/Java/TLC from primary status (S5)", async () => {
+    const user = userEvent.setup();
+    render(
+      <ConnectionDialog
+        adapter="http"
+        baseUrl="http://server-b.local:9000"
+        ready={{
+          data: { status: "ready", checker: "tlc-from-a", llm_provider: "openai" },
+          error: new ApiError("http", "SQLite or Java/TLC is unavailable", { status: 503, code: "DEPENDENCY_UNAVAILABLE" }),
+          loading: false,
+        }}
+        onApply={vi.fn()}
+        onCheckReady={vi.fn(async () => ({ status: "ready", llm_provider: "openai" }))}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Подключение" });
+    const clone = dialog.cloneNode(true) as HTMLElement;
+    clone.querySelector("details")?.remove();
+    const primaryText = clone.textContent ?? "";
+    expect(primaryText).not.toContain("Сервер доступен");
+    expect(primaryText).not.toContain("SQLite");
+    expect(primaryText).not.toContain("Java/TLC");
+    expect(primaryText).toContain("Сервер не готов к работе");
+
+    await user.click(screen.getByText("Технические сведения"));
+    const details = dialog.querySelector("details")!;
+    expect(within(details).getByText(/SQLite or Java\/TLC is unavailable/)).toBeInTheDocument();
+  });
+
+  it("clears cancelled probe loading spinner when switching to Demo and back (S3)", async () => {
+    const user = userEvent.setup();
+    const pending = deferred<ReadyInfo>();
+    render(
+      <ConnectionDialog
+        adapter="http"
+        baseUrl="http://server-a.local:8000"
+        ready={{ data: { status: "ready", llm_provider: "anthropic" }, error: null, loading: false }}
+        onApply={vi.fn()}
+        onCheckReady={vi.fn(() => pending.promise)}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Проверить" }));
+    expect(screen.getByText("Проверка подключения…")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText(/Демо на записанных данных/));
+    await user.click(screen.getByLabelText(/Сервер Проверялки/));
+    expect(screen.queryByText("Проверка подключения…")).not.toBeInTheDocument();
+  });
+
+  it("rejects HTTP 200 JSON without status='ready' in HttpApi.ready (S4)", async () => {
+    const api = new HttpApi("http://unrelated.example", vi.fn<typeof fetch>(async () =>
+      new Response(JSON.stringify({ unrelated: true }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    ));
+    await expect(api.ready()).rejects.toThrow(/Ответ \/ready не подтверждает готовность/);
+  });
+
+  it("refreshes App readiness state when probing the active URL (S2) and preserves URL input focus on rerender (F12)", async () => {
+    savePrefs({ adapter: "http", baseUrl: "", lastSession: {}, sidebarOpen: true });
+    const activeProbe = deferred<Response>();
+    let readyRequests = 0;
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url === "/openapi.json") {
+        return new Response(JSON.stringify({
+          paths: { "/api/sessions": {}, "/api/sessions/{session_id}/messages": {} },
+          components: { schemas: {} },
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url === "/api/sessions?limit=200") {
+        return new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url === "/ready") {
+        if (readyRequests++ > 0) return activeProbe.promise;
+        return new Response(JSON.stringify({ status: "ready", checker: "TLC", agent_configured: false }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("{}", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      const user = userEvent.setup();
+      render(<App />);
+
+      expect(await screen.findByText(/Агент не настроен/)).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /Подключение/ }));
+
+      await user.click(screen.getByRole("button", { name: "Проверить" }));
+      await user.click(screen.getByText("Технические сведения"));
+      const input = screen.getByLabelText("Адрес API");
+      input.focus();
+      await act(async () => {
+        activeProbe.resolve(new Response(JSON.stringify({ status: "ready", llm_provider: "openai", agent_configured: true })));
+      });
+      expect(await screen.findByText("openai")).toBeInTheDocument();
+      expect(input).toHaveFocus();
+
+      await user.click(screen.getByRole("button", { name: "Отмена" }));
+      await waitFor(() => expect(screen.queryByText(/Агент не настроен/)).not.toBeInTheDocument());
     } finally {
       vi.unstubAllGlobals();
     }
