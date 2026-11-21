@@ -70,19 +70,23 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
     }
   };
 
-  const attach = async (file: File) => {
-    if (inFlight.current || !api.uploadDocument) return;
-    inFlight.current = true; setBusy(true); setError(null); setDocumentError(true);
+  const attach = async (file: File, imageKey?: string) => {
+    if (inFlight.current) return;
+    inFlight.current = true; setBusy(true); setError(null); setDocumentError(!imageKey);
     const saved = documentSession.current;
     const attempt = saved && saved.file === file ? saved : {session: saved?.session ?? null, sessionKey: newKey(), uploadKey: newKey(), file};
     documentSession.current = attempt;
     try {
       if (!attempt.session) attempt.session = await api.createSession({title: titleFrom(file.name)}, attempt.sessionKey);
-      await api.uploadDocument(attempt.session.id, file, attempt.uploadKey);
-      updateLocal(api.id, attempt.session.id, local => ({...local, draft}));
+      const image = imageKey ? await api.uploadImage!(attempt.session.id, file, imageKey) : null;
+      if (!image) await api.uploadDocument!(attempt.session.id, file, attempt.uploadKey);
+      updateLocal(api.id, attempt.session.id, local => ({...local, draft, openImageId: image?.id}));
       updateLocal(api.id, NEW, local => ({...local, draft: "", outbox: null}));
       onCreated(attempt.session);
-    } catch (failure) { setError(failure); }
+    } catch (failure) {
+      if (imageKey) throw failure;
+      setError(failure);
+    }
     finally {inFlight.current = false; setBusy(false);}
   };
 
@@ -113,7 +117,8 @@ export function NewChat({ api, capabilities, onCreated }: Props) {
         <Composer ref={composer} value={draft} label="Описание поведения"
           onChange={(value) => { setDraft(value); updateLocal(api.id, NEW, (local) => ({ ...local, draft: value })); }}
           onSubmit={() => void start()} busy={busy} blockedReason={blocked}
-          attach={capabilities?.documents ? {busy, onFile: file => void attach(file)} : null}
+          attach={capabilities?.documents && api.uploadDocument ? {busy, onFile: file => void attach(file)} : null}
+          attachImage={capabilities?.images && api.uploadImage ? attach : undefined}
           placeholder="Например: заявку можно согласовать, отменить или исполнить…" />
       </div>
     </section>

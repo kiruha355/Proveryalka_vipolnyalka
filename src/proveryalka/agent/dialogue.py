@@ -85,6 +85,9 @@ async def generate_state(payload, sources, previous, question_id, max_rounds, ma
             else:
                 try:
                     state = build_state(sources, candidate, previous, question_id, max_rounds)
+                    if observations := payload.get("image_observations"):
+                        from ..images.evidence import validate_observations
+                        validate_observations(candidate, sources, previous, observations)
                     await activity("validation", attempt=attempt, outcome="passed")
                     return state
                 except ValueError as error:
@@ -137,6 +140,11 @@ async def resume_pending(session: Session) -> DialogueState:
                 "report": checked.report.model_dump(mode="json"),
                 "explanation": checked.explanation.model_dump(mode="json", exclude={"question"}) if checked.explanation else None,
             }
+    from ..storage.session import StoredSession
+    if isinstance(session, StoredSession):
+        observations = await session.image_observations(sources)
+        if observations:
+            payload["image_observations"] = observations
     check_context(payload)
     await activity("context_ready", source_id=source.id, sources_count=len(sources), purpose="analysis")
     state = await generate_state(payload, sources, previous, pending.question_id, pending.max_rounds)

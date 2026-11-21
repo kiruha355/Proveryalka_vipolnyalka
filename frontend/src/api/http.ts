@@ -4,7 +4,8 @@ import {
   expect, expectList, isAgentRunTracePage, isDialogueView, isDocumentUpload, isArtifactEntry, isCheckRun, isModel, isModelVersion, isRun, isRunEvent, isSession, isSessionDetail,
 } from "./guards";
 import { readSse } from "./sse";
-import type { CheckRequest, ReadyInfo, RunEvent } from "./types";
+import { isImageAnalysis, isImageAnalysisRecord, isImageProvenance, isImageSource, type ImageRegion } from "./images";
+import type { CheckRequest, ReadyInfo, RunEvent, SourceRef } from "./types";
 
 type FetchLike = typeof fetch;
 
@@ -16,6 +17,8 @@ interface RequestOptions {
 }
 
 const segment = encodeURIComponent;
+const imagesPath = (sessionId: string) => `/api/sessions/${segment(sessionId)}/images`;
+const imagePath = (sessionId: string, sourceId: string) => `${imagesPath(sessionId)}/${segment(sourceId)}`;
 
 export class HttpApi implements ProveryalkaApi {
   readonly id: string;
@@ -90,6 +93,45 @@ export class HttpApi implements ProveryalkaApi {
 
   async getRun(runId: string, signal?: AbortSignal) {
     return expect(await this.request("GET", `/api/runs/${segment(runId)}`, { signal }), isRun, "Запуск");
+  }
+
+  async uploadImage(sessionId: string, file: File, key: string, signal?: AbortSignal) {
+    const body = new FormData();
+    body.append("file", file);
+    return expect(await this.request("POST", imagesPath(sessionId), { body, key, signal }), isImageSource, "Загруженное изображение");
+  }
+
+  async listImages(sessionId: string, signal?: AbortSignal) {
+    return expectList(await this.request("GET", imagesPath(sessionId), { signal }), isImageSource, "Изображения");
+  }
+
+  getImageContentUrl(sessionId: string, sourceId: string) {
+    return `${this.base}${imagePath(sessionId, sourceId)}/content`;
+  }
+
+  async analyzeImage(sessionId: string, sourceId: string, region: ImageRegion | null, key: string, signal?: AbortSignal) {
+    return expect(await this.request("POST", `${imagePath(sessionId, sourceId)}/analysis`, { body: { region }, key, signal }),
+      isImageAnalysis, "Разбор изображения");
+  }
+
+  async listImageAnalyses(sessionId: string, sourceId: string, signal?: AbortSignal) {
+    return expectList(await this.request("GET", `${imagePath(sessionId, sourceId)}/analyses`, { signal }),
+      isImageAnalysisRecord, "Сохранённые разборы изображения");
+  }
+
+  async useImageAnalysisInDialogue(sessionId: string, sourceId: string, analysisId: string, key: string, signal?: AbortSignal) {
+    const source = await this.request("POST", `${imagePath(sessionId, sourceId)}/analyses/${segment(analysisId)}/source`, { signal });
+    if (typeof source !== "object" || source === null || !("id" in source) || typeof source.id !== "string") {
+      throw new ApiError("malformed", "Текстовый источник разбора");
+    }
+    return this.sendMessage(sessionId, { source_id: source.id }, key, signal);
+  }
+
+  async getImageProvenance(sessionId: string, ref: Pick<SourceRef, "source_id" | "start" | "end">, signal?: AbortSignal) {
+    const params = new URLSearchParams({ start: String(ref.start), end: String(ref.end) });
+    const value = await this.request("GET", `/api/sessions/${segment(sessionId)}/sources/${segment(ref.source_id)}/provenance?${params}`, { signal });
+    if (value === null || (typeof value === "object" && value !== null && "kind" in value && value.kind === "repository")) return null;
+    return expect(value, isImageProvenance, "Ссылка на область изображения");
   }
 
   async listAgentRuns(sessionId: string, before?: number | null, signal?: AbortSignal) {
@@ -228,5 +270,7 @@ export function detectCapabilities(doc: unknown): ApiCapabilities {
     dialogue: "/api/sessions/{session_id}/dialogue" in paths,
     explanations: "/api/checks/{run_id}/explanation" in paths,
     agentTrace: "/api/sessions/{session_id}/agent-runs" in paths,
+    images: "/api/sessions/{session_id}/images/{source_id}/analyses/{analysis_id}/source" in paths &&
+      "/api/sessions/{session_id}/sources/{source_id}/provenance" in paths,
   };
 }

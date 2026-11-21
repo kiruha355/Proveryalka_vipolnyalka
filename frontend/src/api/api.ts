@@ -1,6 +1,7 @@
 import type {
-  AgentRunTracePage, ArtifactEntry, FileContextRef, DocumentSource, DialogueView, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session, SessionDetail,
+  AgentRunTracePage, ArtifactEntry, FileContextRef, DocumentSource, DialogueView, CheckRequest, CheckRun, Model, ModelVersion, ReadyInfo, Run, RunEvent, Session, SessionDetail, SourceRef,
 } from "./types";
+import type { ImageAnalysis, ImageAnalysisRecord, ImageProvenance, ImageRegion, ImageSource } from "./images";
 
 export interface ApiCapabilities {
   /** "demo" data comes from recorded fixtures; never a live LLM or TLC. */
@@ -21,6 +22,7 @@ export interface ApiCapabilities {
   explanations?: boolean;
   fileDialogue?: boolean;
   agentTrace?: boolean;
+  images?: boolean;
 }
 
 export const DOCUMENT_TYPES = [".txt", ".md", ".docx"] as const;
@@ -72,6 +74,13 @@ export interface ProveryalkaApi {
   listCheckRuns?(versionId: string, signal?: AbortSignal): Promise<string[]>;
   /** Only when capabilities().documents is true. HTTP extraction errors reject with their API code. */
   uploadDocument?(sessionId: string, file: File, key: string, signal?: AbortSignal): Promise<DocumentSource>;
+  uploadImage?(sessionId: string, file: File, key: string, signal?: AbortSignal): Promise<ImageSource>;
+  listImages?(sessionId: string, signal?: AbortSignal): Promise<ImageSource[]>;
+  getImageContentUrl?(sessionId: string, sourceId: string): string;
+  analyzeImage?(sessionId: string, sourceId: string, region: ImageRegion | null, key: string, signal?: AbortSignal): Promise<ImageAnalysis>;
+  listImageAnalyses?(sessionId: string, sourceId: string, signal?: AbortSignal): Promise<ImageAnalysisRecord[]>;
+  useImageAnalysisInDialogue?(sessionId: string, sourceId: string, analysisId: string, key: string, signal?: AbortSignal): Promise<Run>;
+  getImageProvenance?(sessionId: string, ref: Pick<SourceRef, "source_id" | "start" | "end">, signal?: AbortSignal): Promise<ImageProvenance | null>;
 }
 
 export function newKey(): string {

@@ -78,3 +78,40 @@ it("shared OpenAPI discovery survives the first StrictMode consumer abort",async
  expect((await two).agent).toBe(true);expect(await one).toEqual(await two);
  expect(fetcher.mock.calls[0]![1]?.signal).toBeUndefined();
 });
+
+it("uses the image attachment and provenance contracts from develop", async () => {
+  const image = { id: "img", session_id: "s", filename: "diagram.webp", width: 80, height: 60 };
+  const region = { x: 17, y: 13, width: 23, height: 19 };
+  const result = { id: "a", source_id: image.id, description: "Схема", requirements: [], uncertainties: [], source_refs: [{ region }] };
+  const record = { id: result.id, source_id: image.id, state: "completed", error_code: null, result };
+  const provenance = { ...image, kind: "image", image_source_id: image.id, analysis_id: result.id, region };
+  const fetcher = vi.fn<typeof fetch>()
+    .mockResolvedValueOnce(json(image, 201)).mockResolvedValueOnce(json([image])).mockResolvedValueOnce(json(result))
+    .mockResolvedValueOnce(json([record])).mockResolvedValueOnce(json({ id: "projection" }, 201)).mockResolvedValueOnce(json(run, 202))
+    .mockResolvedValueOnce(json(provenance)).mockResolvedValueOnce(json({ kind: "repository" }));
+  const api = new HttpApi("https://local.test/", fetcher);
+  const file = new File(["image"], image.filename, { type: "image/webp" });
+  expect(await api.uploadImage("s", file, "upload")).toEqual(image);
+  expect(await api.listImages("s")).toEqual([image]);
+  expect(await api.analyzeImage("s", image.id, region, "analysis")).toEqual(result);
+  expect(await api.listImageAnalyses("s", image.id)).toEqual([record]);
+  expect(await api.useImageAnalysisInDialogue("s", image.id, result.id, "message")).toEqual(run);
+  const ref = { source_id: "projection", start: 12, end: 35 };
+  expect(await api.getImageProvenance("s", ref)).toEqual(provenance);
+  expect(await api.getImageProvenance("s", { ...ref, source_id: "repo" })).toBeNull();
+  const root = "https://local.test/api/sessions/s";
+  expect(api.getImageContentUrl("s", image.id)).toBe(`${root}/images/img/content`);
+  expect(fetcher.mock.calls.map(call => call[0])).toEqual([
+    `${root}/images`, `${root}/images`, `${root}/images/img/analysis`, `${root}/images/img/analyses`,
+    `${root}/images/img/analyses/a/source`, `${root}/messages`, `${root}/sources/projection/provenance?start=12&end=35`,
+    `${root}/sources/repo/provenance?start=12&end=35`,
+  ]);
+  const upload = fetcher.mock.calls[0]![1]!;
+  expect((upload.body as FormData).get("file")).toBe(file);
+  expect(upload.headers).toEqual({ "Idempotency-Key": "upload" });
+  expect(fetcher.mock.calls[2]![1]!.body).toBe(JSON.stringify({ region }));
+  expect(fetcher.mock.calls[5]![1]).toMatchObject({ body: JSON.stringify({ source_id: "projection" }), headers: { "Idempotency-Key": "message" } });
+  const paths = { "/api/sessions": {}, "/api/sessions/{session_id}/images/{source_id}/analyses/{analysis_id}/source": {} };
+  expect(detectCapabilities({ paths }).images).toBe(false);
+  expect(detectCapabilities({ paths: { ...paths, "/api/sessions/{session_id}/sources/{source_id}/provenance": {} } }).images).toBe(true);
+});

@@ -32,6 +32,7 @@ export const Table = make(<><rect x="4" y="5" width="16" height="14" rx="1.5" />
 export const Shield = make(<><path d="M12 3.5 19 6v5.5c0 4.2-3 7.4-7 9-4-1.6-7-4.8-7-9V6l7-2.5z" /><path d="m9 12 2.2 2.2L15.5 10" /></>);
 export const List = make(<><path d="M9 7h11" /><path d="M9 12h11" /><path d="M9 17h11" /><path d="M4.5 7h.01" /><path d="M4.5 12h.01" /><path d="M4.5 17h.01" /></>);
 export const Paperclip = make(<path d="M8.5 12.5 14 7a3 3 0 0 1 4.2 4.2l-7.1 7.1a5 5 0 0 1-7.1-7.1L10.6 4.6" />);
+export const Picture = make(<><rect x="4" y="5" width="16" height="14" rx="1" /><circle cx="9" cy="10" r="1.5" /><path d="m4 16 4-3 3 2 4-4 5 5" /></>);
 export const Plug = make(<><path d="M9 3.5V8" /><path d="M15 3.5V8" /><path d="M7 8h10v3a5 5 0 0 1-10 0V8z" /><path d="M12 16v4.5" /></>);
 export const Download = make(<><path d="M12 4v11" /><path d="m7.5 10.5 4.5 4.5 4.5-4.5" /><path d="M5 19.5h14" /></>);
 export const Retry = make(<><path d="M19 12a7 7 0 1 1-2.1-5" /><path d="M19 4.5V8h-3.5" /></>);
